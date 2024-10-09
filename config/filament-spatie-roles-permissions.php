@@ -68,7 +68,7 @@ return [
 
     'guard_names' => [
         'web' => 'web',
-        'api' => 'api',
+        // 'api' => 'api',
     ],
 
     'toggleable_guard_names' => [
@@ -83,7 +83,7 @@ return [
     'default_guard_name' => null,
 
     // if false guard option will not be show on screen. You should set a default_guard_name in this case
-    'should_show_guard' => true,
+    'should_show_guard' => false,
 
     'model_filter_key' => 'return \'%\'.$value;', // Eg: 'return \'%\'.$key.'\%\';'
 
@@ -110,7 +110,7 @@ return [
 
         'guard_names' => [
             'web',
-            'api',
+            // 'api',
         ],
 
         'permission_affixes' => [
@@ -143,7 +143,7 @@ return [
          *
          * Note: If you are changing the "permission_name" , It's recommended to run with --clean to avoid duplications
          */
-        'permission_name' => 'return $permissionAffix . \' \' . $modelName;',
+        'permission_name' => 'return $modelName. \'.\' . $permissionAffix ;',
 
         /*
          * Permissions will be generated for the models associated with the respective Filament Resources
@@ -180,7 +180,7 @@ return [
          * Define any other permission that should be synced with the DB
          */
         'custom_permissions' => [
-            //'view-log'
+            // 'view-dashboard',
         ],
 
         'user_model' => \App\Models\User::class,
