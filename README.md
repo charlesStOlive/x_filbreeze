@@ -64,3 +64,44 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+# Installation de Imagick sur windows 
+* Télecherger le binaries de Imagick ici : https://imagemagick.org/script/download.php#windows 
+* A noter
+  * Q16 ou Q8 => Q16 signifie 16 bits par pixel, offrant une meilleure qualité d'image mais avec une consommation de mémoire un peu plus élevée. Pour des besoins de précision (traitement de PDF avec des détails fins), Q16 est généralement recommandé
+  * HDRI (High Dynamic Range Imaging) => La version HDRI (ImageMagick-7.1.1-40-Q16-HDRI-x64-dll.exe) permet de travailler avec des images HDR. Elle n'est généralement nécessaire que pour des applications spécifiques et utilise plus de mémoire. À moins que vous ayez des besoins en HDR, vous pouvez rester sur la version non HDRI
+  * Attention x64 ou x32
+* Trouveeer le bon dll en fonction de la version : 
+  * Aller sur https://mlocati.github.io/articles/php-windows-imagick.html
+  * Choisir n fonction de la version de php. 
+  * Pour verifier TS ou la version du compilateur : 
+  ```
+  php -i | findstr "Architecture"
+  php -i | findstr "Thread Safety"
+  php -i | findstr "Compiler"
+
+  ```
+  * Extraire l'ensemble du fichier dans un repertoire choisis : ex C:/PHP ( ou dans le dossier de laragon) 
+  * Copier le fichieer dll dans le etc de la bonne version de php : C:\laragon\bin\php\php-8.3.9-Win32-vs16-x64\ext
+  * Ajouter à la variable d'environement le repertoire de l'ensemble des autres fichiers ex : C:\laragon\imagick_all
+  * Veriffication : 
+  ```
+  php -m | findstr imagick
+  ```
+
+  # Installation de tesseract
+  * Télecharger la version officielle :   https://github.com/UB-Mannheim/tesseract/wiki
+  * hoisissez le dossier d’installation (par défaut : C:\Program Files\Tesseract-OCR).
+  * Ajouter aux  les variables d'environnement :  (ex: C:\Program Files\Tesseract-OCR).
+  * Verification : 
+  ````
+  tesseract -v
+  ````
+## Le wrapper laravel : 
+````
+composer require thiagoalessio/tesseract_ocr
+````
+
+## Pour convertir des PDF avec imagick :
+Il faut installer GhostScript : https://github.com/dlemstra/Magick.NET/blob/main/docs/ConvertPDF.md

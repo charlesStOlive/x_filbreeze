@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         Artisan::call('permissions:sync');
         $this->call(createUserAndRoles::class);
         $this->call(SectorSeeder::class);
+        $this->call(SupplierSeeder::class);
         
     }
 }

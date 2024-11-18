@@ -57,6 +57,15 @@ return [
             'throw' => false,
         ],
 
+        'sharepoint' => [
+            'driver' => 'sharepoint',
+            'tenantId' => env('SHAREPOINT_TENANT_ID', 'secret'),
+            'clientId' => env('SHAREPOINT_CLIENT_ID', 'secret'),
+            'clientSecret' => env('SHAREPOINT_CLIENT_SECRET_VALUE', 'secret'),
+            'sharepointSite' => env('SHAREPOINT_SITE', 'laravelTest'),
+            'prefix' => env('SHAREPOINT_PREFIX', 'test'),
+        ]
+
     ],
 
     /*

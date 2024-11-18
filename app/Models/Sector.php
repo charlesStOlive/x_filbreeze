@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use InvadersXX\FilamentNestedList\Concern\ModelNestedList;
+use SolutionForest\FilamentTree\Concern\ModelTree;
 
 class Sector extends Model
 {
-    use HasFactory, ModelNestedList;
+    use HasFactory, ModelTree;
 
     /**
      * The attributes that aren't mass assignable.

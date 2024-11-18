@@ -18,14 +18,9 @@ class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
     protected static ?string $cluster = Crm::class;
-
-    public static function getNavigationLabel(): string
-    {
-        return __('crm.companies');
-    }
 
     public static function form(Form $form): Form
     {

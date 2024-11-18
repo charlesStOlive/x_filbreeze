@@ -18,14 +18,9 @@ class ContactResource extends Resource
 {
     protected static ?string $model = Contact::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user';
 
     protected static ?string $cluster = Crm::class;
-
-    public static function getNavigationLabel(): string
-    {
-        return __('crm.companies');
-    }
 
     public static function form(Form $form): Form
     {

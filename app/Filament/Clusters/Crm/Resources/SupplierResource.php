@@ -5,12 +5,14 @@ namespace App\Filament\Clusters\Crm\Resources;
 use App\Models\Supplier;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Forms;
 use Filament\Tables;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
+use Illuminate\Support\Str;
 use App\Filament\Clusters\Crm\Resources\SupplierResource\Pages;
 
 class SupplierResource extends Resource
@@ -20,23 +22,77 @@ class SupplierResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
-    public static function getNavigationLabel(): string
-    {
-        return __('crm.suppliers');
-    }
+    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                TextInput::make('name')->required()->label('Supplier Name'),
-                TextInput::make('email')->email()->required()->label('Email'),
-                TextInput::make('phone')->tel()->label('Phone Number'),
-                TextInput::make('address')->label('Address'),
-                TextInput::make('city')->label('City'),
-                TextInput::make('country')->label('Country'),
-                Textarea::make('notes')->label('Notes')->rows(4),
-            ]);
+                Forms\Components\Section::make('Fournisseur')
+                    ->schema([
+                        TextInput::make('name')
+                            ->required()
+                            ->label('Supplier Name')
+                            ->live(debounce: 500) // Ajoute un délai pour la génération du slug
+                            ->afterStateUpdated(function (callable $set, $state) {
+                                $set('slug', Str::slug($state));
+                            }),
+
+                        TextInput::make('slug')
+                            ->required()
+                            ->label('Slug')
+                            ->unique(table: 'crm_suppliers', column: 'slug') // Assure l'unicité du slug dans la table suppliers
+                            ->hint('modifiable si besoin')
+                            ->hintIcon('heroicon-o-information-circle'),
+
+                        TextInput::make('email')
+                            ->email()
+                            ->nullable()
+                            ->label('Email'),
+
+                        TextInput::make('incoming_email')
+                            ->email()
+                            ->nullable()
+                            ->unique(table: 'suppliers', column: 'incoming_email') // Assure l'unicité 
+                            ->label('Incoming Email'),
+
+                        TextInput::make('incoming_email_title_filter')
+                            ->email()
+                            ->nullable()
+                            ->hint('Permet de ne traiter ques les mails qui contiennent ce titre')
+                            ->hintIcon('heroicon-o-information-circle')
+                            ->label('Filtre titre email de facture')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Adresse')
+                    ->schema([
+                        TextInput::make('phone')
+                            ->tel()
+                            ->label('Phone Number'),
+
+                        TextInput::make('address')
+                            ->label('Address'),
+
+                        TextInput::make('city')
+                            ->label('City'),
+
+                        TextInput::make('country')
+                            ->label('Country'),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Memo')
+                    ->schema([
+                        Textarea::make('memo')
+                            ->nullable()
+                            ->label('Memo')
+                            ->rows(4)
+                            ->extraAttributes(['style' => 'background-color: #fff9c4;']),
+                    ]),
+            ])
+            ->columns(1);
     }
 
     public static function table(Table $table): Table
