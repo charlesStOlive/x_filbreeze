@@ -4,7 +4,7 @@
     $record = $getRecord();
 @endphp
 
-<div class="text-sm">
+<div class="text-sm px-3 py-4">
     @foreach ($servicesConfig as $serviceKey => $service)
         @php
             // Récupérer le mode de chaque service
