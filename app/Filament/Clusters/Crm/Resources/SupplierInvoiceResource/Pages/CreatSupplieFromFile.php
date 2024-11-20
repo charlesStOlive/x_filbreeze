@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 
@@ -28,6 +28,15 @@ class CreatSupplieFromFile extends Page implements HasForms
 
     protected static string $view = 'filament.clusters.crm.resources.supplier-invoice-resource.pages.creat-supplie-from-file';
 
+    public function getSubNavigation(): array
+    {
+        if (filled($cluster = static::getCluster())) {
+            return $this->generateNavigationItems($cluster::getClusteredComponents());
+        }
+
+        return [];
+    }
+
     protected SupplierInvoiceFileAnalyser $fileAnalyzer;
     protected ?string $tempFilePath = null; // Stocker le chemin temporaire du fichier traité
     public ?SupplierInvoice $createdInvoice = null;
@@ -43,7 +52,7 @@ class CreatSupplieFromFile extends Page implements HasForms
     public ?string $invoice_number = null;
     public ?string $currency = null;
     public ?array $file_pdf_image = [];
-    
+
     public ?string $prompt = null;
     public ?string $type = null;
 

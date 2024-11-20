@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Classes\Services;
+namespace App\Services\MsGraph;
 
 /*
 * msgraph api documenation can be found at https://developer.msgraph.com/reference
@@ -10,13 +10,13 @@ use App\Models\MsgToken;
 use Exception;
 use GuzzleHttp\Client;
 use App\Models\MsgUser;
-use App\Classes\EmailAnalyser;
+use App\Services\Processors\EmailAnalyser;
 use App\Models\MsgEmailIn;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use Arr;
 
-class ConnectorEmail
+class MsgConnect
 {
     protected static string $baseUrl = 'https://graph.microsoft.com/v1.0/';
 
@@ -37,6 +37,7 @@ class ConnectorEmail
 
     public function connect(bool $redirect = true): mixed
     {
+        
         $params = [
             'scope' => 'https://graph.microsoft.com/.default',
             'client_id' => config('msgraph.clientId'),
@@ -44,13 +45,16 @@ class ConnectorEmail
             'grant_type' => 'client_credentials',
         ];
         $token = null;
+
         try {
             $client = new Client;
+            \Log::info(config('msgraph.tenantUrlAccessToken'));
             $response = $client->post(config('msgraph.tenantUrlAccessToken'), ['form_params' => $params]);
             $token =  json_decode($response->getBody()->getContents());
         } catch (ClientException $e) {
             return json_decode(($e->getResponse()->getBody()->getContents()));
         } catch (Exception $e) {
+            \Log::error($e->getMessage());
             throw new Exception($e->getMessage());
         }
 
@@ -67,7 +71,6 @@ class ConnectorEmail
     public function getUsers()
     {
         $users = $this->guzzle('get', 'users');
-        //\Log::info($users);
         return $users;
     }
 
@@ -131,7 +134,60 @@ class ConnectorEmail
             \Log::error("Error in subscription verification: " . $e->getMessage());
             throw $e; // Propagate the exception
         }
-        return $this->analyseEmail($user, $messageId);
+        return $this->launchSuscribedServices($user, $messageId);
+    }
+
+    
+    
+    public function launchSuscribedServices($user, $messageId)
+    {
+        $emailToTreat = new MsgEmailIn();// Ensure you have a valid access token
+        try {
+            // Get the current email to modify
+            $email = $this->guzzle('get', "users/{$user->ms_id}/messages/{$messageId}");
+            \Log::info('email data');
+            \Log::info($email);
+        //     $emailAnalyser =  new EmailAnalyser($email, $user, $messageId);
+        //     $emailAnalyser->analyse();
+        //     $emailToTreat = $emailAnalyser->emailIn;
+        //     $specificEmails = ['contact@menuiserie-cofim.com', 'c.petrequin@menuiserie-cofim.com'];
+
+        //     if (in_array($user->email, $specificEmails)) {
+        //         \Log::info("**********EMAIL SPÉCIFIQUE*************");
+        //     }
+
+        //     // Traitement du rejet
+        //     if ($emailToTreat->is_rejected) {
+        //         \Log::info('Email rejeté');
+        //         return;
+        //     }
+
+        //     // Vérification du forward et des emails spécifiques
+        //     if ($emailToTreat->forwarded_to && !in_array($user->email, $specificEmails)) {
+        //         if (!$user->is_test) {
+        //             \Log::info('Email forwardé');
+        //             return $this->forwardEmail($user, $emailToTreat, $messageId);
+        //         } else {
+        //             \Log::error('Blocage Test de la fonction forwardEmail');
+        //             return true;
+        //         }
+        //     } else {
+        //         if (!$user->is_test) {
+        //             $emailToTreat->body = $emailAnalyser->getBodyWithReplacedKey();
+                    
+        //             // \Log::info($emailToTreat->body);
+        //             return $this->updateEmail($user, $emailToTreat, $messageId);
+        //         } else {
+        //             \Log::error('Blocage Test de la fnc updateEmail');
+        //             return true;
+        //         }
+                
+        //     } 
+        //     return true;
+        } catch (Exception $e) {
+            \Log::error($e);
+            throw $e;
+        }
     }
 
     protected function verifySubscriptionAndgetUser($clientState, $tenantId)
@@ -146,68 +202,6 @@ class ConnectorEmail
             throw new \Exception("No user found matching the provided client state.");
         }
         return $user;
-    }
-    
-    function tempExtractNumber(string $input)
-    {
-        // Utiliser preg_match pour vérifier le format et extraire le chiffre
-        if (preg_match('/^test-(\d+)$/', $input, $matches)) {
-            // Convertir le résultat en entier
-            return intval($matches[1]);
-        } else {
-            // Retourner false si le format n'est pas respecté
-            return false;
-        }
-    }
-    public function analyseEmail($user, $messageId)
-    {
-        $emailToTreat = new MsgEmailIn();// Ensure you have a valid access token
-        try {
-            // Get the current email to modify
-            $email = $this->guzzle('get', "users/{$user->ms_id}/messages/{$messageId}");
-            // // TEMP -----
-            // // ---- FIN TEMP
-            $emailAnalyser =  new EmailAnalyser($email, $user, $messageId);
-            $emailAnalyser->analyse();
-            $emailToTreat = $emailAnalyser->emailIn;
-            $specificEmails = ['contact@menuiserie-cofim.com', 'c.petrequin@menuiserie-cofim.com'];
-
-            if (in_array($user->email, $specificEmails)) {
-                \Log::info("**********EMAIL SPÉCIFIQUE*************");
-            }
-
-            // Traitement du rejet
-            if ($emailToTreat->is_rejected) {
-                \Log::info('Email rejeté');
-                return;
-            }
-
-            // Vérification du forward et des emails spécifiques
-            if ($emailToTreat->forwarded_to && !in_array($user->email, $specificEmails)) {
-                if (!$user->is_test) {
-                    \Log::info('Email forwardé');
-                    return $this->forwardEmail($user, $emailToTreat, $messageId);
-                } else {
-                    \Log::error('Blocage Test de la fonction forwardEmail');
-                    return true;
-                }
-            } else {
-                if (!$user->is_test) {
-                    $emailToTreat->body = $emailAnalyser->getBodyWithReplacedKey();
-                    
-                    // \Log::info($emailToTreat->body);
-                    return $this->updateEmail($user, $emailToTreat, $messageId);
-                } else {
-                    \Log::error('Blocage Test de la fnc updateEmail');
-                    return true;
-                }
-                
-            } 
-            return true;
-        } catch (Exception $e) {
-            \Log::error($e);
-            throw $e;
-        }
     }
 
     public function forwardEmail($user, $emailIn, $messageId)

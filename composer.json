@@ -19,7 +19,8 @@
         "solution-forest/filament-tree": "^2.1",
         "spatie/laravel-data": "^4.11",
         "spatie/laravel-settings": "^3.4",
-        "thiagoalessio/tesseract_ocr": "^2.13"
+        "thiagoalessio/tesseract_ocr": "^2.13",
+        "valentin-morice/filament-json-column": "^1.5"
     },
     "require-dev": {
         "doctrine/dbal": "^4.1",

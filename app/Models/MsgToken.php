@@ -10,4 +10,9 @@ class MsgToken extends Model
     use HasFactory;
     protected $guarded = [];
 
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
 }
