@@ -6,15 +6,16 @@ namespace App\Services\MsGraph;
 * msgraph api documenation can be found at https://developer.msgraph.com/reference
 **/
 
-use App\Models\MsgToken;
+use Arr;
 use Exception;
 use GuzzleHttp\Client;
 use App\Models\MsgUser;
-use App\Services\Processors\EmailAnalyser;
+use App\Models\MsgToken;
 use App\Models\MsgEmailIn;
+use App\Dto\MsGraph\EmailMessageDTO;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
-use Arr;
+use App\Services\Processors\EmailAnalyser;
 
 class MsgConnect
 {
@@ -37,7 +38,7 @@ class MsgConnect
 
     public function connect(bool $redirect = true): mixed
     {
-        
+
         $params = [
             'scope' => 'https://graph.microsoft.com/.default',
             'client_id' => config('msgraph.clientId'),
@@ -137,53 +138,60 @@ class MsgConnect
         return $this->launchSuscribedServices($user, $messageId);
     }
 
-    
-    
+
+
     public function launchSuscribedServices($user, $messageId)
     {
-        $emailToTreat = new MsgEmailIn();// Ensure you have a valid access token
+        $emailToTreat = new MsgEmailIn(); // Ensure you have a valid access token
         try {
             // Get the current email to modify
             $email = $this->guzzle('get', "users/{$user->ms_id}/messages/{$messageId}");
             \Log::info('email data');
             \Log::info($email);
-        //     $emailAnalyser =  new EmailAnalyser($email, $user, $messageId);
-        //     $emailAnalyser->analyse();
-        //     $emailToTreat = $emailAnalyser->emailIn;
-        //     $specificEmails = ['contact@menuiserie-cofim.com', 'c.petrequin@menuiserie-cofim.com'];
+            \Log::info('email data retrieved');
+            // Transform raw email data into a DTO
+            $emailDTO = EmailMessageDTO::fromArray($email);
+            // Log the structured data
+            \Log::info('Structured Email Data (DTO):');
+            \Log::info($emailDTO->toCleanedArray()); // Exclude unnecessary fields for logging
 
-        //     if (in_array($user->email, $specificEmails)) {
-        //         \Log::info("**********EMAIL SPÉCIFIQUE*************");
-        //     }
+            //     $emailAnalyser =  new EmailAnalyser($email, $user, $messageId);
+            //     $emailAnalyser->analyse();
+            //     $emailToTreat = $emailAnalyser->emailIn;
+            //     $specificEmails = ['contact@menuiserie-cofim.com', 'c.petrequin@menuiserie-cofim.com'];
 
-        //     // Traitement du rejet
-        //     if ($emailToTreat->is_rejected) {
-        //         \Log::info('Email rejeté');
-        //         return;
-        //     }
+            //     if (in_array($user->email, $specificEmails)) {
+            //         \Log::info("**********EMAIL SPÉCIFIQUE*************");
+            //     }
 
-        //     // Vérification du forward et des emails spécifiques
-        //     if ($emailToTreat->forwarded_to && !in_array($user->email, $specificEmails)) {
-        //         if (!$user->is_test) {
-        //             \Log::info('Email forwardé');
-        //             return $this->forwardEmail($user, $emailToTreat, $messageId);
-        //         } else {
-        //             \Log::error('Blocage Test de la fonction forwardEmail');
-        //             return true;
-        //         }
-        //     } else {
-        //         if (!$user->is_test) {
-        //             $emailToTreat->body = $emailAnalyser->getBodyWithReplacedKey();
-                    
-        //             // \Log::info($emailToTreat->body);
-        //             return $this->updateEmail($user, $emailToTreat, $messageId);
-        //         } else {
-        //             \Log::error('Blocage Test de la fnc updateEmail');
-        //             return true;
-        //         }
-                
-        //     } 
-        //     return true;
+            //     // Traitement du rejet
+            //     if ($emailToTreat->is_rejected) {
+            //         \Log::info('Email rejeté');
+            //         return;
+            //     }
+
+            //     // Vérification du forward et des emails spécifiques
+            //     if ($emailToTreat->forwarded_to && !in_array($user->email, $specificEmails)) {
+            //         if (!$user->is_test) {
+            //             \Log::info('Email forwardé');
+            //             return $this->forwardEmail($user, $emailToTreat, $messageId);
+            //         } else {
+            //             \Log::error('Blocage Test de la fonction forwardEmail');
+            //             return true;
+            //         }
+            //     } else {
+            //         if (!$user->is_test) {
+            //             $emailToTreat->body = $emailAnalyser->getBodyWithReplacedKey();
+
+            //             // \Log::info($emailToTreat->body);
+            //             return $this->updateEmail($user, $emailToTreat, $messageId);
+            //         } else {
+            //             \Log::error('Blocage Test de la fnc updateEmail');
+            //             return true;
+            //         }
+
+            //     } 
+            //     return true;
         } catch (Exception $e) {
             \Log::error($e);
             throw $e;
@@ -210,8 +218,8 @@ class MsgConnect
             if ($emailIn->move_to_folder) {
                 $resultFolder = $this->setEmailInFOlder($user, $emailIn, $messageId);
                 $messageId = $resultFolder['id'];
-            } 
-            
+            }
+
             $comment = sprintf('## %s ## ', $emailIn->from);
             $forwardData = [
                 'message' => [
@@ -239,13 +247,13 @@ class MsgConnect
         }
     }
 
-    public function setEmailIsRead($user, $messageId , $isRead = true) {
+    public function setEmailIsRead($user, $messageId, $isRead = true)
+    {
         try {
             $updateData = [
                 'isRead' => $isRead,
             ];
             return $this->guzzle('patch', "users/{$user->ms_id}/messages/{$messageId}", $updateData);
-            
         } catch (Exception $e) {
             //\Log::error("Failed to move email to folder: " . $e->getMessage());
             throw new Exception('Failed to set Is Read. Please try again later.');
@@ -290,7 +298,7 @@ class MsgConnect
 
     public function updateEmail($user, $emailIn, $messageId)
     {
-        \Log::info('-------------------type email = '.$emailIn->contentType);
+        \Log::info('-------------------type email = ' . $emailIn->contentType);
         try {
             $updateData = [
                 'subject' => $emailIn->new_subject,
