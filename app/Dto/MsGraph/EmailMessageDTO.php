@@ -3,6 +3,7 @@
 namespace App\Dto\MsGraph;
 
 use Carbon\Carbon;
+use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Attributes\Validation\Rule;
 
 class EmailMessageDTO extends Data
@@ -55,7 +56,7 @@ class EmailMessageDTO extends Data
             importance: $data['importance'] ?? 'normal',
             contentType: $contentType,
             bodyOriginal: $bodyHtml,
-            bodyBrut: $contentType === 'text/plain' ? $bodyHtml : self::parseTextFromHtml($bodyHtml),
+            bodyBrut: self::parseTextFromHtml($bodyHtml),
             toRecipientsNames: self::extractRecipientNames($data['toRecipients'] ?? []),
             toRecipientsMails: self::extractRecipientEmails($data['toRecipients'] ?? []),
             ccRecipientsNames: self::extractRecipientNames($data['ccRecipients'] ?? []),
@@ -76,7 +77,7 @@ class EmailMessageDTO extends Data
      */
     private static function parseTextFromHtml(string $html): string
     {
-        return \Soundasleep\Html2Text::convert($html, ['ignore_errors' => true]);
+        return \Soundasleep\Html2Text::convert($html, ['ignore_errors' => true, 'drop_links' => true]);
     }
 
     /**
@@ -115,7 +116,7 @@ class EmailMessageDTO extends Data
      */
     public function toCleanedArray(): array
     {
-        return $this->except('bodyBrut')->toArray();
+        return $this->except('bodyOriginal')->toArray();
     }
 
     /**
