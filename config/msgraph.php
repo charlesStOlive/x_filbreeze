@@ -76,50 +76,8 @@ return [
     Config services
     */
     'services' => [
-        'email-in-processor' => [
-            'label' => 'Ranger email dans dossier client',
-            'class' => \App\Services\Processors\EmailInClientProcessor::class,
-            'description' => 'Règles d’acceptation des emails...',
-            'options' => [
-                'mode' => [
-                    'type' => 'list',
-                    'default' => 'inactive',
-                    'label' => 'Mode',
-                    'values' => [
-                        'inactive' => 'Inactif',
-                        'active' => 'Actif',
-                        'test' => 'Test',
-                    ],
-                ],
-                'field' => [
-                    'type' => 'string',
-                    'default' => 'slug',
-                    'label' => 'Champs client pour dossier',
-                ],
-            ],
-        ],
-        'email-pj-factu-processor' => [
-            'label' => 'Analyse PJ pour facture',
-            'class' => \App\Services\Processors\EmailPjFactuProcessor::class,
-            'description' => 'Extrait, analyse et enregistre les factures depuis une pièce jointe.',
-            'options' => [
-                'mode' => [
-                    'type' => 'list',
-                    'default' => 'inactive',
-                    'label' => 'Mode',
-                    'values' => [
-                        'inactive' => 'Inactif',
-                        'active' => 'Actif',
-                        'test' => 'Test',
-                    ],
-                ],
-                'to_adress' => [
-                    'type' => 'string',
-                    'default' => '',
-                    'label' => 'Alias',
-                ],
-            ],
-        ],
+        \App\Services\Processors\Emails\EmailInClientProcessor::class,
+        \App\Services\Processors\Emails\EmailPjFactuProcessor::class,
     ]
 
 ];

@@ -2,62 +2,64 @@
 
 namespace App\Services\MsGraph;
 
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
+use RuntimeException;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
+use App\Services\EmailsProcessorRegisterServices;
 
 class DynamicFormBuilder
 {
     /**
-     * Génère le formulaire en fonction des services configurés et du record.
+     * Génère un formulaire en fonction des services enregistrés et du record.
      *
-     * @param array $servicesConfig Configuration des services.
-     * @param mixed $record Enregistrement courant.
-     * @return array Liste des composants du formulaire.
+     * @param string $field Nom du champ parent (e.g., `services`).
+     * @param mixed $record L’enregistrement Filament actuel.
+     * @return array Composants du formulaire.
      */
-    public static function build(array $servicesConfig, $record = null): array
+    public static function build(string $field, $record = null): array
     {
         $formComponents = [];
+        $services = EmailsProcessorRegisterServices::getAll(); // Récupération centralisée des services
 
-        foreach ($servicesConfig as $serviceKey => $service) {
-            if (!isset($service['options']) || !is_array($service['options'])) {
-                continue; // Ignore les services mal formés
-            }
-
-            // Composants de la section courante
+        foreach ($services as $serviceKey => $service) {
+            // Récupère les options du service depuis la classe
+            $options = $service['options'];
             $sectionComponents = [];
 
-            foreach ($service['options'] as $optionKey => $option) {
-                $fieldName = "{$serviceKey}_{$optionKey}";
+            foreach ($options as $optionKey => $option) {
+                // Utilisation de la clé complète (dot notation)
+                $fieldName = "{$field}.{$serviceKey}.{$optionKey}";
+                \Log::info($fieldName);
+                \Log::info($record->getAttribute($fieldName));
 
                 switch ($option['type']) {
                     case 'boolean':
                         $sectionComponents[] = Toggle::make($fieldName)
                             ->label($option['label'] ?? ucfirst($optionKey))
-                            ->default(fn() => $record ? $record->{$fieldName} : ($option['default'] ?? false));
+                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null);
                         break;
 
                     case 'string':
                         $sectionComponents[] = TextInput::make($fieldName)
                             ->label($option['label'] ?? ucfirst($optionKey))
-                            ->default(fn() => $record ? $record->{$fieldName} : ($option['default'] ?? ''));
+                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null);
                         break;
 
                     case 'list':
                         $sectionComponents[] = Select::make($fieldName)
                             ->label($option['label'] ?? ucfirst($optionKey))
                             ->options($option['values'] ?? [])
-                            ->default(fn() => $record ? $record->{$fieldName} : ($option['default'] ?? null));
+                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null);
                         break;
 
                     default:
-                        // Log ou ignorer les types inconnus
-                        break;
+                        throw new RuntimeException("Type de champ inconnu pour {$fieldName}: {$option['type']}.");
                 }
             }
 
-            // Ajouter la section avec les composants
+            // Ajoute une section pour ce service
             $formComponents[] = Section::make($service['label'] ?? ucfirst($serviceKey))
                 ->description($service['description'] ?? null)
                 ->schema($sectionComponents);

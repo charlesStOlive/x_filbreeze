@@ -3,28 +3,22 @@
 namespace App\Models;
 
 use Carbon\Carbon;
-use App\Casts\MsGraph\DynamicCasts;
 use App\Facades\MsGraph\MsgConnect;
 use Illuminate\Support\Facades\App;
 use Illuminate\Database\Eloquent\Model;
-use App\Casts\MsGraph\MsgUserSuscription;
-use App\Services\Processors\EmailAnalyser;
+use App\Casts\MsGraph\DynamicEmailServicesCast;
+use App\Services\EmailsProcessorRegisterServices;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class MsgUser extends Model
+class MsgUserDraft extends Model
 {
     use HasFactory;
+
+    protected $table = 'msg_user_drafts';
 
     protected $guarded = ['id'];
 
     protected $casts = [];
-
-    public function __construct(array $attributes = [])
-    {
-        parent::__construct($attributes);
-        // Charger dynamiquement les casts à partir de la configuration
-        $this->casts = DynamicCasts::generateCasts(config('msgraph.services')) ?? [];
-    }
 
     public function canAccessPanel(Panel $panel): bool
     {
@@ -41,19 +35,19 @@ class MsgUser extends Model
     protected static function booted():void
     {
         static::deleted(function ($model) {
-            $model->msg_email_ins()->delete();
+            $model->msg_email_drafts()->delete();
             $model->revokeSuscription();
         });
     }
 
     public function msg_email_ins()
     {
-        return $this->hasMany(MsgEmailIn::class);
+        return $this->hasMany(MsgEmailDraft::class);
     }
 
     public static function getApiMsgUsersIdsEmails()
     {
-        //\Log::info('getApiMsgUsersIdsEmails'); 
+        //\Log::info('getApiInsIdsEmails'); 
 
         if (App::environment('local')) {
             //\Log::info('on est en local');
@@ -72,7 +66,7 @@ class MsgUser extends Model
         //\Log::info($users);
         
         $users = $users['value'] ?? [];
-        $existingEmails = MsgUser::pluck('email')->toArray();
+        $existingEmails = MsgUserDraft::pluck('email')->toArray();
         //\Log::info("Existing emails----------------------------: ");
         //\Log::info($existingEmails);
         
@@ -116,7 +110,7 @@ class MsgUser extends Model
 
     public function suscribe()
     {
-        $reponse = MsgConnect::subscribeToEmailNotifications($this->ms_id, $this->abn_secret);
+        $reponse = MsgConnect::subscribeToDraftNotifications($this->ms_id, $this->abn_secret);
         // \Log::info('reponse du suscribe');
         // \Log::info($reponse);
         if($reponse['response']['id'] ?? false) {

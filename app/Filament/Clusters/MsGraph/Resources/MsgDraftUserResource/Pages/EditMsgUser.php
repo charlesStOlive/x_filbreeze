@@ -1,25 +1,28 @@
 <?php
 
-namespace App\Filament\Clusters\MsGraph\Resources\MsgUserResource\Pages;
+namespace App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource\Pages;
 
-
-
+use App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Actions\Action;
-use App\Services\Processors\EmailAnalyser;
+use App\Facades\MsGraph\MsgConnect;
 use Filament\Forms\Components\TextInput;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Forms\Components\RichEditor;
-use App\Filament\Clusters\MsGraph\Resources\MsgUserResource;
 
 
-class ViewMsgUser extends ViewRecord
+
+class EditMsgUser extends EditRecord
 {
-    protected static string $resource = MsgUserResource::class;
+    protected static string $resource = MsgDraftUserResource::class;
+
+    protected function getFormActions (): array {
+        return [];
+    }
 
     protected function getHeaderActions(): array
     {
         return [
-           Action::make('testConnection')
+             Action::make('testConnection')
                 ->label('Simuler un email')
                 ->icon('heroicon-o-play')
                 ->color('primary')
@@ -53,12 +56,13 @@ class ViewMsgUser extends ViewRecord
                         $bccResipients[] = ['emailAddress' => ['address' => trim($bcc)]];
                     }
                     $dataEmail['bccRecipients'] = $bccResipients;
-                    $emailAnalyser = new EmailAnalyser($dataEmail, $this->getRecord());
-                    $emailAnalyser->analyse();
-                    $livewire->dispatch('refreshExampleRelationManager');
+                    $msgUser = $this->record;
+
+                    MsgConnect::launchTestServices($msgUser, $dataEmail);
+                    // $emailAnalyser->analyse();
+                    $livewire->dispatch('refreshMsgEmailInsRelationManager');
                     return;
                 }),
         ];
     }
-
 }

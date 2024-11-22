@@ -11,14 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('msg_users', function (Blueprint $table) {
+        Schema::create('msg_email_drafts', function (Blueprint $table) {
             $table->id();
-            $table->string('ms_id')->unique();
-            $table->string('email')->unique();
-            $table->string('suscription_id')->nullable();
+            $table->string('msg_user_draft_id')->nullable();
             $table->json('services')->nullable();
-            $table->string('abn_secret')->nullable();
-            $table->dateTime('expire_at')->nullable();
+            $table->json('data_mail')->nullable();
+            $table->json('results')->nullable();
+            $table->string('from')->nullable();
+            $table->string('subject')->nullable();
+            $table->string('tos')->nullable();
             $table->timestamps();
         });
     }
@@ -28,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('msg_users');
+        Schema::dropIfExists('msg_email_drafts');
     }
 };

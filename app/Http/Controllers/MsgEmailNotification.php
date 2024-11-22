@@ -1,44 +1,54 @@
-<?php
+<?php 
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Facades\MsGraph\MsgConnect;
-use Illuminate\Support\Facades\Http;
-use App\Jobs\ProcessEmailNotification;
+use Illuminate\Support\Facades\Log;
 
 class MsgEmailNotification extends Controller
 {
-    public function handle(Request $request)
+    /**
+     * Gestion des notifications pour les emails entrants
+     */
+    public function handleIncoming(Request $request)
     {
-        // \Log::info('Request data:');
-        // \Log::info($request->all());
-        // \Log::info('Request has validation data:');
-        // \Log::info($request->has('validationToken'));
-
-        // Check if the request contains a validation token dans ce cas c est une validation d'abonemment
+        // Validation d'abonnement
         if ($request->has('validationToken')) {
-            //\Log::info('Validation token received:');
-            //\Log::info($request->input('validationToken'));
-            // Respond with the validation token as plain text
             return response($request->input('validationToken'))->header('Content-Type', 'text/plain');
         }
 
+        // Traitement des notifications d'emails entrants
         $notificationData = $request->all();
-        // \Log::error('notificationData');
-        // \Log::error($notificationData);
-        // Traitement de la notification
         try {
-            //Lancement analyse
-            \Log::info('Lancement analyse ----------------------------------------------');
+            Log::info('Processing incoming email notification', $notificationData);
             MsgConnect::processEmailNotification($notificationData);
-            // \Log::info('Lancement analyse JOB ----------------------------------------------');
-            // ProcessEmailNotification::dispatch($notificationData);
             return response()->json(['status' => 'success', 'message' => 'Email processed successfully'], 200);
         } catch (\Exception $e) {
-            \Log::error($e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Failed to process email: ' . $e->getMessage()], 500);
+            Log::error('Failed to process incoming email: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Failed to process incoming email'], 500);
         }
     }
 
+    /**
+     * Gestion des notifications pour les brouillons
+     */
+    public function handleDraft(Request $request)
+    {
+        // Validation d'abonnement
+        if ($request->has('validationToken')) {
+            return response($request->input('validationToken'))->header('Content-Type', 'text/plain');
+        }
+
+        // Traitement des notifications pour les brouillons
+        $notificationData = $request->all();
+        try {
+            Log::info('Processing draft notification', $notificationData);
+            MsgConnect::processDraftNotification($notificationData);
+            return response()->json(['status' => 'success', 'message' => 'Draft processed successfully'], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to process draft: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Failed to process draft'], 500);
+        }
+    }
 }

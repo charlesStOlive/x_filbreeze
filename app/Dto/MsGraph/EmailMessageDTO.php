@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Dto\MsGraph;
 
@@ -27,9 +27,13 @@ class EmailMessageDTO extends Data
         public array $ccRecipientsMails = [],
         public array $bccRecipientsNames = [],
         public array $bccRecipientsMails = [],
+        public string $allRecipentsStringMails = '',
+        public string $toRecipentsStringMails = '',
+        public array $allRecipentsNdd = [],
         public string $fromName,
         #[Rule('email')]
         public string $fromEmail,
+        public string $fromNdd = '', // Nouveau champ pour le domaine
         public string $webLink,
         public string $inferenceClassification,
         #[Rule('boolean')]
@@ -42,42 +46,41 @@ class EmailMessageDTO extends Data
      */
     public static function fromArray(array $data): self
     {
-        $bodyHtml = $data['body']['content'] ?? '';
-        $contentType = $data['body']['contentType'] ?? 'text/plain';
+        $toEmails = self::extractRecipientEmails($data['toRecipients'] ?? []);
+        $ccEmails = self::extractRecipientEmails($data['ccRecipients'] ?? []);
+        $bccEmails = self::extractRecipientEmails($data['bccRecipients'] ?? []);
+
+        $allEmails = array_merge($toEmails, $ccEmails, $bccEmails);
 
         return new self(
-            id: $data['id'],
-            createdDateTime: new Carbon($data['createdDateTime']),
-            receivedDateTime: new Carbon($data['receivedDateTime']),
-            sentDateTime: new Carbon($data['sentDateTime']),
+            id: $data['id'] ?? 'xxxxxx',
+            createdDateTime: new Carbon($data['createdDateTime'] ?? now()),
+            receivedDateTime: new Carbon($data['receivedDateTime'] ?? now()),
+            sentDateTime: new Carbon($data['sentDateTime'] ?? now()),
             hasAttachments: $data['hasAttachments'] ?? false,
-            internetMessageId: $data['internetMessageId'],
+            internetMessageId: $data['internetMessageId'] ?? 'xxxxxxx',
             subject: $data['subject'],
             importance: $data['importance'] ?? 'normal',
-            contentType: $contentType,
-            bodyOriginal: $bodyHtml,
-            bodyBrut: self::parseTextFromHtml($bodyHtml),
+            contentType: $data['body']['contentType'] ?? 'text/plain',
+            bodyOriginal: $data['body']['content'] ?? '',
+            bodyBrut: self::parseTextFromHtml($data['body']['content'] ?? ''),
             toRecipientsNames: self::extractRecipientNames($data['toRecipients'] ?? []),
-            toRecipientsMails: self::extractRecipientEmails($data['toRecipients'] ?? []),
+            toRecipientsMails: $toEmails,
             ccRecipientsNames: self::extractRecipientNames($data['ccRecipients'] ?? []),
-            ccRecipientsMails: self::extractRecipientEmails($data['ccRecipients'] ?? []),
+            ccRecipientsMails: $ccEmails,
             bccRecipientsNames: self::extractRecipientNames($data['bccRecipients'] ?? []),
-            bccRecipientsMails: self::extractRecipientEmails($data['bccRecipients'] ?? []),
+            bccRecipientsMails: $bccEmails,
+            toRecipentsStringMails: implode(',', $toEmails),
+            allRecipentsStringMails: implode(',', $allEmails),
+            allRecipentsNdd: self::extractDomains($allEmails),
             fromName: $data['from']['emailAddress']['name'] ?? '',
             fromEmail: $data['from']['emailAddress']['address'] ?? '',
+            fromNdd: self::extractDomainFromEmail($data['from']['emailAddress']['address'] ?? ''),
             webLink: $data['webLink'] ?? '',
             inferenceClassification: $data['inferenceClassification'] ?? 'other',
             hasPJs: !empty($data['hasAttachments']),
             pjs: self::extractAttachments($data['attachments'] ?? [])
         );
-    }
-
-    /**
-     * Convert HTML to plain text using Soundasleep.
-     */
-    private static function parseTextFromHtml(string $html): string
-    {
-        return \Soundasleep\Html2Text::convert($html, ['ignore_errors' => true, 'drop_links' => true]);
     }
 
     /**
@@ -97,6 +100,31 @@ class EmailMessageDTO extends Data
     }
 
     /**
+     * Extract domains from emails.
+     */
+    private static function extractDomains(array $emails): array
+    {
+        return array_unique(array_map(fn($email) => self::extractDomainFromEmail($email), $emails));
+    }
+
+    /**
+     * Extract the domain from an email address.
+     */
+    public static function extractDomainFromEmail(string $email): string
+    {
+        $parts = explode('@', $email);
+        return $parts[1] ?? '';
+    }
+
+    /**
+     * Convert HTML to plain text using Soundasleep.
+     */
+    private static function parseTextFromHtml(string $html): string
+    {
+        return \Soundasleep\Html2Text::convert($html, ['ignore_errors' => true, 'drop_links' => true]);
+    }
+
+    /**
      * Extract attachment details.
      */
     private static function extractAttachments(array $attachments): array
@@ -109,21 +137,5 @@ class EmailMessageDTO extends Data
                 'id' => $attachment['id'] ?? '',
             ];
         }, $attachments);
-    }
-
-    /**
-     * Convert to array excluding specific fields (e.g., bodyBrut).
-     */
-    public function toCleanedArray(): array
-    {
-        return $this->except('bodyOriginal')->toArray();
-    }
-
-    /**
-     * Convert to JSON excluding specific fields (e.g., bodyBrut).
-     */
-    public function toCleanedJson(): string
-    {
-        return json_encode($this->toFilteredArray(), JSON_PRETTY_PRINT);
     }
 }

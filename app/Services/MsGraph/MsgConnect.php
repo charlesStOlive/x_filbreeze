@@ -9,13 +9,14 @@ namespace App\Services\MsGraph;
 use Arr;
 use Exception;
 use GuzzleHttp\Client;
-use App\Models\MsgUser;
+use App\Models\MsgUserIn;
 use App\Models\MsgToken;
 use App\Models\MsgEmailIn;
 use App\Dto\MsGraph\EmailMessageDTO;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
-use App\Services\Processors\EmailAnalyser;
+use App\Services\Processors\Emails\EmailPjFactuProcessor;
+use App\Services\Processors\Emails\EmailInClientProcessor;
 
 class MsgConnect
 {
@@ -49,7 +50,6 @@ class MsgConnect
 
         try {
             $client = new Client;
-            \Log::info(config('msgraph.tenantUrlAccessToken'));
             $response = $client->post(config('msgraph.tenantUrlAccessToken'), ['form_params' => $params]);
             $token =  json_decode($response->getBody()->getContents());
         } catch (ClientException $e) {
@@ -74,6 +74,57 @@ class MsgConnect
         $users = $this->guzzle('get', 'users');
         return $users;
     }
+
+    public function subscribeToDraftNotifications(string $userId, string $secretClientValue): array
+    {
+        $expirationDate = now()->addHours(24);
+
+        try {
+            $subscription = [
+                'changeType' => 'created,updated', // Types de modifications à surveiller
+                'notificationUrl' => url('/api/email-draft-notifications'), // Nouvelle route pour les brouillons
+                'resource' => "users/{$userId}/mailFolders('Drafts')/messages", // Dossier des brouillons
+                'expirationDateTime' => $expirationDate->toISOString(), // Date d'expiration de l'abonnement
+                'clientState' => $secretClientValue, // Clé de sécurité pour vérifier les notifications
+            ];
+
+            $response = $this->guzzle('post', 'subscriptions', $subscription);
+            return ['success' => true, 'response' => $response];
+        } catch (Exception $e) {
+            \Log::error('Failed to subscribe to draft notifications: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Failed to subscribe to draft notifications'];
+        }
+    }
+
+    public function unsubscribeFromDraftNotifications(string $subscriptionId): array
+    {
+        try {
+            $response = $this->guzzle('delete', 'subscriptions/' . $subscriptionId);
+            return ['success' => true, 'response' => $response];
+        } catch (Exception $e) {
+            \Log::error('Failed to unsubscribe from draft notifications: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Failed to unsubscribe from draft notifications'];
+        }
+    }
+
+    public function renewDraftNotificationSubscription(string $subscriptionId): array
+    {
+        $expirationDate = now()->addHours(26);
+
+        try {
+            $subscription = [
+                'expirationDateTime' => $expirationDate->toISOString(),
+            ];
+            $response = $this->guzzle('patch', 'subscriptions/' . $subscriptionId, $subscription);
+            return ['success' => true, 'response' => $response];
+        } catch (Exception $e) {
+            \Log::error('Failed to renew draft notification subscription: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Failed to renew draft notification subscription'];
+        }
+    }
+
+
+
 
     public function subscribeToEmailNotifications(string $userId, string $secretClientValue): array
     {
@@ -135,68 +186,44 @@ class MsgConnect
             \Log::error("Error in subscription verification: " . $e->getMessage());
             throw $e; // Propagate the exception
         }
-        return $this->launchSuscribedServices($user, $messageId);
-    }
-
-
-
-    public function launchSuscribedServices($user, $messageId)
-    {
-        $emailToTreat = new MsgEmailIn(); // Ensure you have a valid access token
         try {
-            // Get the current email to modify
-            $email = $this->guzzle('get', "users/{$user->ms_id}/messages/{$messageId}");
-            \Log::info('email data');
-            \Log::info($email);
-            \Log::info('email data retrieved');
-            // Transform raw email data into a DTO
-            $emailDTO = EmailMessageDTO::fromArray($email);
-            // Log the structured data
-            \Log::info('Structured Email Data (DTO):');
-            \Log::info($emailDTO->toCleanedArray()); // Exclude unnecessary fields for logging
-
-            //     $emailAnalyser =  new EmailAnalyser($email, $user, $messageId);
-            //     $emailAnalyser->analyse();
-            //     $emailToTreat = $emailAnalyser->emailIn;
-            //     $specificEmails = ['contact@menuiserie-cofim.com', 'c.petrequin@menuiserie-cofim.com'];
-
-            //     if (in_array($user->email, $specificEmails)) {
-            //         \Log::info("**********EMAIL SPÉCIFIQUE*************");
-            //     }
-
-            //     // Traitement du rejet
-            //     if ($emailToTreat->is_rejected) {
-            //         \Log::info('Email rejeté');
-            //         return;
-            //     }
-
-            //     // Vérification du forward et des emails spécifiques
-            //     if ($emailToTreat->forwarded_to && !in_array($user->email, $specificEmails)) {
-            //         if (!$user->is_test) {
-            //             \Log::info('Email forwardé');
-            //             return $this->forwardEmail($user, $emailToTreat, $messageId);
-            //         } else {
-            //             \Log::error('Blocage Test de la fonction forwardEmail');
-            //             return true;
-            //         }
-            //     } else {
-            //         if (!$user->is_test) {
-            //             $emailToTreat->body = $emailAnalyser->getBodyWithReplacedKey();
-
-            //             // \Log::info($emailToTreat->body);
-            //             return $this->updateEmail($user, $emailToTreat, $messageId);
-            //         } else {
-            //             \Log::error('Blocage Test de la fnc updateEmail');
-            //             return true;
-            //         }
-
-            //     } 
-            //     return true;
+            $emailData = $this->guzzle('get', "users/{$user->ms_id}/messages/{$messageId}");
+            $this->launchSuscribedServices($user, $emailData);
         } catch (Exception $e) {
             \Log::error($e);
             throw $e;
         }
+        return;
     }
+
+    public function launchTestServices(MsgUserIn $user, $emailData)
+    {
+        $this->launchSuscribedServices($user, $emailData);
+    }
+
+
+    public function launchSuscribedServices(MsgUserIn $user, array $emailData)
+    {
+        $newEmailIn = $user->msg_email_ins()->make();
+        $emailDTO = EmailMessageDTO::fromArray($emailData);
+        $newEmailIn->services = $user->services;
+        $newEmailIn->from = $emailDTO->fromEmail;
+        $newEmailIn->subject = $emailDTO->subject;
+        $newEmailIn->tos = $emailDTO->allRecipentsStringMails;
+        //Appelle des deux classes avec la methode Handle
+        if ($newEmailIn->{'services.e-in-a.mode'} === 'active') { //Retrouver la valeur active ou non pour cette class dans le json services qui a et copié dans le mailIn.
+            $emailInClient = new EmailInClientProcessor();
+            $newEmailIn = $emailInClient->handle($user, $emailDTO, $newEmailIn);
+        }
+
+        if ($newEmailIn->{'services.e-inpj-f.mode'}  === 'active') { //Retrouver la valeur active ou non pour cette class
+            $emailPjFactu = new EmailPjFactuProcessor();
+            $newEmailIn = $emailPjFactu->handle($user, $emailDTO, $newEmailIn);
+        }
+        $newEmailIn->save();
+    }
+
+
 
     protected function verifySubscriptionAndgetUser($clientState, $tenantId)
     {
@@ -205,21 +232,16 @@ class MsgConnect
             throw new \Exception("Tenant ID does not match the configured value.");
         }
         // Suppose that MsgUser is your Eloquent model and it has `mds_id` and `abn_secret` fields
-        $user = MsgUser::where('abn_secret', $clientState)->first();
+        $user = MsgUserIn::where('abn_secret', $clientState)->first();
         if (!$user) {
             throw new \Exception("No user found matching the provided client state.");
         }
         return $user;
     }
 
-    public function forwardEmail($user, $emailIn, $messageId)
+    public function forwardEmail($user, $emailIn, $messageId, $forwardedTo, $comment)
     {
         try {
-            if ($emailIn->move_to_folder) {
-                $resultFolder = $this->setEmailInFOlder($user, $emailIn, $messageId);
-                $messageId = $resultFolder['id'];
-            }
-
             $comment = sprintf('## %s ## ', $emailIn->from);
             $forwardData = [
                 'message' => [
@@ -260,13 +282,10 @@ class MsgConnect
         }
     }
 
-    public function setEmailInFOlder($user, $emailIn, $messageId)
+    public function setEmailInFOlder($user, $emailIn, $messageId, $folderName)
     {
         try {
-            // Vérifier si le dossier existe déjà
-            $folderName = $emailIn->move_to_folder;
             $existingFolder = $this->guzzle('get', "users/{$user->ms_id}/mailFolders?\$filter=displayName eq '{$folderName}'");
-
             if (count($existingFolder['value']) > 0) {
                 // Utiliser l'ID du dossier existant
                 $folderId = $existingFolder['value'][0]['id'];
@@ -285,44 +304,47 @@ class MsgConnect
             ];
             $folderResult =  $this->guzzle('post', "users/{$user->ms_id}/messages/{$messageId}/move", $moveData);
             return  $folderResult;
-            // // Marquer l'email comme lu
-            // $updateData = [
-            //     'isRead' => true,
-            // ];
-            // return $this->guzzle('patch', "users/{$user->ms_id}/messages/{$messageId}", $updateData);
         } catch (Exception $e) {
             //\Log::error("Failed to move email to folder: " . $e->getMessage());
             throw new Exception('Failed to move email to folder. Please try again later.');
         }
     }
 
-    public function updateEmail($user, $emailIn, $messageId)
+    public function updateEmail($user, $messageId, array $updateData)
     {
-        \Log::info('-------------------type email = ' . $emailIn->contentType);
         try {
-            $updateData = [
-                'subject' => $emailIn->new_subject,
-                'categories' => [$emailIn->category],
-                'body' => [
-                    'contentType' => $emailIn->contentType,
-                    'content' => $emailIn->body
-                ],
-            ];
+            // $updateData = [
+            //     'subject' => $emailIn->new_subject,
+            //     'categories' => [$emailIn->category],
+            //     'body' => [
+            //         'contentType' => $emailIn->contentType,
+            //         'content' => $emailIn->body
+            //     ],
+            // ];
 
             // Update the email
             $this->guzzle('patch', "users/{$user->ms_id}/messages/{$messageId}", $updateData);
+            return true;
+        } catch (Exception $e) {
+            \Log::error("Failed to update email: " . $e->getMessage());
+            throw new Exception('Failed to update email. Please try again later.');
+        }
+    }
 
-            $specificEmails = ['contact@menuiserie-cofim.com', 'c.petrequin@menuiserie-cofim.com'];
+    public function updateDraftEmail($user, $messageId, array $updateData)
+    {
+        try {
+            // $updateData = [
+            //     'subject' => $emailIn->new_subject,
+            //     'categories' => [$emailIn->category],
+            //     'body' => [
+            //         'contentType' => $emailIn->contentType,
+            //         'content' => $emailIn->body
+            //     ],
+            // ];
 
-            if (in_array($user->email, $specificEmails)) {
-                \Log::info("**********EMAIL SPÉCIFIQUE*************");
-            }
-
-            // Check if the email needs to be moved to a new folder
-            if ($emailIn->move_to_folder && !in_array($user->email, $specificEmails)) {
-                $this->setEmailInFOlder($user, $emailIn, $messageId);
-            }
-
+            // Update the email
+            $this->guzzle('patch', "users/{$user->ms_id}/messages/{$messageId}", $updateData);
             return true;
         } catch (Exception $e) {
             \Log::error("Failed to update email: " . $e->getMessage());
@@ -372,10 +394,6 @@ class MsgConnect
         ]);
     }
 
-    protected function isJson($data): bool
-    {
-        return is_string($data) && is_array(json_decode($data, true)) && (json_last_error() == JSON_ERROR_NONE);
-    }
 
     /**
      * @throws Exception

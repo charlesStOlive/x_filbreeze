@@ -7,4 +7,6 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
-Route::post('/email-notifications', [\App\Http\Controllers\MsgEmailNotification::class, 'handle']);
+
+Route::post('/email-notifications', [MsgEmailNotification::class, 'handleIncoming']);
+Route::post('/email-draft-notifications', [MsgEmailNotification::class, 'handleDraft']);
