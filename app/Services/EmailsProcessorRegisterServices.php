@@ -10,43 +10,25 @@ use RuntimeException;
 class EmailsProcessorRegisterServices
 {
     /**
-     * Récupère et valide toutes les classes de services depuis la configuration.
+     * Récupère tous les services d'un type spécifique.
      */
-    protected static function getRegisteredServices(): array
+    public static function getAll(string $serviceType): array
     {
-        return config('msgraph.services', []);
-    }
+        $servicesConfig = config("msgraph.{$serviceType}", []);
 
-    /**
-     * Récupère les informations de tous les services (avec ou sans mise en cache).
-     */
-    public static function getAll(): array
-    {
-        if (!App::environment('production')) {
-            // Pas de mise en cache hors production
-            return self::loadServices();
+        if (!is_array($servicesConfig)) {
+            throw new RuntimeException("La configuration pour {$serviceType} est invalide.");
         }
 
-        // Mise en cache en production
-        return Cache::rememberForever('msgraph.services', function () {
-            return self::loadServices();
-        });
-    }
-
-    /**
-     * Charge et valide toutes les classes de services.
-     */
-    protected static function loadServices(): array
-    {
         $services = [];
-        foreach (self::getRegisteredServices() as $className) {
+        foreach ($servicesConfig as $className) {
             if (!class_exists($className)) {
                 throw new RuntimeException("La classe {$className} n'existe pas.");
             }
 
-            if (!in_array(MsGraphEmailServiceInterface::class, class_implements($className))) {
-                throw new RuntimeException("La classe {$className} doit implémenter MsGraphEmailServiceInterface.");
-            }
+            // if (!in_array(MsGraphEmailServiceInterface::class, class_implements($className))) {
+            //     throw new RuntimeException("La classe {$className} doit implémenter MsGraphEmailServiceInterface.");
+            // }
 
             $key = $className::getKey();
             $services[$key] = [
@@ -63,24 +45,12 @@ class EmailsProcessorRegisterServices
     }
 
     /**
-     * Récupère un service spécifique par clé.
+     * Récupère un service spécifique par type et clé.
      */
-    public static function get(string $key): array
+    public static function get(string $serviceType, string $key): ?array
     {
-        $all = self::getAll();
+        $services = self::getAll($serviceType);
 
-        if (!isset($all[$key])) {
-            throw new RuntimeException("Le service avec la clé {$key} n'est pas enregistré.");
-        }
-
-        return $all[$key];
-    }
-
-    /**
-     * Vide le cache pour les services.
-     */
-    public static function clearCache(): void
-    {
-        Cache::forget('msgraph.services');
+        return $services[$key] ?? null;
     }
 }

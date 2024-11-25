@@ -13,7 +13,7 @@ use App\Dto\MsGraph\EmailMessageDTO;
 use App\Services\Processors\Emails\EmailBaseProcessor;
 use App\Contracts\MsGraph\MsGraphEmailServiceInterface;
 
-class EmailPjFactuProcessor extends EmailBaseProcessor implements MsGraphEmailServiceInterface
+class EmailPjFactuProcessor extends EmailBaseProcessor
 {
     //STATIC  var comme JSONKEY = e-in-a
     public static function getKey(): string
@@ -34,27 +34,27 @@ class EmailPjFactuProcessor extends EmailBaseProcessor implements MsGraphEmailSe
     /**
      * Logique principale pour gérer ce service.
      */
-    public function handle(MsgUserIn $msgUser, EmailMessageDTO $email, MsgEmailIn $emailIn): MsgEmailIn
+    public function handle(MsgUserIn $msgUser, EmailMessageDTO $emailData, MsgEmailIn $email): MsgEmailIn
     {
         $this->msgUser = $msgUser;
+        $this->emailData = $emailData;
         $this->email = $email;
-        $this->emailIn = $emailIn;
         // Logique pour gérer les données
         //Get Service Allias
         $alias = $this->getService('to_adress');
         if(!in_array($alias, $email->toRecipientsMails)) {
-            $this->setError('Adresse destinataire non valide : '.$this->email->toRecipentsStringMails);
-            return  $this->emailIn;
+            $this->setError('Adresse destinataire non valide : '.$this->emailData->toRecipentsStringMails);
+            return  $this->email;
         }
 
-        if(!$this->email->hasPJs) {
+        if(!$this->emailData->hasPJs) {
             $this->setError('Pas de PJ');
-            return  $this->emailIn;
+            return  $this->email;
         }
         
         
         //Mettre a jours ces valeurs via le cast. 
-        return  $this->emailIn;
+        return  $this->email;
     }
 
     
@@ -70,11 +70,11 @@ class EmailPjFactuProcessor extends EmailBaseProcessor implements MsGraphEmailSe
         return [
             'mode' => [
                     'type' => 'list',
-                    'default' => 'inactive',
+                    'default' => 'inactif',
                     'label' => 'Mode',
                     'values' => [
-                        'inactive' => 'Inactif',
-                        'active' => 'Actif',
+                        'inactif' => 'Inactif',
+                        'actif' => 'Actif',
                         'test' => 'Test',
                     ],
                 ],

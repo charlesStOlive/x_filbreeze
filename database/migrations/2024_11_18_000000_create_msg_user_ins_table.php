@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('ms_id')->unique();
             $table->string('email')->unique();
             $table->string('suscription_id')->nullable();
-            $table->json('services')->nullable();
+            $table->json('services_options')->nullable();
             $table->string('abn_secret')->nullable();
             $table->dateTime('expire_at')->nullable();
             $table->timestamps();

@@ -2,16 +2,12 @@
 
 namespace App\Services\Processors\Emails;
 
-use App\Models\MsgUserIn;
-use App\Models\MsgEmailIn;
 use App\Dto\MsGraph\EmailMessageDTO;
 
-
-
 class EmailBaseProcessor {
-    public MsgUserIn $msgUser;
-    public EmailMessageDTO $email;
-    public MsgEmailIn $emailIn;
+    public  $msgUser;
+    public  EmailMessageDTO $emailData;
+    public  $email;
 
 
      protected function getResultKey() {
@@ -23,19 +19,19 @@ class EmailBaseProcessor {
     }
 
     protected function setError($resaon):void {
-        $this->emailIn->setAttribute($this->getResultKey().'.success', false);
-        $this->emailIn->setAttribute($this->getResultKey(). '.reason', $resaon);
+        $this->email->setAttribute($this->getResultKey().'.success', false);
+        $this->email->setAttribute($this->getResultKey(). '.reason', $resaon);
     }
 
     protected function setResult(string $keyName, string $value):void {
-        $this->emailIn->setAttribute($this->getResultKey().'.'.$keyName, $value);
+        $this->email->setAttribute($this->getResultKey().'.'.$keyName, $value);
     }
     protected function getResult(string $keyName, string $value, ):string {
-        return $this->emailIn->setAttribute($this->getResultKey().'.'.$keyName, $value);
+        return $this->email->setAttribute($this->getResultKey().'.'.$keyName, $value);
     }
 
     protected function getService(string $keyName):string {
-        return $this->emailIn->getAttribute($this->getServiceKey().'.'.$keyName);
+        return $this->email->getAttribute($this->getServiceKey().'.'.$keyName);
     }
 
 }

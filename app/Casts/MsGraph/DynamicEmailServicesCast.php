@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Casts\MsGraph;
 
@@ -9,49 +9,74 @@ use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 
 class DynamicEmailServicesCast implements CastsAttributes
 {
-    protected string $processor;
-    protected string $option;
-    protected string $attributeKey; // Attribut JSON : `services` ou `results`
+    protected string $serviceKey;
+    protected string $optionKey;
+    protected string $serviceType; // Type de service : `email-in` ou `email-draft`
+    protected string $castType; // Type de cast : `options` ou `results`
 
-    public function __construct(string $processor, string $option, string $attributeKey = 'services')
+    /**
+     * Constructeur.
+     */
+    public function __construct(string $serviceKey, string $optionKey, string $serviceType, string $castType)
     {
-        $this->processor = $processor;
-        $this->option = $option;
-        $this->attributeKey = $attributeKey;
+        $this->serviceKey = $serviceKey;
+        $this->optionKey = $optionKey;
+        $this->serviceType = $serviceType;
+        $this->castType = $castType;
+        // \Log::info('serviceKey = '.$this->serviceKey);
+        // \Log::info('optionKey = '.$this->optionKey);
+        // \Log::info('serviceType = '.$this->serviceType);
+        // \Log::info('castType = '.$this->castType);
 
-        // Validation via ServiceRegistry
-        $service = EmailsProcessorRegisterServices::get($processor);
+        // Valider le service
+        $service = EmailsProcessorRegisterServices::get($serviceType, $serviceKey);
 
         if (!$service) {
-            throw new RuntimeException("Le service {$processor} n'est pas enregistré.");
+            throw new RuntimeException("Le service {$serviceKey} n'est pas enregistré pour {$serviceType}.");
         }
     }
 
+    /**
+     * Récupère une valeur depuis l'attribut JSON.
+     */
     public function get($model, string $key, $value, array $attributes)
     {
-        $data = json_decode($attributes[$this->attributeKey] ?? '{}', true);
-        return Arr::get($data, "{$this->processor}.{$this->option}");
+        // \log::info('castType = '.$this->castType);
+        $data = json_decode($attributes[$this->castType] ?? '{}', true);
+        $resolvedValue = Arr::get($data, "{$this->serviceKey}.{$this->optionKey}");
+
+        // \Log::info("DynamicEmailServicesCast::get - Clé recherchée : {$this->serviceKey}.{$this->optionKey}");
+        // \Log::info("Données JSON : " . json_encode($data));
+        // \Log::info("Valeur résolue : " . json_encode($resolvedValue));
+
+        return $resolvedValue;
     }
 
+    /**
+     * Définit une valeur dans l'attribut JSON.
+     */
     public function set($model, string $key, $value, array $attributes)
     {
-        $data = json_decode($attributes[$this->attributeKey] ?? '{}', true);
-        Arr::set($data, "{$this->processor}.{$this->option}", $value);
+        $data = json_decode($attributes[$this->castType] ?? '{}', true);
+        Arr::set($data, "{$this->serviceKey}.{$this->optionKey}", $value);
 
-        return [$this->attributeKey => json_encode($data)];
+        return [$this->castType => json_encode($data)];
     }
 
-    public static function generateCasts(array $servicesConfig, string $attributeKey = 'services'): array
+    /**
+     * Génère les casts dynamiques.
+     */
+    public static function generateCasts(string $serviceType, string $castType, string $column): array
     {
-        $method = $attributeKey === 'services' ? 'options' : 'results';
-        $casts = [];
+        $servicesConfig = EmailsProcessorRegisterServices::getAll($serviceType);
 
+        $casts = [];
         foreach ($servicesConfig as $key => $service) {
-            foreach ($service[$method] as $optionKey => $option) {
-                $casts["{$attributeKey}.{$key}.{$optionKey}"] = self::class . ":{$key},{$optionKey},{$attributeKey}";
+            $options = $service[$castType] ?? [];
+            foreach ($options as $optionKey => $option) {
+                $casts["{$column}.{$key}.{$optionKey}"] = self::class . ":{$key},{$optionKey},{$serviceType},{$column}";
             }
         }
-        \Log::info($casts);
 
         return $casts;
     }

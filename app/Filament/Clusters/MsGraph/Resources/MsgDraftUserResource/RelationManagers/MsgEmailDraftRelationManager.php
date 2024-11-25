@@ -5,6 +5,8 @@ namespace App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource\RelationM
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ViewColumn;
+use App\Tables\Columns\MailResultColumn;
+use App\Tables\Columns\MailServiceColumn;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
 
@@ -21,8 +23,8 @@ class MsgEmailDraftRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('from')->label('De')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('subject')->label('Sujet')->limit(50)->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime()->timezone('Europe/Paris')->sortable(),
-                ViewColumn::make('services')->view('filament.clusters.msgraph.columns.service-viewer'),
-                ViewColumn::make('results')->view('filament.clusters.msgraph.columns.results-viewer'),
+                MailServiceColumn::make('services')->serviceType('services_draft'),
+                MailResultColumn::make('results')->serviceType('services_draft'),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([

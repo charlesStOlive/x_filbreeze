@@ -2,8 +2,8 @@
 
 namespace App\Filament\Clusters\MsGraph\Resources;
 
-use App\Models\MsgUserIn;
 use Filament\Forms\Form;
+use App\Models\MsgUserIn;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use App\Filament\Clusters\MsGraph;
@@ -12,6 +12,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Forms\Components\TextInput;
+use App\Tables\Columns\MailServiceColumn;
 use App\Services\MsGraph\DynamicFormBuilder;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
@@ -43,7 +44,7 @@ class MsgInUserResource extends Resource
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('ms_id')->searchable()->sortable(),
                 TextColumn::make('suscription_id'),
-                ViewColumn::make('services')->view('filament.clusters.msgraph.columns.service-viewer'),
+                MailServiceColumn::make('services_options')->serviceType('email-in'),
                 //
             ])
             ->filters([
@@ -55,11 +56,9 @@ class MsgInUserResource extends Resource
                 Action::make('editServices')
                     ->label('Services')
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->form(fn($record) => DynamicFormBuilder::build('services', $record))
+                    ->form(fn($record) => DynamicFormBuilder::build($record, 'email-in','services_options',  ))
                     ->action(function (array $data, $record) {
                         foreach ($data as $field => $value) {
-                            \Log::info($field);
-                            \Log::info($value);
                             $record->{$field} = $value;
                         }
                         $record->save();

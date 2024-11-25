@@ -75,9 +75,12 @@ return [
     /*
     Config services
     */
-    'services' => [
+    'email-in' => [
         \App\Services\Processors\Emails\EmailInClientProcessor::class,
         \App\Services\Processors\Emails\EmailPjFactuProcessor::class,
-    ]
+    ],
+    'email-draft' => [
+        \App\Services\Processors\Emails\DraftEmailProcessor::class,
+    ],
 
 ];

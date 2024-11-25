@@ -14,44 +14,65 @@ class DynamicFormBuilder
     /**
      * Génère un formulaire en fonction des services enregistrés et du record.
      *
-     * @param string $field Nom du champ parent (e.g., `services`).
      * @param mixed $record L’enregistrement Filament actuel.
+     * @param string $serviceType Type de service à traiter (par exemple `email-in`, `email-draft`).
+     * @param string $field Nom du champ parent (par exemple, `services_in`, `services_draft`).
      * @return array Composants du formulaire.
      */
-    public static function build(string $field, $record = null): array
+    public static function build($record = null, string $serviceType, string $field): array
     {
         $formComponents = [];
-        $services = EmailsProcessorRegisterServices::getAll(); // Récupération centralisée des services
+        $services = EmailsProcessorRegisterServices::getAll($serviceType); // Récupération des services enregistrés
 
         foreach ($services as $serviceKey => $service) {
-            // Récupère les options du service depuis la classe
             $options = $service['options'];
             $sectionComponents = [];
 
+            // Ajout du champ "mode" qui est toujours visible
+            $modeFieldName = "{$field}.{$serviceKey}.mode";
+            $modeOptions = $options['mode']['values'] ?? [
+                'inactif' => 'Inactif',
+                'actif' => 'Active',
+                'test' => 'Test',
+            ];
+
+            $sectionComponents[] = Select::make($modeFieldName)
+                ->label($options['mode']['label'] ?? 'Mode')
+                ->options($modeOptions)
+                ->reactive()
+                ->default(fn() => $record ? $record->getAttribute($modeFieldName) : $options['mode']['default'] ?? 'inactif');
+
+            // Ajout des autres options (visibilité conditionnelle)
             foreach ($options as $optionKey => $option) {
-                // Utilisation de la clé complète (dot notation)
+                if ($optionKey === 'mode') {
+                    continue; // Ignorer "mode" ici, car il est déjà traité
+                }
+
                 $fieldName = "{$field}.{$serviceKey}.{$optionKey}";
-                \Log::info($fieldName);
-                \Log::info($record->getAttribute($fieldName));
 
                 switch ($option['type']) {
                     case 'boolean':
                         $sectionComponents[] = Toggle::make($fieldName)
                             ->label($option['label'] ?? ucfirst($optionKey))
-                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null);
+                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null)
+                            ->visible(fn($get) => $get($modeFieldName) !== 'inactif');
                         break;
 
                     case 'string':
                         $sectionComponents[] = TextInput::make($fieldName)
                             ->label($option['label'] ?? ucfirst($optionKey))
-                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null);
+                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null)
+                            ->visible(function($get) use ($modeFieldName) {
+                                return $get($modeFieldName) !== 'inactif';
+                            }) ;
                         break;
 
                     case 'list':
                         $sectionComponents[] = Select::make($fieldName)
                             ->label($option['label'] ?? ucfirst($optionKey))
                             ->options($option['values'] ?? [])
-                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null);
+                            ->default(fn() => $record ? $record->getAttribute($fieldName) : $option['default'] ?? null)
+                            ->visible(fn($get) => $get($modeFieldName) !== 'inactif');
                         break;
 
                     default:
@@ -59,7 +80,7 @@ class DynamicFormBuilder
                 }
             }
 
-            // Ajoute une section pour ce service
+            // Ajout de la section pour ce service
             $formComponents[] = Section::make($service['label'] ?? ucfirst($serviceKey))
                 ->description($service['description'] ?? null)
                 ->schema($sectionComponents);

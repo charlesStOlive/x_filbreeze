@@ -12,9 +12,10 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Forms\Components\TextInput;
+use App\Tables\Columns\MailServiceColumn;
+use App\Services\MsGraph\DynamicFormBuilder;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
-use App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource;
 use App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource\Pages;
 use App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource\RelationManagers\MsgEmailDraftRelationManager;
 
@@ -45,7 +46,7 @@ class MsgDraftUserResource extends Resource
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('ms_id')->searchable()->sortable(),
                 TextColumn::make('suscription_id'),
-                ViewColumn::make('services')->view('filament.clusters.msgraph.columns.service-viewer'),
+                MailServiceColumn::make('services_options')->serviceType('email-draft'),
                 //
             ])
             ->filters([
@@ -54,6 +55,16 @@ class MsgDraftUserResource extends Resource
                     ->query(fn($query) => $query->where('is_test', true)),
             ])
             ->actions([
+                Action::make('editServices')
+                    ->label('Services')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->form(fn($record) => DynamicFormBuilder::build($record, 'email-draft', 'services_options'))
+                    ->action(function (array $data, $record) {
+                        foreach ($data as $field => $value) {
+                            $record->{$field} = $value;
+                        }
+                        $record->save();
+                    }),
                 Action::make('suscribe')
                     ->label('Souscrire')
                     ->requiresConfirmation()

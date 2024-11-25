@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('msg_email_ins', function (Blueprint $table) {
             $table->id();
             $table->string('msg_user_in_id')->nullable();
-            $table->json('services')->nullable();
+            $table->json('services_options')->nullable();
+            $table->json('services_results')->nullable();
             $table->json('data_mail')->nullable();
-            $table->json('results')->nullable();
             $table->string('from')->nullable();
             $table->string('subject')->nullable();
             $table->string('tos')->nullable();

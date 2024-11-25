@@ -23,13 +23,11 @@ class MsgUserIn extends Model
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        // Charger dynamiquement les casts à partir de la configuration
-        $servicesConfig = EmailsProcessorRegisterServices::getAll();
 
         // Générer les casts pour `services`
         $this->casts = array_merge(
             $this->casts,
-            DynamicEmailServicesCast::generateCasts($servicesConfig, 'services')
+            DynamicEmailServicesCast::generateCasts('email-in', 'options', 'services_options', )
         );
     }
 

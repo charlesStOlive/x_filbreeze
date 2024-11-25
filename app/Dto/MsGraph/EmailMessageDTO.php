@@ -33,12 +33,14 @@ class EmailMessageDTO extends Data
         public string $fromName,
         #[Rule('email')]
         public string $fromEmail,
-        public string $fromNdd = '', // Nouveau champ pour le domaine
+        public string $fromNdd = '',
         public string $webLink,
         public string $inferenceClassification,
         #[Rule('boolean')]
         public bool $hasPJs,
-        public array $pjs = []
+        public array $pjs = [],
+        public string $regexCode = '', // Nouveau champ
+        public array $regexCodeOption = [] // Nouveau champ
     ) {}
 
     /**
@@ -52,8 +54,12 @@ class EmailMessageDTO extends Data
 
         $allEmails = array_merge($toEmails, $ccEmails, $bccEmails);
 
+        // Extraire regexCode et regexCodeOption depuis bodyBrut
+        $bodyBrut = self::parseTextFromHtml($data['body']['content'] ?? '');
+        [$regexCode, $regexCodeOption] = self::extractRegexCodeAndOptions($bodyBrut);
+
         return new self(
-            id: $data['id'] ?? 'xxxxxx',
+            id: $data['id'] ?? uniqid(),
             createdDateTime: new Carbon($data['createdDateTime'] ?? now()),
             receivedDateTime: new Carbon($data['receivedDateTime'] ?? now()),
             sentDateTime: new Carbon($data['sentDateTime'] ?? now()),
@@ -63,7 +69,7 @@ class EmailMessageDTO extends Data
             importance: $data['importance'] ?? 'normal',
             contentType: $data['body']['contentType'] ?? 'text/plain',
             bodyOriginal: $data['body']['content'] ?? '',
-            bodyBrut: self::parseTextFromHtml($data['body']['content'] ?? ''),
+            bodyBrut: $bodyBrut,
             toRecipientsNames: self::extractRecipientNames($data['toRecipients'] ?? []),
             toRecipientsMails: $toEmails,
             ccRecipientsNames: self::extractRecipientNames($data['ccRecipients'] ?? []),
@@ -79,8 +85,38 @@ class EmailMessageDTO extends Data
             webLink: $data['webLink'] ?? '',
             inferenceClassification: $data['inferenceClassification'] ?? 'other',
             hasPJs: !empty($data['hasAttachments']),
-            pjs: self::extractAttachments($data['attachments'] ?? [])
+            pjs: self::extractAttachments($data['attachments'] ?? []),
+            regexCode: $regexCode,
+            regexCodeOption: $regexCodeOption
         );
+    }
+
+    /**
+     * Extract the regex code and options from a given string.
+     */
+    private static function extractRegexCodeAndOptions(string $bodyBrut): array
+    {
+        $lines = array_filter(array_map('trim', explode("\n", $bodyBrut)));
+        $firstNonEmptyLine = $lines[0] ?? '';
+
+        $regexCode = '';
+        $regexCodeOption = [];
+
+        if (preg_match('/^##\s*([\w-]+)(.*)##$/', $firstNonEmptyLine, $matches)) {
+            $regexCode = $matches[1];
+
+            // Extract options
+            if (!empty($matches[2])) {
+                preg_match_all('/-([\w]+)(?:=([\w]+))?/', $matches[2], $optionMatches, PREG_SET_ORDER);
+                foreach ($optionMatches as $option) {
+                    $key = $option[1];
+                    $value = $option[2] ?? true; // If no value is provided, default to `true`
+                    $regexCodeOption[$key] = $value;
+                }
+            }
+        }
+
+        return [$regexCode, $regexCodeOption];
     }
 
     /**

@@ -243,12 +243,12 @@ class MsgConnect
         $newEmailIn->subject = $emailDTO->subject;
         $newEmailIn->tos = $emailDTO->allRecipentsStringMails;
         //Appelle des deux classes avec la methode Handle
-        if ($newEmailIn->{'services.e-in-a.mode'} === 'active') { //Retrouver la valeur active ou non pour cette class dans le json services qui a et copié dans le mailIn.
+        if ($newEmailIn->{'services.e-in-a.mode'} === 'actif') { //Retrouver la valeur actif ou non pour cette class dans le json services qui a et copié dans le mailIn.
             $emailInClient = new EmailInClientProcessor();
             $newEmailIn = $emailInClient->handle($user, $emailDTO, $newEmailIn);
         }
 
-        if ($newEmailIn->{'services.e-inpj-f.mode'}  === 'active') { //Retrouver la valeur active ou non pour cette class
+        if ($newEmailIn->{'services.e-inpj-f.mode'}  === 'actif') { //Retrouver la valeur active ou non pour cette class
             $emailPjFactu = new EmailPjFactuProcessor();
             $newEmailIn = $emailPjFactu->handle($user, $emailDTO, $newEmailIn);
         }

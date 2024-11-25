@@ -25,6 +25,17 @@ class MsgUserDraft extends Model
         return true;
     }
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+
+        // Générer les casts pour `services`
+        $this->casts = array_merge(
+            $this->casts,
+            DynamicEmailServicesCast::generateCasts('email-draft', 'options',  'services_options' )
+        );
+    }
+
 
 
     /**

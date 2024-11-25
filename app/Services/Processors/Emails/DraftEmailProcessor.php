@@ -9,44 +9,46 @@ namespace App\Services\Processors\Emails;
 
 use App\Models\MsgUserIn;
 use App\Models\MsgEmailIn;
+use App\Models\MsgUserDraft;
+use App\Models\MsgEmailDraft;
 use App\Dto\MsGraph\EmailMessageDTO;
 use App\Services\Processors\Emails\EmailBaseProcessor;
 use App\Contracts\MsGraph\MsGraphEmailServiceInterface;
 
-class EmailInClientProcessor extends EmailBaseProcessor
+class DraftEmailProcessor extends EmailBaseProcessor
 {
     //STATIC  var comme JSONKEY = e-in-a
     
     public static function getKey(): string
     {
-        return 'e-in-a';
+        return 'd-cor';
     }
 
     public static function getLabel(): string
     {
-        return 'Ranger email dans dossier client';
+        return 'Corriger le texte';
     }
 
     public static function getDescription(): string
     {
-        return 'Règles d’acceptation des emails...';
+        return 'Lance une correction sur le texte';
     }
 
     /**
      * Logique principale pour gérer ce service.
      */
-    public function handle(MsgUserIn $msgUser, EmailMessageDTO $emailData, MsgEmailIn $email): MsgEmailIn
+    public function handle(MsgUserDraft $msgUser, EmailMessageDTO $emailData, MsgEmailDraft $email): MsgEmailDraft
     {
         $this->msgUser = $msgUser;
         $this->emailData = $emailData;
         $this->email = $email;
         // Logique pour gérer les données
-        if(!in_array($this->emailData->toRecipientsMails, ['factu@notilac.fr'])) {
-            $this->setError('Adresse email non valide');
-            return  $this->email;
-        }
+        // if($this->emailData->code !== 'corrige')  {
+        //     $this->setError('Pas de code');
+        //     return  $this->email;
+        // }
         
-        
+        $this->setError('Pas de code');
         //Mettre a jours ces valeurs via le cast. 
         return  $this->email;
     }
@@ -70,10 +72,10 @@ class EmailInClientProcessor extends EmailBaseProcessor
                     'test' => 'Test',
                 ],
             ],
-            'field' => [
+            'code' => [
                 'type' => 'string',
                 'default' => 'slug',
-                'label' => 'Champs client pour dossier',
+                'label' => 'Code de lancemment de la fonction',
             ],
         ];
     }
@@ -93,11 +95,6 @@ class EmailInClientProcessor extends EmailBaseProcessor
                 'type' => 'boolean',
                 'default' => 'inc',
                 'label' => 'Raison',
-            ],
-            'newfolder' => [
-                'type' => 'boolean',
-                'default' => '',
-                'label' => 'Nouveau dossier',
             ],
         ];
     }
