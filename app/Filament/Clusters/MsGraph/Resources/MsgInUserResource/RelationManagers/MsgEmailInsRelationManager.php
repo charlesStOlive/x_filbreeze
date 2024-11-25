@@ -23,8 +23,8 @@ class MsgEmailInsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('from')->label('De')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('subject')->label('Sujet')->limit(50)->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime()->timezone('Europe/Paris')->sortable(),
-                MailServiceColumn::make('services')->serviceType('services_in'),
-                MailResultColumn::make('results')->serviceType('services_in'),
+                MailServiceColumn::make('services_options')->serviceType('email-in'),
+                MailResultColumn::make('services_results')->serviceType('email-in'),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([

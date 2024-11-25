@@ -43,12 +43,15 @@ class DraftEmailProcessor extends EmailBaseProcessor
         $this->emailData = $emailData;
         $this->email = $email;
         // Logique pour gérer les données
-        // if($this->emailData->code !== 'corrige')  {
-        //     $this->setError('Pas de code');
-        //     return  $this->email;
-        // }
-        
-        $this->setError('Pas de code');
+        if($this->emailData->regexCode !== 'corrige')  {
+            $this->setError('Pas de code ou mauvais code : '.$this->emailData->regexCode);
+            return  $this->email;
+        } else {
+            $this->setResult('success', true);
+            $this->setResult('code', $this->emailData->regexCode);
+            $this->setResult('code_options', $this->emailData->regexCodeOption);
+            
+        }
         //Mettre a jours ces valeurs via le cast. 
         return  $this->email;
     }
@@ -95,6 +98,21 @@ class DraftEmailProcessor extends EmailBaseProcessor
                 'type' => 'boolean',
                 'default' => 'inc',
                 'label' => 'Raison',
+            ],
+            'code' => [
+                'type' => 'string',
+                'default' => 'inc',
+                'label' => 'Code identifié',
+            ],
+            'code_options' => [
+                'type' => 'array',
+                'default' => [],
+                'label' => 'Options',
+            ],
+            'errors' => [
+                'type' => 'array',
+                'default' => [],
+                'label' => 'Erreurs',
             ],
         ];
     }

@@ -10,6 +10,8 @@ class MailServiceColumn extends MailServiceBaseColumn
     {
         $options = [];
 
+        
+
         foreach ($service['options'] as $optionKey => $option) {
             if ($optionKey !== 'mode') {
                 $value = $record->getAttribute("{$this->getName()}.{$serviceKey}.{$optionKey}") ?? null;

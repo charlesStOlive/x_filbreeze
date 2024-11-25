@@ -10,6 +10,8 @@ class MailResultColumn extends MailServiceBaseColumn
     {
         $options = [];
 
+        \Log::info($service['results']);
+
         foreach ($service['results'] as $optionKey => $option) {
             if (!in_array($optionKey, ['success', 'reason'])) {
                 $value = $record->getAttribute("results.{$serviceKey}.{$optionKey}") ?? null;

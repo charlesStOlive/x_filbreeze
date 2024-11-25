@@ -11,11 +11,11 @@ class EmailBaseProcessor {
 
 
      protected function getResultKey() {
-        return 'results.' . static::getKey(); // Appelle la méthode imposée par l'interface
+        return 'services_results.' . static::getKey(); // Appelle la méthode imposée par l'interface
     }
 
     protected function getServiceKey() {
-        return 'services.' . static::getKey();
+        return 'services_options.' . static::getKey();
     }
 
     protected function setError($resaon):void {
@@ -23,7 +23,7 @@ class EmailBaseProcessor {
         $this->email->setAttribute($this->getResultKey(). '.reason', $resaon);
     }
 
-    protected function setResult(string $keyName, string $value):void {
+    protected function setResult(string $keyName, string|array $value):void {
         $this->email->setAttribute($this->getResultKey().'.'.$keyName, $value);
     }
     protected function getResult(string $keyName, string $value, ):string {

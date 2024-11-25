@@ -51,7 +51,7 @@ class MsgUserDraft extends Model
         });
     }
 
-    public function msg_email_ins()
+    public function msg_email_drafts()
     {
         return $this->hasMany(MsgEmailDraft::class);
     }

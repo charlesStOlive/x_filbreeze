@@ -19,6 +19,7 @@ use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use App\Services\Processors\Emails\EmailPjFactuProcessor;
 use App\Services\Processors\Emails\EmailInClientProcessor;
+use App\Services\Processors\Emails\DraftEmailProcessor;
 
 class MsgConnect
 {
@@ -216,9 +217,7 @@ class MsgConnect
         try {
             // Correction de l'URL pour récupérer le brouillon
             $emailData = $this->guzzle('get', "users/{$user->ms_id}/mailFolders('Drafts')/messages/{$messageId}");
-            \Log::info("Draft email data:", $emailData);
-            $emailDTO = EmailMessageDTO::fromArray($emailData);
-            \Log::info($emailDTO->bodyOriginal);
+            $this->launchSuscribedDraftServices($user, $emailData);
         } catch (Exception $e) {
             \Log::error("Failed to fetch draft email: " . $e->getMessage());
             throw $e;
@@ -238,7 +237,7 @@ class MsgConnect
     {
         $newEmailIn = $user->msg_email_ins()->make();
         $emailDTO = EmailMessageDTO::fromArray($emailData);
-        $newEmailIn->services = $user->services;
+        $newEmailIn->services_options = $user->services_options;
         $newEmailIn->from = $emailDTO->fromEmail;
         $newEmailIn->subject = $emailDTO->subject;
         $newEmailIn->tos = $emailDTO->allRecipentsStringMails;
@@ -253,6 +252,25 @@ class MsgConnect
             $newEmailIn = $emailPjFactu->handle($user, $emailDTO, $newEmailIn);
         }
         $newEmailIn->save();
+    }
+
+    public function launchSuscribedDraftServices(MsgUserDraft $user, array $emailData)
+    {
+        $newEmailDraft = $user->msg_email_drafts()->make();
+        \Log::info($emailData);
+        $emailDTO = EmailMessageDTO::fromArray($emailData);
+        $newEmailDraft->services_options = $user->services_options;
+        $newEmailDraft->from = $emailDTO->fromEmail;
+        $newEmailDraft->subject = $emailDTO->subject;
+        $newEmailDraft->tos = $emailDTO->allRecipentsStringMails;
+        \Log::info("EST CE QUE ACTIF ? ".$newEmailDraft->{'services_options.d-cor.mode'});
+        //Appelle des deux classes avec la methode Handle
+        if ($newEmailDraft->{'services_options.d-cor.mode'} === 'actif') { //Retrouver la valeur actif ou non pour cette class dans le json services qui a et copié dans le mailIn.
+            $emailDraftClient = new DraftEmailProcessor();
+            $newEmailDraft = $emailDraftClient->handle($user, $emailDTO, $newEmailDraft);
+        }
+
+        $newEmailDraft->save();
     }
 
     protected function verifyDraftSubscriptionAndgetUser($clientState, $tenantId)
