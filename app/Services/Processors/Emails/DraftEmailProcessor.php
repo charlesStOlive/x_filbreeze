@@ -2,62 +2,105 @@
 
 namespace App\Services\Processors\Emails;
 
-/*
-* msgraph api documentation can be found at https://developer.msgraph.com/reference
-**/
-
-
-use App\Models\MsgUserIn;
-use App\Models\MsgEmailIn;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use App\Models\MsgUserDraft;
 use App\Models\MsgEmailDraft;
 use App\Dto\MsGraph\EmailMessageDTO;
-use App\Services\Processors\Emails\EmailBaseProcessor;
-use App\Contracts\MsGraph\MsGraphEmailServiceInterface;
 
-class DraftEmailProcessor extends EmailBaseProcessor
+class DraftEmailProcessor implements ShouldQueue
 {
-    //STATIC  var comme JSONKEY = e-in-a
-    
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    protected MsgUserDraft $msgUser;
+    protected EmailMessageDTO $emailData;
+    protected MsgEmailDraft $email;
+
+    /**
+     * Constructeur pour initialiser les propriétés.
+     */
+    public function __construct(MsgUserDraft $msgUser, EmailMessageDTO $emailData, MsgEmailDraft $email)
+    {
+        $this->msgUser = $msgUser;
+        $this->emailData = $emailData;
+        $this->email = $email;
+    }
+
+    /**
+     * Clé du service.
+     */
     public static function getKey(): string
     {
         return 'd-cor';
     }
 
+    /**
+     * Label du service.
+     */
     public static function getLabel(): string
     {
         return 'Corriger le texte';
     }
 
+    /**
+     * Description du service.
+     */
     public static function getDescription(): string
     {
         return 'Lance une correction sur le texte';
     }
 
     /**
-     * Logique principale pour gérer ce service.
+     * Vérifie si la classe doit être exécutée.
      */
-    public function handle(MsgUserDraft $msgUser, EmailMessageDTO $emailData, MsgEmailDraft $email): MsgEmailDraft
+    public function shouldResolve(): bool
     {
-        $this->msgUser = $msgUser;
-        $this->emailData = $emailData;
-        $this->email = $email;
-        // Logique pour gérer les données
-        if($this->emailData->regexCode !== 'corrige')  {
-            $this->setError('Pas de code ou mauvais code : '.$this->emailData->regexCode);
-            return  $this->email;
+        // Exemple de logique pour déterminer si l'exécution est requise
+        if ($this->emailData->regexCode !== 'corrige') {
+            $this->setError('Pas de code ou mauvais code : ' . $this->emailData->regexCode);
+            //$this->email->save(); necessaire ? 
+            return true;
         } else {
             $this->setResult('success', true);
             $this->setResult('code', $this->emailData->regexCode);
             $this->setResult('code_options', $this->emailData->regexCodeOption);
-            
+            //$this->email->save(); necessaire ? 
+            return false;
         }
-        //Mettre a jours ces valeurs via le cast. 
-        return  $this->email;
     }
 
+    /**
+     * Logique principale pour traiter les données directement.
+     */
+    public function resolve(): MsgEmailDraft
+    {
+        // Logique principale
+        // A venir
+        return $this->email;
+    }
 
+    /**
+     * Méthode appelée automatiquement lorsqu'elle est mise en file d'attente.
+     */
+    public function handle()
+    {
+        $this->resolve()->save();
+    }
 
+    
+    /**
+     * Méthode statique pour lancer la queue après vérification.
+     */
+    public static function onQueue(MsgUserDraft $msgUser, EmailMessageDTO $emailData, MsgEmailDraft $email)
+    {
+        $processor = new self($msgUser, $emailData, $email);
+        if ($processor->shouldResolve()) {
+            dispatch($processor);
+        }
+    }
 
     /**
      * Retourne les options du service.
@@ -78,13 +121,13 @@ class DraftEmailProcessor extends EmailBaseProcessor
             'code' => [
                 'type' => 'string',
                 'default' => 'slug',
-                'label' => 'Code de lancemment de la fonction',
+                'label' => 'Code de lancement de la fonction',
             ],
         ];
     }
 
     /**
-     * Retourne les vues spécifiques pour ce service.
+     * Retourne les résultats spécifiques pour ce service.
      */
     public static function getServicesResults(): array
     {
@@ -93,6 +136,7 @@ class DraftEmailProcessor extends EmailBaseProcessor
                 'type' => 'boolean',
                 'default' => false,
                 'label' => 'Email Traité',
+                'hidden' => true,
             ],
             'reason' => [
                 'type' => 'boolean',
@@ -116,5 +160,6 @@ class DraftEmailProcessor extends EmailBaseProcessor
             ],
         ];
     }
+
     
 }

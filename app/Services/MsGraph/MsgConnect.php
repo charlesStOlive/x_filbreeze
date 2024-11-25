@@ -266,8 +266,12 @@ class MsgConnect
         \Log::info("EST CE QUE ACTIF ? ".$newEmailDraft->{'services_options.d-cor.mode'});
         //Appelle des deux classes avec la methode Handle
         if ($newEmailDraft->{'services_options.d-cor.mode'} === 'actif') { //Retrouver la valeur actif ou non pour cette class dans le json services qui a et copié dans le mailIn.
-            $emailDraftClient = new DraftEmailProcessor();
-            $newEmailDraft = $emailDraftClient->handle($user, $emailDTO, $newEmailDraft);
+            $emailDraftClient = new DraftEmailProcessor($user, $emailDTO, $newEmailDraft);
+            $resolve = $emailDraftClient->shouldResolve();
+            if($resolve){
+                $emailDraftClient->resolve();
+                // Alternative QUEUE : emailDraftClient->onQueue($user, $emailDTO, $newEmailDraft);
+            }
         }
 
         $newEmailDraft->save();
