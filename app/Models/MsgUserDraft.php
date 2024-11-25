@@ -128,7 +128,7 @@ class MsgUserDraft extends Model
         if(!$this->suscription_id) {
             return;
         }
-        $reponse = MsgConnect::unsubscribeFromEmailNotifications($this->suscription_id);
+        $reponse = MsgConnect::unsubscribeFromDraftNotifications($this->suscription_id);
         //\Log::info('reponse du unsuscribe');
         //\Log::info($reponse);
         if($reponse['success'] ?? false) {
@@ -142,7 +142,7 @@ class MsgUserDraft extends Model
 
     public function refreshSuscription()
     {
-        $reponse = MsgConnect::renewEmailNotificationSubscription($this->suscription_id);
+        $reponse = MsgConnect::renewDraftNotificationSubscription($this->suscription_id);
         //\Log::info('reponse du refresh');
         //\Log::info($reponse);
         if($reponse['success'] ?? false) {

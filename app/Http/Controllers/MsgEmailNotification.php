@@ -35,6 +35,7 @@ class MsgEmailNotification extends Controller
      */
     public function handleDraft(Request $request)
     {
+        Log::info('handleDraft');
         // Validation d'abonnement
         if ($request->has('validationToken')) {
             return response($request->input('validationToken'))->header('Content-Type', 'text/plain');

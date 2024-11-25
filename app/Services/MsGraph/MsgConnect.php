@@ -10,8 +10,10 @@ use Arr;
 use Exception;
 use GuzzleHttp\Client;
 use App\Models\MsgUserIn;
+use App\Models\MsgUserDraft;
 use App\Models\MsgToken;
 use App\Models\MsgEmailIn;
+use App\Models\MsgEmailDraft;
 use App\Dto\MsGraph\EmailMessageDTO;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
@@ -196,6 +198,36 @@ class MsgConnect
         return;
     }
 
+    public function processDraftNotification($notificationData)
+    {
+        $data = $notificationData['value'][0];
+        $clientState = $data['clientState'];
+        $tenantId = $data['tenantId'];
+        $messageId = $data['resourceData']['id'];
+
+        try {
+            // Vérifier l'abonnement et récupérer l'utilisateur
+            $user = $this->verifyDraftSubscriptionAndgetUser($clientState, $tenantId);
+        } catch (\Exception $e) {
+            \Log::error("Error in draft subscription verification: " . $e->getMessage());
+            throw $e; // Propagation de l'exception
+        }
+
+        try {
+            // Correction de l'URL pour récupérer le brouillon
+            $emailData = $this->guzzle('get', "users/{$user->ms_id}/mailFolders('Drafts')/messages/{$messageId}");
+            \Log::info("Draft email data:", $emailData);
+            $emailDTO = EmailMessageDTO::fromArray($emailData);
+            \Log::info($emailDTO->bodyOriginal);
+        } catch (Exception $e) {
+            \Log::error("Failed to fetch draft email: " . $e->getMessage());
+            throw $e;
+        }
+
+        return;
+    }
+
+
     public function launchTestServices(MsgUserIn $user, $emailData)
     {
         $this->launchSuscribedServices($user, $emailData);
@@ -223,7 +255,19 @@ class MsgConnect
         $newEmailIn->save();
     }
 
-
+    protected function verifyDraftSubscriptionAndgetUser($clientState, $tenantId)
+    {
+        if ($tenantId != config('msgraph.tenantId')) {
+            //\Log::info('Différence entre msgraph.tenantId et tenantId: '.config('msgraph.tenantId'));
+            throw new \Exception("Tenant ID does not match the configured value.");
+        }
+        // Suppose that MsgUser is your Eloquent model and it has `mds_id` and `abn_secret` fields
+        $user = MsgUserDraft::where('abn_secret', $clientState)->first();
+        if (!$user) {
+            throw new \Exception("No user found matching the provided client state.");
+        }
+        return $user;
+    }
 
     protected function verifySubscriptionAndgetUser($clientState, $tenantId)
     {
