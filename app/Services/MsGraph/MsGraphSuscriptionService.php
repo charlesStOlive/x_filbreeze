@@ -2,6 +2,8 @@
 
 namespace App\Services\MsGraph;
 
+use App\Services\MsGraph\MsGraphAuthService;
+
 class MsGraphSubscriptionService
 {
     protected MsGraphAuthService $authService;

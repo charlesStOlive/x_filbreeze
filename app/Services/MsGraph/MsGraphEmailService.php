@@ -5,6 +5,7 @@ namespace App\Services\MsGraph;
 use Exception;
 use App\Models\MsgEmailIn;
 use App\Models\MsgEmailDraft;
+use App\Services\MsGraph\MsGraphAuthService;
 
 class MsGraphEmailService
 {
