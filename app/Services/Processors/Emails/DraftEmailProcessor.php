@@ -2,30 +2,32 @@
 
 namespace App\Services\Processors\Emails;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use App\Models\MsgUserDraft;
 use App\Models\MsgEmailDraft;
 use App\Dto\MsGraph\EmailMessageDTO;
+use App\Services\MsGraph\MsGraphEmailService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 
 class DraftEmailProcessor  implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use EmailProcessorTrait; // Importation du trait
 
-    public MsgUserDraft $msgUser;
-    public EmailMessageDTO $emailData;
-    public MsgEmailDraft $email;
-
+    protected MsGraphEmailService $emailService;
+    protected MsgUserDraft $user;
+    protected EmailMessageDTO $emailData;
+    protected MsgEmailDraft $email;
     /**
      * Constructeur pour initialiser les propriétés.
      */
-    public function __construct(MsgUserDraft $msgUser, EmailMessageDTO $emailData, MsgEmailDraft $email)
+    public function __construct(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email, MsGraphEmailService|null $emailService = null)
     {
-        $this->msgUser = $msgUser;
+        $this->emailService = $emailService ? $emailService : $this->resolveEmailService();
+        $this->user = $user;
         $this->emailData = $emailData;
         $this->email = $email;
     }
@@ -63,13 +65,12 @@ class DraftEmailProcessor  implements ShouldQueue
         if ($this->emailData->regexCode !== 'corrige') {
             $this->setError('Pas de code ou mauvais code : ' . $this->emailData->regexCode);
             //$this->email->save(); necessaire ? 
-            return true;
+            return false;
         } else {
             $this->setResult('success', true);
             $this->setResult('code', $this->emailData->regexCode);
             $this->setResult('code_options', $this->emailData->regexCodeOption);
-            //$this->email->save(); necessaire ? 
-            return false;
+            return $this->launchStartingState();
         }
     }
 
@@ -95,9 +96,10 @@ class DraftEmailProcessor  implements ShouldQueue
     /**
      * Méthode statique pour lancer la queue après vérification.
      */
-    public static function onQueue(MsgUserDraft $msgUser, EmailMessageDTO $emailData, MsgEmailDraft $email)
+    public static function onQueue(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email)
     {
-        $processor = new self($msgUser, $emailData, $email);
+
+        $processor = new self($user, $emailData, $email);
         if ($processor->shouldResolve()) {
             dispatch($processor);
         }

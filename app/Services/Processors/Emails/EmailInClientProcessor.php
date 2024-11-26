@@ -10,11 +10,30 @@ namespace App\Services\Processors\Emails;
 use App\Models\MsgUserIn;
 use App\Models\MsgEmailIn;
 use App\Dto\MsGraph\EmailMessageDTO;
-use App\Services\Processors\Emails\EmailBaseProcessor;
-use App\Contracts\MsGraph\MsGraphEmailServiceInterface;
+use App\Services\MsGraph\MsGraphEmailService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 
-class EmailInClientProcessor extends EmailBaseProcessor
+class EmailInClientProcessor  implements ShouldQueue
 {
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use EmailProcessorTrait;
+    //
+    protected MsGraphEmailService $emailService;
+    public MsgUserIn $msgUser;
+    public EmailMessageDTO $emailData;
+    public MsgEmailIn $email;
+
+    public function __construct(MsgUserIn $msgUser, EmailMessageDTO $emailData, MsgEmailIn $email,  MsGraphEmailService|null $emailService = null)
+    {
+        $this->emailService = $emailService ? $emailService : $this->resolveEmailService();
+        $this->msgUser = $msgUser;
+        $this->emailData = $emailData;
+        $this->email = $email;
+    }
     //STATIC  var comme JSONKEY = e-in-a
     
     public static function getKey(): string
@@ -35,25 +54,46 @@ class EmailInClientProcessor extends EmailBaseProcessor
     /**
      * Logique principale pour gérer ce service.
      */
-    public function handle(MsgUserIn $msgUser, EmailMessageDTO $emailData, MsgEmailIn $email): MsgEmailIn
+    public function shouldResolve(): bool
     {
-        $this->msgUser = $msgUser;
-        $this->emailData = $emailData;
-        $this->email = $email;
         // Logique pour gérer les données
         if(!in_array($this->emailData->toRecipientsMails, ['factu@notilac.fr'])) {
             $this->setError('Adresse email non valide');
-            return  $this->email;
+            return  false;
         }
-        
-        
         //Mettre a jours ces valeurs via le cast. 
-        return  $this->email;
+        $this->setResult('success', true);
+        return  true;
     }
 
+    /**
+     * Logique principale pour traiter les données directement.
+     */
+    public function resolve(): MsgEmailIn
+    {
+        // Logique principale
+        // A venir
+        return $this->email;
+    }
 
+    /**
+     * Méthode appelée automatiquement lorsqu'elle est mise en file d'attente.
+     */
+    public function handle()
+    {
+        $this->resolve()->save();
+    }
 
-
+    /**
+     * Méthode statique pour lancer la queue après vérification.
+     */
+    public static function onQueue(MsgUserIn $msgUser, EmailMessageDTO $emailData, MsgEmailIn $email)
+    {
+        $processor = new self($msgUser, $emailData, $email);
+        if ($processor->shouldResolve()) {
+            dispatch($processor);
+        }
+    }
     /**
      * Retourne les options du service.
      */

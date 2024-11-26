@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('email_id', 50)->nullable()->index(); // Index pour recherches rapides
             $table->string('email_original_id', 50)->nullable();
             $table->timestamps();
+            $table->text('errors')->nullable();
         });
     }
 

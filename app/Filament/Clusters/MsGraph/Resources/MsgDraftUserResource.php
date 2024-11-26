@@ -58,7 +58,7 @@ class MsgDraftUserResource extends Resource
                 Action::make('editServices')
                     ->label('Services')
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->form(fn($record) => DynamicFoogrmBuilder::build($record, 'email-draft', 'services_options'))
+                    ->form(fn($record) => DynamicFormBuilder::build($record, 'email-draft', 'services_options'))
                     ->action(function (array $data, $record) {
                         foreach ($data as $field => $value) {
                             $record->{$field} = $value;
