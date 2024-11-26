@@ -11,13 +11,14 @@ use App\Models\MsgUserDraft;
 use App\Models\MsgEmailDraft;
 use App\Dto\MsGraph\EmailMessageDTO;
 
-class DraftEmailProcessor implements ShouldQueue
+class DraftEmailProcessor  implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use EmailProcessorTrait; // Importation du trait
 
-    protected MsgUserDraft $msgUser;
-    protected EmailMessageDTO $emailData;
-    protected MsgEmailDraft $email;
+    public MsgUserDraft $msgUser;
+    public EmailMessageDTO $emailData;
+    public MsgEmailDraft $email;
 
     /**
      * Constructeur pour initialiser les propriétés.

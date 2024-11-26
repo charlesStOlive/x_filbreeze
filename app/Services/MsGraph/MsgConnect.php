@@ -263,7 +263,9 @@ class MsgConnect
         $newEmailDraft->from = $emailDTO->fromEmail;
         $newEmailDraft->subject = $emailDTO->subject;
         $newEmailDraft->tos = $emailDTO->allRecipentsStringMails;
-        \Log::info("EST CE QUE ACTIF ? ".$newEmailDraft->{'services_options.d-cor.mode'});
+        \Log::info("Derniere date de modif".$emailDTO->lastModifiedDateTime);
+        \Log::info("Carbon now".\Carbon\Carbon::now());
+        \Log::info("ID".$newEmailDraft->id);
         //Appelle des deux classes avec la methode Handle
         if ($newEmailDraft->{'services_options.d-cor.mode'} === 'actif') { //Retrouver la valeur actif ou non pour cette class dans le json services qui a et copié dans le mailIn.
             $emailDraftClient = new DraftEmailProcessor($user, $emailDTO, $newEmailDraft);

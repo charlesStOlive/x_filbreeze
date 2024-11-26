@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('from')->nullable();
             $table->string('subject')->nullable();
             $table->string('tos')->nullable();
+            $table->string('email_id')->nullable();
+            $table->string('email_original_id')->nullable();
             $table->timestamps();
         });
     }

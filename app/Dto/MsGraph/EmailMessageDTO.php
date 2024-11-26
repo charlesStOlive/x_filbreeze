@@ -12,6 +12,7 @@ class EmailMessageDTO extends Data
         public string $id,
         public Carbon $createdDateTime,
         public Carbon $receivedDateTime,
+        public Carbon $lastModifiedDateTime,
         public Carbon $sentDateTime,
         #[Rule('boolean')]
         public bool $hasAttachments,
@@ -58,9 +59,12 @@ class EmailMessageDTO extends Data
         $bodyBrut = self::parseTextFromHtml($data['body']['content'] ?? '');
         [$regexCode, $regexCodeOption] = self::extractRegexCodeAndOptions($bodyBrut);
 
+        \Log::info("Date : ".$data['lastModifiedDateTime']);
+
         return new self(
             id: $data['id'] ?? uniqid(),
             createdDateTime: new Carbon($data['createdDateTime'] ?? now()),
+            lastModifiedDateTime: new Carbon($data['lastModifiedDateTime']),
             receivedDateTime: new Carbon($data['receivedDateTime'] ?? now()),
             sentDateTime: new Carbon($data['sentDateTime'] ?? now()),
             hasAttachments: $data['hasAttachments'] ?? false,
