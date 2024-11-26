@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('msg_email_ins', function (Blueprint $table) {
             $table->id();
-            $table->string('msg_user_in_id')->nullable();
+            $table->foreignId('msg_user_in_id')->nullable()->constrained('msg_user_ins')->onDelete('cascade'); // Clé étrangère
+            $table->string('state', 10)->default('start')->index();
             $table->json('services_options')->nullable();
             $table->json('services_results')->nullable();
             $table->json('data_mail')->nullable();
-            $table->string('from')->nullable();
-            $table->string('subject')->nullable();
-            $table->string('tos')->nullable();
-            $table->string('email_id')->nullable();
-            $table->string('email_original_id')->nullable();
+            $table->string('from', 100)->nullable(); // Taille réduite si applicable
+            $table->string('subject', 255)->nullable();
+            $table->text('tos')->nullable(); // Texte long pour les adresses multiples
+            $table->string('email_id', 50)->nullable()->index(); // Index pour recherches rapides
+            $table->string('email_original_id', 50)->nullable();
             $table->timestamps();
         });
     }

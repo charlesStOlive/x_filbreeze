@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('msg_user_drafts', function (Blueprint $table) {
             $table->id();
-            $table->string('ms_id')->unique();
+            $table->string('ms_id', 36)->unique(); // Taille fixe pour UUID
             $table->string('email')->unique();
             $table->string('suscription_id')->nullable();
             $table->json('services_options')->nullable();
-            $table->string('abn_secret')->nullable();
-            $table->dateTime('expire_at')->nullable();
+            $table->string('abn_secret', 100)->nullable(); // Taille optimisée
+            $table->dateTime('expire_at')->nullable()->index(); // Index pour des filtres fréquents
             $table->timestamps();
         });
     }

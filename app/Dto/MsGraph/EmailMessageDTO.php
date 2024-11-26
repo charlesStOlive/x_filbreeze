@@ -178,4 +178,14 @@ class EmailMessageDTO extends Data
             ];
         }, $attachments);
     }
+
+     public function basicEmailData(): array
+    {
+        return [
+            'from' => $this->fromEmail,
+            'tos' => $this->allRecipentsStringMails,
+            'subject' => $this->subject,
+            'email_id' => $this->id,
+        ];
+    }
 }

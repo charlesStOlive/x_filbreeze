@@ -235,12 +235,10 @@ class MsgConnect
 
     public function launchSuscribedServices(MsgUserIn $user, array $emailData)
     {
-        $newEmailIn = $user->msg_email_ins()->make();
+        
         $emailDTO = EmailMessageDTO::fromArray($emailData);
+        $newEmailIn = $user->msg_email_ins()->make()->fill($emailDTO->basicEmailData());
         $newEmailIn->services_options = $user->services_options;
-        $newEmailIn->from = $emailDTO->fromEmail;
-        $newEmailIn->subject = $emailDTO->subject;
-        $newEmailIn->tos = $emailDTO->allRecipentsStringMails;
         //Appelle des deux classes avec la methode Handle
         if ($newEmailIn->{'services.e-in-a.mode'} === 'actif') { //Retrouver la valeur actif ou non pour cette class dans le json services qui a et copié dans le mailIn.
             $emailInClient = new EmailInClientProcessor();
@@ -256,16 +254,15 @@ class MsgConnect
 
     public function launchSuscribedDraftServices(MsgUserDraft $user, array $emailData)
     {
-        $newEmailDraft = $user->msg_email_drafts()->make();
-        \Log::info($emailData);
+
         $emailDTO = EmailMessageDTO::fromArray($emailData);
+        //Verification si un email avec cet ID n est pas en cours. 
+        $existingEmail = MsgEmailDraft::where('email_id', $emailDTO->id)->where('status', '<>', 'end')->first();
+        if($existingEmail){
+            return;
+        }
+        $newEmailDraft = $user->msg_email_ins()->make()->fill($emailDTO->basicEmailData());
         $newEmailDraft->services_options = $user->services_options;
-        $newEmailDraft->from = $emailDTO->fromEmail;
-        $newEmailDraft->subject = $emailDTO->subject;
-        $newEmailDraft->tos = $emailDTO->allRecipentsStringMails;
-        \Log::info("Derniere date de modif".$emailDTO->lastModifiedDateTime);
-        \Log::info("Carbon now".\Carbon\Carbon::now());
-        \Log::info("ID".$newEmailDraft->id);
         //Appelle des deux classes avec la methode Handle
         if ($newEmailDraft->{'services_options.d-cor.mode'} === 'actif') { //Retrouver la valeur actif ou non pour cette class dans le json services qui a et copié dans le mailIn.
             $emailDraftClient = new DraftEmailProcessor($user, $emailDTO, $newEmailDraft);
