@@ -101,7 +101,7 @@ class MsgUserDraft extends Model
         $response = $subscriptionService->subscribeToDraftNotifications($this->ms_id, $this->abn_secret);
 
         if ($response['response']['id'] ?? false) {
-            $this->suscription_id = $response['response']['id'];
+            $this->subscription_id = $response['response']['id'];
             $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
             $this->save();
         }
@@ -110,9 +110,12 @@ class MsgUserDraft extends Model
     /**
      * Révocation de l'abonnement.
      */
-    public function revokeSubscription()
+    public function revokeSubscription(string $sucription = null)
     {
-        if (!$this->suscription_id) {
+        if($sucription) {
+            $this->subscription_id = $sucription;
+        }
+        if (!$this->subscription_id) {
             return;
         }
         $authService = app(MsGraphAuthService::class);
@@ -121,10 +124,10 @@ class MsgUserDraft extends Model
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->unsubscribeFromDraftNotifications($this->suscription_id);
+        $response = $subscriptionService->unsubscribeFromDraftNotifications($this->subscription_id);
 
         if ($response['success'] ?? false) {
-            $this->suscription_id = null;
+            $this->subscription_id = null;
             $this->expire_at = null;
             $this->save();
         }
@@ -141,7 +144,7 @@ class MsgUserDraft extends Model
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->renewDraftNotificationSubscription($this->suscription_id);
+        $response = $subscriptionService->renewDraftNotificationSubscription($this->subscription_id);
 
         if ($response['success'] ?? false) {
             $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);

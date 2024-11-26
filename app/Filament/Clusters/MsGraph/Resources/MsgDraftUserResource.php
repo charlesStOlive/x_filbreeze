@@ -45,7 +45,7 @@ class MsgDraftUserResource extends Resource
             ->columns([
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('ms_id')->searchable()->sortable(),
-                TextColumn::make('suscription_id'),
+                TextColumn::make('subscription_id'),
                 MailServiceColumn::make('services_options')->serviceType('email-draft'),
                 //
             ])
@@ -65,26 +65,26 @@ class MsgDraftUserResource extends Resource
                         }
                         $record->save();
                     }),
-                Action::make('suscribe')
+                Action::make('subscribe')
                     ->label('Souscrire')
                     ->requiresConfirmation()
                     ->icon('heroicon-o-envelope-open')
                     ->modalDescription('Activez le mode test au préalable, si vous ne voulez pas modifier le mail')
-                    ->action(fn(MsgUserDraft $record) => $record->suscribe())
-                    ->visible(fn(MsgUserDraft $record): bool => $record->suscription_id === null),
+                    ->action(fn(MsgUserDraft $record) => $record->subscribe())
+                    ->visible(fn(MsgUserDraft $record): bool => $record->subscription_id === null),
                 Action::make('revoke')
                     ->label('Révoquer')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->action(fn(MsgUserDraft $record) => $record->revokeSuscription())
-                    ->visible(fn(MsgUserDraft $record): bool => $record->suscription_id !== null),
+                    ->action(fn(MsgUserDraft $record) => $record->revokeSubscription())
+                    ->visible(fn(MsgUserDraft $record): bool => $record->subscription_id !== null),
                 Action::make('refresh')
                     ->label('Refresh')
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->action(fn(MsgUserDraft $record) => $record->refreshSuscription())
-                    ->visible(fn(MsgUserDraft $record): bool => $record->suscription_id !== null),
+                    ->visible(fn(MsgUserDraft $record): bool => $record->subscription_id !== null),
             ])
             ->recordUrl(
                 fn(MsgUserDraft $record): string => MsgDraftUserResource::getUrl('edit', ['record' => $record])

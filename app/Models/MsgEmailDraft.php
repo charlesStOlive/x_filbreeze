@@ -15,6 +15,8 @@ class MsgEmailDraft extends Model
 
     protected $casts = [];
 
+    protected $guarded = ['id'];
+
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);

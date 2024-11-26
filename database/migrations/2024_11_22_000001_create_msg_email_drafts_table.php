@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('msg_email_drafts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('msg_user_draft_id')->nullable()->constrained('msg_user_drafts')->onDelete('cascade'); // Clé étrangère
-            $table->string('state', 10)->default('start')->index();
+            $table->string('status', 10)->default('start')->index();
             $table->json('services_options')->nullable();
             $table->json('services_results')->nullable();
             $table->json('data_mail')->nullable();

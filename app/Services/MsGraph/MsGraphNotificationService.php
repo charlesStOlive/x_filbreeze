@@ -11,6 +11,7 @@ use App\Services\Processors\Emails\EmailPjFactuProcessor;
 use App\Services\Processors\Emails\EmailInClientProcessor;
 use App\Services\Processors\Emails\DraftEmailProcessor;
 
+
 class MsGraphNotificationService
 {
     protected MsGraphAuthService $authService;
@@ -39,10 +40,14 @@ class MsGraphNotificationService
 
     public function processDraftNotification(array $notificationData)
     {
+        \Log::info('--processDraftNotification--');
+        \Log::info($notificationData);
         $data = $notificationData['value'][0];
         $clientState = $data['clientState'];
         $tenantId = $data['tenantId'];
         $messageId = $data['resourceData']['id'];
+
+        \Log::info($clientState);
 
         $user = $this->authService->verifyDraftSubscriptionAndGetUser($clientState, $tenantId);
         $emailData = $this->emailService->fetchEmailData($user, new MsgEmailDraft(['email_id' => $messageId]));
@@ -75,7 +80,7 @@ class MsGraphNotificationService
         $emailDTO = EmailMessageDTO::fromArray($emailData);
 
         $existingEmail = MsgEmailDraft::where('email_id', $emailDTO->id)
-            ->where('status', '<>', 'end')
+            ->whereNotIn('status', ['end', 'error'])
             ->first();
 
         if ($existingEmail) {

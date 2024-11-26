@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('ms_id', 36)->unique(); // Taille fixe pour UUID
             $table->string('email')->unique();
-            $table->string('suscription_id')->nullable();
+            $table->string('subscription_id')->nullable();
             $table->json('services_options')->nullable();
             $table->string('abn_secret', 100)->nullable(); // Taille optimisée
             $table->dateTime('expire_at')->nullable()->index(); // Index pour des filtres fréquents

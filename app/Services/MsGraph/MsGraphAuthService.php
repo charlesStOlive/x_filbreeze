@@ -3,6 +3,8 @@
 use Exception;
 use GuzzleHttp\Client;
 use App\Models\MsgToken;
+use App\Models\MsgUserDraft;
+use App\Models\MsgUserIn;
 
 class MsGraphAuthService
 {
@@ -55,6 +57,38 @@ class MsGraphAuthService
             return json_decode($response->getBody()->getContents(), true) ?? [];
         } catch (Exception $e) {
             throw new Exception("Failed to execute API request: " . $e->getMessage());
+        }
+    }
+
+    public function verifySubscriptionAndGetUser(string $clientState, string $tenantId): MsgUserIn
+    {
+        $this->verifyTenant($tenantId);
+
+        $user = MsgUserIn::where('abn_secret', $clientState)->first();
+        if (!$user) {
+            throw new Exception("No user found matching the provided client state.");
+        }
+
+        return $user;
+    }
+
+    public function verifyDraftSubscriptionAndGetUser(string $clientState, string $tenantId): MsgUserDraft
+    {
+        $this->verifyTenant($tenantId);
+        \Log::info($clientState);
+
+        $user = MsgUserDraft::where('abn_secret', $clientState)->first();
+        if (!$user) {
+            throw new Exception("No user found matching the provided client state.");
+        }
+
+        return $user;
+    }
+
+    public function verifyTenant(string $tenantId): void
+    {
+        if ($tenantId !== config('msgraph.tenantId')) {
+            throw new Exception("Tenant ID does not match the configured value.");
         }
     }
 

@@ -110,7 +110,7 @@ class MsgUserIn extends Model
         $response = $subscriptionService->subscribeToEmailNotifications($this->ms_id, $this->abn_secret);
 
         if ($response['response']['id'] ?? false) {
-            $this->suscription_id = $response['response']['id'];
+            $this->subscription_id = $response['response']['id'];
             $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
             $this->save();
         } else {
@@ -123,7 +123,7 @@ class MsgUserIn extends Model
      */
     public function revokeSubscription()
     {
-        if (!$this->suscription_id) {
+        if (!$this->subscription_id) {
             \Log::info('No subscription ID found to revoke.');
             return;
         }
@@ -133,10 +133,10 @@ class MsgUserIn extends Model
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->unsubscribeFromEmailNotifications($this->suscription_id);
+        $response = $subscriptionService->unsubscribeFromEmailNotifications($this->subscription_id);
 
         if ($response['success'] ?? false) {
-            $this->suscription_id = null;
+            $this->subscription_id = null;
             $this->expire_at = null;
             $this->save();
         } else {
@@ -149,7 +149,7 @@ class MsgUserIn extends Model
      */
     public function refreshSubscription()
     {
-        if (!$this->suscription_id) {
+        if (!$this->subscription_id) {
             \Log::info('No subscription ID found to refresh.');
             return;
         }
@@ -160,7 +160,7 @@ class MsgUserIn extends Model
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->renewEmailNotificationSubscription($this->suscription_id);
+        $response = $subscriptionService->renewEmailNotificationSubscription($this->subscription_id);
 
         if ($response['success'] ?? false) {
             $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);

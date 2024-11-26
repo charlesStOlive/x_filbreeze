@@ -43,7 +43,7 @@ class MsgInUserResource extends Resource
             ->columns([
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('ms_id')->searchable()->sortable(),
-                TextColumn::make('suscription_id'),
+                TextColumn::make('subscription_id'),
                 MailServiceColumn::make('services_options')->serviceType('email-in'),
                 //
             ])
@@ -63,26 +63,26 @@ class MsgInUserResource extends Resource
                         }
                         $record->save();
                     }),
-                Action::make('suscribe')
+                Action::make('subscribe')
                     ->label('Souscrire')
                     ->requiresConfirmation()
                     ->icon('heroicon-o-envelope-open')
                     ->modalDescription('Activez le mode test au préalable, si vous ne voulez pas modifier le mail')
-                    ->action(fn(MsgUserIn $record) => $record->suscribe())
-                    ->visible(fn(MsgUserIn $record): bool => $record->suscription_id === null),
+                    ->action(fn(MsgUserIn $record) => $record->subscribe())
+                    ->visible(fn(MsgUserIn $record): bool => $record->subscription_id === null),
                 Action::make('revoke')
                     ->label('Révoquer')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->action(fn(MsgUserIn $record) => $record->revokeSuscription())
-                    ->visible(fn(MsgUserIn $record): bool => $record->suscription_id !== null),
+                    ->action(fn(MsgUserIn $record) => $record->revokeSubscription())
+                    ->visible(fn(MsgUserIn $record): bool => $record->subscription_id !== null),
                 Action::make('refresh')
                     ->label('Refresh')
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->action(fn(MsgUserIn $record) => $record->refreshSuscription())
-                    ->visible(fn(MsgUserIn $record): bool => $record->suscription_id !== null),
+                    ->visible(fn(MsgUserIn $record): bool => $record->subscription_id !== null),
             ])
             ->recordUrl(
                 fn(MsgUserIn $record): string => MsgInUserResource::getUrl('edit', ['record' => $record])
