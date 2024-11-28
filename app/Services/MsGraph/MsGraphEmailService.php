@@ -22,6 +22,14 @@ class MsGraphEmailService
         return $this->authService->guzzle('get', $path);
     }
 
+    public function createDraft($user, array $emailData): array
+    {
+        // Path pour créer un nouveau brouillon dans le dossier "Drafts" d'un utilisateur spécifique
+        $path = "users/{$user->ms_id}/messages";
+        // Envoyer la requête pour créer le brouillon
+        return $this->authService->guzzle('post', $path, $emailData);
+    }
+
     public function updateEmail($user, $email, array $updateData): bool
     {
         $path = $this->getApiPathToMail($user, $email);
@@ -29,7 +37,6 @@ class MsGraphEmailService
         if (empty($updateData)) {
             throw new Exception('No data to update email.');
         }
-
         $this->authService->guzzle('patch', $path, $updateData);
         return true;
     }

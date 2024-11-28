@@ -20,9 +20,9 @@ class MsgEmailDraftRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('from')->label('De')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('subject')->label('Sujet')->limit(50)->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime()->timezone('Europe/Paris')->sortable(),
+                Tables\Columns\TextColumn::make('status')->label('Etat'),
+                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime('d/m/Y')->timezone('Europe/Paris')->sortable(),
                 MailServiceColumn::make('services_options')->serviceType('email-draft'),
                 MailResultColumn::make('services_results')->serviceType('email-draft'),
             ])

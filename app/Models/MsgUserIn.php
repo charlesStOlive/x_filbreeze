@@ -109,9 +109,9 @@ class MsgUserIn extends Model
         $subscriptionService = app(MsGraphSubscriptionService::class);
         $response = $subscriptionService->subscribeToEmailNotifications($this->ms_id, $this->abn_secret);
 
-        if ($response['response']['id'] ?? false) {
-            $this->subscription_id = $response['response']['id'];
-            $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
+        if ($response['id'] ?? false) {
+            $this->subscription_id = $response['id'];
+            $this->expire_at = Carbon::parse($response['expirationDateTime']);
             $this->save();
         } else {
             \Log::error('Failed to subscribe: ', $response);
@@ -140,7 +140,7 @@ class MsgUserIn extends Model
             $this->expire_at = null;
             $this->save();
         } else {
-            \Log::error('Failed to revoke subscription.');
+            \Log::error($response);
         }
     }
 
@@ -163,10 +163,10 @@ class MsgUserIn extends Model
         $response = $subscriptionService->renewEmailNotificationSubscription($this->subscription_id);
 
         if ($response['success'] ?? false) {
-            $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
+            $this->expire_at = Carbon::parse($response['expirationDateTime']);
             $this->save();
         } else {
-            \Log::error('Failed to refresh subscription.');
+            \Log::error($response);
         }
     }
 }

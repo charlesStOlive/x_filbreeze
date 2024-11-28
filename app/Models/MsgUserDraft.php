@@ -15,7 +15,9 @@ class MsgUserDraft extends Model
 
     protected $table = 'msg_user_drafts';
     protected $guarded = ['id'];
-    protected $casts = [];
+    protected $casts = [
+        'data_email' => 'json'
+    ];
 
     public function __construct(array $attributes = [])
     {
@@ -100,16 +102,43 @@ class MsgUserDraft extends Model
         $subscriptionService = app(MsGraphSubscriptionService::class);
         $response = $subscriptionService->subscribeToDraftNotifications($this->ms_id, $this->abn_secret);
 
-        if ($response['response']['id'] ?? false) {
-            $this->subscription_id = $response['response']['id'];
-            $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
+        if ($response['id'] ?? false) {
+            $this->subscription_id = $response['id'];
+            $this->expire_at = Carbon::parse($response['expirationDateTime']);
             $this->save();
+        } else {
+            \Log::error($response);
         }
     }
 
     /**
      * Révocation de l'abonnement.
      */
+    // public function revokeSubscription(string $sucription = null)
+    // {
+    //     if($sucription) {
+    //         $this->subscription_id = $sucription;
+    //     }
+    //     if (!$this->subscription_id) {
+    //         return;
+    //     }
+    //     $authService = app(MsGraphAuthService::class);
+    //     if (!$authService->isConnected()) {
+    //         $authService->connect(false);
+    //     }
+
+    //     $subscriptionService = app(MsGraphSubscriptionService::class);
+    //     $response = $subscriptionService->unsubscribeFromDraftNotifications($this->subscription_id);
+
+    //     if ($response['success'] ?? false) {
+    //         $this->subscription_id = null;
+    //         $this->expire_at = null;
+    //         $this->save();
+    //     } else {
+    //         \Log::error($response);
+    //     }
+    // }
+
     public function revokeSubscription(string $sucription = null)
     {
         if($sucription) {
@@ -124,12 +153,14 @@ class MsgUserDraft extends Model
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->unsubscribeFromDraftNotifications($this->subscription_id);
+        $response = $subscriptionService->revokeAllSubscriptionsForUser($this->ms_id);
 
         if ($response['success'] ?? false) {
             $this->subscription_id = null;
             $this->expire_at = null;
             $this->save();
+        } else {
+            \Log::error($response);
         }
     }
 
@@ -149,6 +180,8 @@ class MsgUserDraft extends Model
         if ($response['success'] ?? false) {
             $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
             $this->save();
+        } else {
+            \Log::error($response);
         }
     }
 }

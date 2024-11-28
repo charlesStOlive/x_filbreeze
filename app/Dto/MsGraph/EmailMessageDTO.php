@@ -22,6 +22,9 @@ class EmailMessageDTO extends Data
         public string $contentType,
         public string $bodyOriginal,
         public string $bodyBrut,
+        public array $toRecipients = [], 
+        public array $ccRecipients = [], 
+        public array $bccRecipients = [], 
         public array $toRecipientsNames = [],
         public array $toRecipientsMails = [],
         public array $ccRecipientsNames = [],
@@ -59,8 +62,6 @@ class EmailMessageDTO extends Data
         $bodyBrut = self::parseTextFromHtml($data['body']['content'] ?? '');
         [$regexCode, $regexCodeOption] = self::extractRegexCodeAndOptions($bodyBrut);
 
-        \Log::info("Date : ".$data['lastModifiedDateTime']);
-
         return new self(
             id: $data['id'] ?? uniqid(),
             createdDateTime: new Carbon($data['createdDateTime'] ?? now()),
@@ -74,6 +75,9 @@ class EmailMessageDTO extends Data
             contentType: $data['body']['contentType'] ?? 'text/plain',
             bodyOriginal: $data['body']['content'] ?? '',
             bodyBrut: $bodyBrut,
+            toRecipients: $data['toRecipients'] ?? [],
+            ccRecipients: $data['ccRecipients'] ?? [],
+            bccRecipients: $data['bccRecipients'] ?? [],
             toRecipientsNames: self::extractRecipientNames($data['toRecipients'] ?? []),
             toRecipientsMails: $toEmails,
             ccRecipientsNames: self::extractRecipientNames($data['ccRecipients'] ?? []),
@@ -186,6 +190,31 @@ class EmailMessageDTO extends Data
             'tos' => $this->allRecipentsStringMails,
             'subject' => $this->subject,
             'email_id' => $this->id,
+        ];
+    }
+
+    /**
+     * Prépare les données pour créer un nouvel email.
+     */
+    public function getDataForNewEmail(): array
+    {
+        return [
+            'from' => [
+                'emailAddress' => [
+                    'name' => $this->fromName,
+                    'address' => $this->fromEmail,
+                ],
+            ],
+            'toRecipients' => $this->toRecipients, // Réutilisation directe
+            'ccRecipients' => $this->ccRecipients, // Réutilisation directe
+            'bccRecipients' => $this->bccRecipients, // Réutilisation directe
+            'subject' => $this->subject,
+            'body' => [
+                'contentType' => $this->contentType,
+                'content' => $this->bodyOriginal,
+            ],
+            'attachments' => $this->pjs,
+            'importance' => $this->importance,
         ];
     }
 }

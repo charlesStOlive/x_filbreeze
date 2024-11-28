@@ -3,6 +3,7 @@
 namespace App\Services\Processors\Emails;
 
 use App\Models\MsgEmailDraft;
+use App\Services\MsGraph\MsGraphEmailService;
 
 trait EmailProcessorTrait
 {
@@ -33,7 +34,7 @@ trait EmailProcessorTrait
     {
         $this->email->setAttribute($this->getResultKey() . '.success', false);
         $this->email->setAttribute($this->getResultKey() . '.reason', $reason);
-        $this->email->state = 'end';
+        $this->email->status = 'end';
     }
 
     /**
@@ -47,16 +48,12 @@ trait EmailProcessorTrait
     /**
      * Récupère un résultat spécifique dans les résultats du service.
      */
-    protected function getResult(string $keyName): string
+    protected function getResult(string $keyName): string|array
     {
         return $this->email->getAttribute($this->getResultKey() . '.' . $keyName);
     }
 
-    protected function setRegexKeyWorking(): string
-    {
-        $newBody = $this->insertInRegexKey('Je travaille');
-        return $newBody;
-    }
+    
 
     /**
      * Récupère une option spécifique du service.
@@ -66,19 +63,12 @@ trait EmailProcessorTrait
         return $this->email->getAttribute($this->getServiceKey() . '.' . $keyName);
     }
 
-    public function launchStartingState(): bool
-    {
-        $newBody = $this->setRegexKeyWorking();
+    
 
-        try {
-            //LOGIQUE POUR FAIRE UN UPDATE EMAIL SUR LA BASE DU USER EMAIL et de newBody 
-            $this->email->state = 'running';
-            return true;
-        } catch (\Exception $ex) {
-            $this->email->state = 'error';
-            $this->email->errors = $ex->getMessage();
-            return false;
-        }
+    protected function setRegexKeyWorking(): string
+    {
+        $newBody = $this->insertInRegexKey('Je travaille');
+        return $newBody;
     }
 
 
@@ -99,4 +89,30 @@ trait EmailProcessorTrait
         $newBody = preg_replace($pattern, "## {$replacement} ##", $this->emailData->bodyOriginal, 1);
         return $newBody;
     }
+
+    public function removeRegexKeyAndLineIfEmptyHTML(string $htmlText): string
+    {
+        // Expression régulière pour trouver ## {contenu potentiel} ##
+        $pattern = '/##\s*(.+?)\s*##/';
+
+        // Diviser le contenu HTML en lignes
+        $lines = preg_split('/\r\n|\r|\n/', $htmlText);
+
+        // Parcourir chaque ligne pour traiter le modèle et les lignes devenues vides
+        foreach ($lines as $index => $line) {
+            // Supprimer le contenu correspondant au modèle
+            $lineWithoutKey = preg_replace($pattern, '', $line);
+
+            // Si la ligne devient vide après suppression du modèle, on la supprime
+            if (trim($lineWithoutKey) === '') {
+                $lines[$index] = null;
+            } else {
+                $lines[$index] = $lineWithoutKey; // Sinon, conserver la ligne nettoyée
+            }
+        }
+
+        // Reconstruire le contenu HTML tout en conservant les autres lignes intactes
+        return implode("\n", array_filter($lines, fn($line) => $line !== null));
+    }
+
 }

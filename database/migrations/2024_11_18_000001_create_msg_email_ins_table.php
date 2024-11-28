@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('from', 100)->nullable(); // Taille réduite si applicable
             $table->string('subject', 255)->nullable();
             $table->text('tos')->nullable(); // Texte long pour les adresses multiples
-            $table->string('email_id', 50)->nullable()->index(); // Index pour recherches rapides
-            $table->string('email_original_id', 50)->nullable();
+            $table->string('email_id')->nullable()->index(); // Index pour recherches rapides
+            $table->string('email_original_id')->nullable();
             $table->timestamps();
             $table->text('errors')->nullable();
         });

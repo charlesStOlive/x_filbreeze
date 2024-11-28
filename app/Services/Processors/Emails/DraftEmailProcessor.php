@@ -74,14 +74,72 @@ class DraftEmailProcessor  implements ShouldQueue
         }
     }
 
+    public function launchStartingState(): bool
+    {
+        $newBody = $this->setRegexKeyWorking();
+        $this->email->status = 'running';
+        try {
+            $this->emailService->updateEmail($this->user, $this->email, [
+                'body' => ['contentType' => $this->emailData->contentType, 'content' => $newBody],
+            ]);
+            $this->email->save();
+            return true;
+        } catch (\Exception $ex) {
+            $this->email->status = 'error';
+            $this->email->errors = $ex->getMessage();
+            $this->email->save();
+            \Log::info($ex->getMessage());
+            return false;
+        }
+    }
+
     /**
      * Logique principale pour traiter les données directement.
      */
     public function resolve(): MsgEmailDraft
     {
         // Logique principale
+        \Log::info('Resolve---------');
+        $options = $this->getResult('code_options');
+        $update = false;
+        if($options['u'] ?? false) {
+            $update = true;
+        }
+        if(!$update) {
+            $newEmailData = clone $this->emailData;
+            $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
+            \Log::info("body original");
+            \Log::info($newEmailData->bodyOriginal);
+            $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
+            $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
+            \Log::info("reponse de mistral");
+            \Log::info($responseN);
+            $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');;
+            $responseD = $this->emailService->updateEmail($this->user, $this->email, [
+                'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
+            ]);
+        } else {
+            $this->emailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyOriginal);
+            $this->emailService->updateEmail($this->user, $this->email, [
+                'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
+            ]);
+
+        }
+        
+        sleep(2);
+        $this->email->status = 'end';
         // A venir
         return $this->email;
+    }
+
+    private function callMistralAgent(string $mistralPrompt): string
+    {
+        $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
+        $agentId = 'ag:3e2c948d:20241122:correction-ortho-de-mails:2bf76447';
+        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
+        \Log::info('MIST>RAL RESPONSE');
+        \Log::info($response);
+        return $response['choices'][0]['message']['content'] ?? '';
     }
 
     /**
@@ -89,20 +147,25 @@ class DraftEmailProcessor  implements ShouldQueue
      */
     public function handle()
     {
+        \Log::info('----Lancement du handle----');
         $this->resolve()->save();
+        \Log::info('----Fin du handle----');
     }
 
-    
     /**
      * Méthode statique pour lancer la queue après vérification.
      */
     public static function onQueue(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email)
     {
-
-        $processor = new self($user, $emailData, $email);
-        if ($processor->shouldResolve()) {
+        \Log::info('lancement de la queue');
+        try {
+            $processor = new self($user, $emailData, $email);
             dispatch($processor);
+        } catch(\Exception $ex) {
+            \Log::info($ex->getMessage());
         }
+        
+        
     }
 
     /**

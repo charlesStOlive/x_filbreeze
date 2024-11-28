@@ -56,6 +56,7 @@ class MsGraphAuthService
 
             return json_decode($response->getBody()->getContents(), true) ?? [];
         } catch (Exception $e) {
+            \Log::error($e);
             throw new Exception("Failed to execute API request: " . $e->getMessage());
         }
     }
