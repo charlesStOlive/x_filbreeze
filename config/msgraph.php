@@ -80,6 +80,7 @@ return [
     ],
     'email-draft' => [
         \App\Services\Processors\Emails\DraftEmailProcessor::class,
+        \App\Services\Processors\Emails\TradEmailProcessor::class,
     ],
 
 ];

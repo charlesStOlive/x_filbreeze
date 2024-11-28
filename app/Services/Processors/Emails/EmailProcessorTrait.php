@@ -115,4 +115,23 @@ trait EmailProcessorTrait
         return implode("\n", array_filter($lines, fn($line) => $line !== null));
     }
 
+    public function launchStartingState(): bool
+    {
+        $newBody = $this->setRegexKeyWorking();
+        $this->email->status = 'running';
+        try {
+            $this->emailService->updateEmail($this->user, $this->email, [
+                'body' => ['contentType' => $this->emailData->contentType, 'content' => $newBody],
+            ]);
+            $this->email->save();
+            return true;
+        } catch (\Exception $ex) {
+            $this->email->status = 'error';
+            $this->email->errors = $ex->getMessage();
+            $this->email->save();
+            \Log::info($ex->getMessage());
+            return false;
+        }
+    }
+
 }

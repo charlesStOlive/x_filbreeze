@@ -12,7 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
-class DraftEmailProcessor  implements ShouldQueue
+class TradEmailProcessor  implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use EmailProcessorTrait; // Importation du trait
@@ -37,7 +37,7 @@ class DraftEmailProcessor  implements ShouldQueue
      */
     public static function getKey(): string
     {
-        return 'd-cor';
+        return 'd-trad';
     }
 
     /**
@@ -45,7 +45,7 @@ class DraftEmailProcessor  implements ShouldQueue
      */
     public static function getLabel(): string
     {
-        return 'Corriger le texte';
+        return 'Traduire  le mail';
     }
 
     /**
@@ -53,7 +53,7 @@ class DraftEmailProcessor  implements ShouldQueue
      */
     public static function getDescription(): string
     {
-        return 'Lance une correction sur le texte';
+        return 'Traduit le mail de la langue source vers le français et inversement';
     }
 
     /**
@@ -62,7 +62,7 @@ class DraftEmailProcessor  implements ShouldQueue
     public function shouldResolve(): bool
     {
         // Exemple de logique pour déterminer si l'exécution est requise
-        if ($this->emailData->regexCode !== 'corrige') {
+        if ($this->emailData->regexCode !== 'traduit') {
             $this->setError('Pas de code ou mauvais code : ' . $this->emailData->regexCode);
             //$this->email->save(); necessaire ? 
             return false;
@@ -84,11 +84,19 @@ class DraftEmailProcessor  implements ShouldQueue
         $options = $this->getResult('code_options');
         $update = false;
         if($options['u'] ?? false) {
+            unset($options['u']);
             $update = true;
+        }
+        $langKeyConfig = array_key_first($options);
+        $lang = 'en';
+        if($langKeyConfig) {
+            $lang = 'fr';
         }
         if(!$update) {
             $newEmailData = clone $this->emailData;
             $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
+            //On ajoute le code langue au debut du texte : 
+            $newEmailData->bodyOriginal = sprintf('[%s]%s', $lang, $newEmailData->bodyOriginal);
             \Log::info("body original");
             \Log::info($newEmailData->bodyOriginal);
             $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
@@ -101,6 +109,8 @@ class DraftEmailProcessor  implements ShouldQueue
             ]);
         } else {
             $this->emailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyOriginal);
+            $this->emailData->bodyOriginal = sprintf('[%s]%s', $lang, $this->emailData->bodyOriginal);
+            $this->emailData->bodyOriginal = $this->callMistralAgent($this->emailData->bodyOriginal);
             $this->emailService->updateEmail($this->user, $this->email, [
                 'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
             ]);
@@ -116,10 +126,10 @@ class DraftEmailProcessor  implements ShouldQueue
     private function callMistralAgent(string $mistralPrompt): string
     {
         $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
-        $agentId = 'ag:3e2c948d:20241122:correction-ortho-de-mails:2bf76447';
+        $agentId = 'ag:3e2c948d:20241128:untitled-agent:863e968f';
         $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        \Log::info('MIST>RAL RESPONSE');
-        \Log::info($response);
+        \Log::info('MISTRAL RESPONSE');
+        \Log::info($response['choices'][0]['message']['content'] ?? '');
         return $response['choices'][0]['message']['content'] ?? '';
     }
 
