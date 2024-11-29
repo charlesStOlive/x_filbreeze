@@ -88,10 +88,7 @@ class TradEmailProcessor  implements ShouldQueue
             $update = true;
         }
         $langKeyConfig = array_key_first($options);
-        $lang = 'en';
-        if($langKeyConfig) {
-            $lang = 'fr';
-        }
+        $lang = $langKeyConfig ? $langKeyConfig : 'xx';
         if(!$update) {
             $newEmailData = clone $this->emailData;
             $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
@@ -101,8 +98,6 @@ class TradEmailProcessor  implements ShouldQueue
             \Log::info($newEmailData->bodyOriginal);
             $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
             $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
-            \Log::info("reponse de mistral");
-            \Log::info($responseN);
             $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');;
             $responseD = $this->emailService->updateEmail($this->user, $this->email, [
                 'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],

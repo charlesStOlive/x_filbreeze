@@ -24,12 +24,12 @@ Artisan::command('inspire', function () {
 
 
 Schedule::call(function () {
-    $msgUsers = MsgUserIn::where('suscription_id', '<>', null)->get();
+    $msgUsers = MsgUserIn::where('subscription_id', '<>', null)->get();
     foreach ($msgUsers as $msgUser) {
         $msgUser->refreshSubscription();
     }
-    $msgUsers = MsgUserDraft::where('suscription_id', '<>', null)->get();
+    $msgUsers = MsgUserDraft::where('subscription_id', '<>', null)->get();
     foreach ($msgUsers as $msgUser) {
         $msgUser->refreshSubscription();
     }
-})->dailyAt('18:00')->timezone('Europe/Paris');
+})->dailyAt('18:40')->timezone('Europe/Paris');

@@ -22,7 +22,7 @@ class MsgEmailDraftRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('subject')->label('Sujet')->limit(50)->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('status')->label('Etat'),
-                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime('d/m/Y')->timezone('Europe/Paris')->sortable(),
+                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime('d/m h:i')->timezone('Europe/Paris')->sortable(),
                 MailServiceColumn::make('services_options')->serviceType('email-draft'),
                 MailResultColumn::make('services_results')->serviceType('email-draft'),
             ])

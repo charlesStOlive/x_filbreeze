@@ -10,6 +10,7 @@ use App\Dto\MsGraph\EmailMessageDTO;
 use App\Services\MsGraph\MsGraphAuthService;
 use App\Services\MsGraph\MsGraphEmailService;
 use App\Services\Processors\Emails\DraftEmailProcessor;
+use App\Services\Processors\Emails\TradEmailProcessor;
 use App\Services\Processors\Emails\EmailPjFactuProcessor;
 use App\Services\Processors\Emails\EmailInClientProcessor;
 
@@ -79,6 +80,13 @@ class MsGraphNotificationService
             if ($emailDraftClient->shouldResolve()) {
                 \Log::info('demarage queue');
                 DraftEmailProcessor::onQueue($user, $emailDTO, $newEmailDraft);
+            }
+        }
+        if ($newEmailDraft->{'services_options.d-trad.mode'} === 'actif') {
+            $emailDraftClient = new TradEmailProcessor($user, $emailDTO, $newEmailDraft);
+            if ($emailDraftClient->shouldResolve()) {
+                \Log::info('demarage queue trad');
+                TradEmailProcessor::onQueue($user, $emailDTO, $newEmailDraft);
             }
         }
 
