@@ -49,7 +49,7 @@ class MistralAgentService
         } catch (RequestException $e) {
             if ($e->hasResponse()) {
                 $response = $e->getResponse();
-                $this->logResponse($response);
+                // $this->logResponse($response);
                 return json_decode($response->getBody(), true);
             }
 

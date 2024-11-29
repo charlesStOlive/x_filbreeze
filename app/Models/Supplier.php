@@ -18,7 +18,17 @@ class Supplier extends Model
     protected $table = 'crm_suppliers';
 
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'supplier_id',
+        'has_tva',
+        'total_ht',
+        'tva',
+        'tx_tva',
+        'total_ttc',
+        'invoice_at',
+        'invoice_number',
+        'currency',
+    ];
 
     public function invoices()
     {

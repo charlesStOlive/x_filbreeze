@@ -2,23 +2,31 @@
 
 namespace App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 
+use App\Models\Supplier;
 use Filament\Forms\Form;
-use Filament\Resources\Pages\Page;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource;
 use App\Models\SupplierInvoice;
+use Filament\Resources\Pages\Page;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Wizard;
+use Illuminate\Support\Facades\Cache;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use App\Forms\Components\NotilacRepeater;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Concerns\InteractsWithForms;
 use Spatie\TemporaryDirectory\TemporaryDirectory;
 use App\Services\Models\SupplierInvoiceFileAnalyser;
 use Filament\Forms\Components\Actions as FormActions;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource;
 
 class CreatSupplieFromFile extends Page implements HasForms
 {
@@ -28,185 +36,196 @@ class CreatSupplieFromFile extends Page implements HasForms
 
     protected static string $view = 'filament.clusters.crm.resources.supplier-invoice-resource.pages.creat-supplie-from-file';
 
-    public function getSubNavigation(): array
-    {
-        if (filled($cluster = static::getCluster())) {
-            return $this->generateNavigationItems($cluster::getClusteredComponents());
-        }
-
-        return [];
-    }
+    // Déclarations des propriétés pour Livewire
+    public ?array $file_pdf_image = [];
+    public ?array $invoice_data = [];
+    public ?array $processedInvoices = [];
 
     protected SupplierInvoiceFileAnalyser $fileAnalyzer;
-    protected ?string $tempFilePath = null; // Stocker le chemin temporaire du fichier traité
-    public ?SupplierInvoice $createdInvoice = null;
-
-    // Déclarer les propriétés utilisées dans les champs de formulaire
-    public ?string $supplier_id = null;
-    public ?string $has_tva = null;
-    public ?string $total_ht = null;
-    public ?string $tva = null;
-    public ?string $tx_tva = null;
-    public ?string $total_ttc = null;
-    public ?string $invoice_at = null;
-    public ?string $invoice_number = null;
-    public ?string $currency = null;
-    public ?array $file_pdf_image = [];
-
-    public ?string $prompt = null;
-    public ?string $type = null;
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Wizard::make([
-                    // Étape 1 : Charger un fichier
-                    Wizard\Step::make('Ajouter un fichier')
+                    // Étape 1 : Charger des fichiers
+                    Wizard\Step::make('Ajouter des fichiers')
                         ->schema([
                             FileUpload::make('file_pdf_image')
-                                ->label('Charger un fichier (PDF ou image)')
+                                ->label('Charger un ou plusieurs fichiers (PDF ou image)')
                                 ->required()
                                 ->acceptedFileTypes(['application/pdf', 'image/*'])
+                                ->multiple()
                         ])
                         ->afterValidation(function ($get, $set) {
-                            if ($get('file_pdf_image')) {
-                                $this->handleFileUpload(null, $get, $set);
-                            }
+                            $this->handleMultipleFileUploads($get('file_pdf_image'), $set);
                         }),
 
                     // Étape 2 : Vérification des informations
-                    Wizard\Step::make('Vérifier l\'information')
+                    Wizard\Step::make('Vérifier les informations')
                         ->schema([
-                            Fieldset::make('Information générale')
+                            NotilacRepeater::make('invoice_data')
+                                ->itemColor(function ($state) {
+                                    $mystate = $state['state'] ?? false;
+                                    \Log::info('state : ' . $mystate);
+                                    return match ($state['state'] ?? null) {
+                                        'Erreur' => 'bg-primary-500',
+                                        default => 'bg-white',
+                                    };
+                                })
+                                ->label('Données des factures')
+                                ->collapsed()
+                                ->addable(false)
+                                ->itemLabel(fn($state) => sprintf('%s (%s)', $state['file_name'] ?? 'Fichier inconnu', $state['state'] ?? ''))
                                 ->schema([
-                                    TextInput::make('type')
-                                        ->label('Type de contenu')
+                                    TextInput::make('file_name')
+                                        ->label('Nom du fichier')
                                         ->disabled()
-                                        ->hidden(fn($get) => !$get('type'))->columnSpanFull(),
-                                    Textarea::make('prompt')
-                                        ->label('Prompt mistral for agent')
-                                        ->rows(5)
+                                        ->dehydrated()
+                                        ->columnSpan(2),
+                                    Textarea::make('error_comment')
+                                        ->label('Commentaire d\'erreur')
+                                        ->hidden(fn($get) => $get('state') !== 'Erreur')
                                         ->disabled()
-                                        ->hidden(fn($get) => !$get('prompt'))->columnSpanFull(),
-                                ])->columnSpan(1),
-
-                            Fieldset::make('Informations de la Facture')
-                                ->schema([
-                                    TextInput::make('supplier_id')->label('Supplier ID')->columnSpanFull(),
-                                    TextInput::make('has_tva')->label('TVA incluse')->columnSpanFull(),
-                                    TextInput::make('total_ht')->label('Total HT')->columnSpanFull(),
-                                    TextInput::make('tva')->label('TVA')->columnSpanFull(),
-                                    TextInput::make('tx_tva')->label('Taux de TVA')->columnSpanFull(),
-                                    TextInput::make('total_ttc')->label('Total TTC')->columnSpanFull(),
-                                    TextInput::make('invoice_at')->label('Date de la facture')->columnSpanFull(),
-                                    TextInput::make('invoice_number')->label('Numéro de la facture')->columnSpanFull(),
-                                    TextInput::make('currency')->label('Devise')->columnSpanFull(),
-                                ])->columnSpan(1),
-                        ])->columns(2)
+                                        ->dehydrated()
+                                        ->rows(3)
+                                        ->columnSpan(2),
+                                    Fieldset::make('Informations de la Facture')
+                                        ->schema([
+                                            Select::make('supplier_id')
+                                                ->options(fn() => Supplier::pluck('name', 'id'))
+                                                ->label('Supplier ID')
+                                                ->columnSpan(2),
+                                            DatePicker::make('invoice_at')->label('Date de la facture')->format('Y/m/d'),
+                                            TextInput::make('invoice_number')->label('Numéro de la facture'),
+                                            TextInput::make('currency')->label('Devise'),
+                                            Toggle::make('has_tva')->label('TVA ? '),
+                                            TextInput::make('total_ht')->label('Total HT'),
+                                            TextInput::make('tva')->label('TVA'),
+                                            TextInput::make('tx_tva')->label('Taux de TVA'),
+                                            TextInput::make('total_ttc')->label('Total TTC'),
+                                        ])
+                                        ->hidden(fn($get) => $get('state') === 'Erreur')
+                                        ->columns(5),
+                                ])
+                                ->columns(1),
+                        ])
                         ->afterValidation(function ($get, $set) {
-                            if ($get('file_pdf_image')) {
-                                $this->createSupplierInvoice($get);
-                            }
+                            $this->createSupplierInvoices($get);
                         }),
 
                     // Étape 3 : Confirmation
                     Wizard\Step::make('Confirmation')
                         ->schema([
-                            FormActions::make([
-                                FormAction::make('openInvoice')
-                                    ->label('Ouvrir la facture créée')
-                                    ->color('success')
-                                    ->url(fn() => $this->createdInvoice
-                                        ? SupplierInvoiceResource::getUrl('edit', ['record' => $this->createdInvoice])
-                                        : '#', shouldOpenInNewTab: true),
-                                FormAction::make('deleteInvoice')
-                                    ->label('Supprimer la facture créée')
-                                    ->color('danger')
-                                    ->action(function () {
-                                        if ($this->createdInvoice) {
-                                            $this->createdInvoice->delete();
-                                        }
-                                    }),
-                            ]),
+                            Repeater::make('processedInvoices')
+                                ->label('Factures créées')
+                                ->reorderable(false)
+                                ->addable(false)
+                                ->simple(
+                                    TextInput::make('name')->label('Nom')->disabled(),
+                                )
+                                ->deleteAction(
+                                    fn(Action $action) => $action->hidden(true),
+                                )
+                                ->extraItemActions([
+                                    Action::make('show_item')
+                                        ->icon('heroicon-o-eye')
+                                        ->color('success')
+                                        ->action(function (array $arguments, Repeater $component): void {
+                                            $itemData = $component->getRawItemState($arguments['item']);
+                                            $si = SupplierInvoice::find($itemData['id']);
+                                            \Log::info($si);
+                                            redirect(SupplierInvoiceResource::getUrl('edit', ['record' => $si->id]));
+                                        })
+                                ])
                         ]),
                 ])
             ]);
     }
 
-    protected function handleFileUpload($fileComponent, $get, $set): void
+    protected function handleMultipleFileUploads(array $files, callable $set): void
     {
-        $temporaryFile = $fileComponent ? $fileComponent->getState() : $get('file_pdf_image');
-        $uploadedFile = reset($temporaryFile);
+        $this->fileAnalyzer = app(SupplierInvoiceFileAnalyser::class);
+        $cacheKey = 'test_invoice_data'; // Clé unique pour le cache
+        $invoiceData = [];
 
-        if ($uploadedFile instanceof TemporaryUploadedFile) {
-            $originalName = $uploadedFile->getClientOriginalName();
-            $tempPath = $uploadedFile->getRealPath();
+        // Vérifier si les données sont déjà en cache
+        // if (false) {
+        Cache::forget('test_invoice_data');
+        if (Cache::has($cacheKey)) {
+            $invoiceData = Cache::get($cacheKey);
+        } else {
+            foreach ($files as $file) {
+                $data = [];
+                if ($file instanceof TemporaryUploadedFile) {
+                    $tempPath = $file->getRealPath();
+                    $response = $this->fileAnalyzer->analyzeFile($tempPath);
 
-            // Déplacement vers un répertoire temporaire
-            $temporaryDirectory = TemporaryDirectory::make();
-            $tmpFilePath = $temporaryDirectory->path($originalName);
+                    $data['file_name'] = $file->getClientOriginalName(); // Récupérer le nom du fichier source
 
-            copy($tempPath, $tmpFilePath);
-
-            // Analyse du fichier avec SupplierInvoiceFileAnalyser
-            $this->fileAnalyzer = app(SupplierInvoiceFileAnalyser::class); // Injection via IoC
-            $response = $this->fileAnalyzer->analyzeFile($tmpFilePath);
-
-            // Gestion de la réponse
-            if ($response->isSuccess()) {
-                $set('type', 'success');
-                $set('prompt', $this->fileAnalyzer->mistralPrompt);
-
-                // Stocker le chemin temporaire pour un usage ultérieur
-                $this->tempFilePath = $tmpFilePath;
-
-                // Injecter les données extraites dans les champs
-                foreach ($response->getDataArray() as $key => $value) {
-                    $set($key, $value);
+                    if ($response->isSuccess()) {
+                        $data = array_merge($data, $response->getDataArray());
+                        $data['state'] = 'Succès';
+                        $data['error_comment'] = null; // Pas de commentaire pour le succès
+                    } else {
+                        $data['state'] = 'Erreur';
+                        $data['error_comment'] = $response->getMessage(); // Message d'erreur
+                    }
                 }
-            } else {
-                Notification::make()
-                    ->title('Erreur lors de l\'analyse du fichier.')
-                    ->body($response->getMessage())
-                    ->danger()
-                    ->send();
-                $set('type', 'error');
+                $invoiceData[] = $data;
             }
+
+            // Mettre en cache les données pour 1 heure
+            // Cache::put($cacheKey, $invoiceData, now()->addHour());
         }
+
+        // \Log::info($invoiceData);
+
+        // Associer les données d'invoice
+        $set('invoice_data', $invoiceData);
     }
 
-    public function createSupplierInvoice($get): void
+    public function createSupplierInvoices($get): void
     {
-        $invoiceData = [
-            'supplier_id' => $get('supplier_id'),
-            'has_tva' => $get('has_tva'),
-            'total_ht' => $get('total_ht'),
-            'tva' => $get('tva'),
-            'tx_tva' => $get('tx_tva'),
-            'total_ttc' => $get('total_ttc'),
-            'invoice_at' => $get('invoice_at'),
-            'invoice_number' => $get('invoice_number'),
-            'currency' => $get('currency'),
-        ];
-
-        // Création de la facture
-        $supplierInvoice = SupplierInvoice::create($invoiceData);
-
-        // Association du fichier à la facture
+        $invoices = $get('invoice_data');
         $files = $get('file_pdf_image');
-        $file = reset($files); // Obtenir le premier fichier du tableau
-        if ($file instanceof TemporaryUploadedFile) {
-            $supplierInvoice->addMedia($file)->toMediaCollection('invoice');
-        } else {
-            \Log::info('Aucun fichier n\'a été trouvé pour la facture.');
+        foreach ($invoices as $data) {
+            if ($data['state'] === 'Erreur') {
+                continue;
+            }
+            $supplierInvoice = SupplierInvoice::create($data);
+
+
+
+            foreach ($files as $file) {
+                \Log::info($file->getClientOriginalName());
+                \Log::info($data['file_name']);
+                if ($file->getClientOriginalName() === $data['file_name']) {
+                    $supplierInvoice->addMedia($file)->toMediaCollection('invoice');
+                }
+                // Ajoutez des conditions pour filtrer le bon fichier si nécessaire
+
+            }
+
+            $this->processedInvoices[] = [
+                'id' => $supplierInvoice->id,
+                'name' => $supplierInvoice->invoice_number,
+            ];
         }
 
         Notification::make()
-            ->title('Facture créée avec succès.')
+            ->title('Factures créées avec succès.')
             ->success()
             ->send();
+    }
 
-        $this->createdInvoice = $supplierInvoice;
+    public function deleteInvoice(int $invoiceId): void
+    {
+        $invoice = SupplierInvoice::find($invoiceId);
+
+        if ($invoice) {
+            $invoice->delete();
+            $this->processedInvoices = array_filter($this->processedInvoices, fn($invoice) => $invoice['id'] !== $invoiceId);
+        }
     }
 }

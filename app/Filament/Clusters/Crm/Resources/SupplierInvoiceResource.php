@@ -13,9 +13,11 @@ use App\Models\SupplierInvoice;
 use Filament\Resources\Resource;
 use Illuminate\Support\Facades\DB;
 use Filament\Tables\Grouping\Group;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\RelationManagers;
@@ -256,6 +258,10 @@ class SupplierInvoiceResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+            ])->bulkActions([
+                BulkAction::make('delete')
+                    ->requiresConfirmation()
+                    ->action(fn(Collection $records) => $records->each->delete())
             ]);
     }
 
@@ -268,5 +274,4 @@ class SupplierInvoiceResource extends Resource
             'createfromfile' => Pages\CreatSupplieFromFile::route('/createfromfile'),
         ];
     }
-    
 }

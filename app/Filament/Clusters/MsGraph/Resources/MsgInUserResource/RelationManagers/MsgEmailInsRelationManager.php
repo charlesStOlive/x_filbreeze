@@ -22,7 +22,7 @@ class MsgEmailInsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('from')->label('De')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('subject')->label('Sujet')->limit(50)->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime()->timezone('Europe/Paris')->sortable(),
+                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime('d/m h:i')->timezone('Europe/Paris')->sortable(),
                 MailServiceColumn::make('services_options')->serviceType('email-in'),
                 MailResultColumn::make('services_results')->serviceType('email-in'),
             ])

@@ -34,9 +34,13 @@ class SupplierInvoiceFileAnalyser
         try {
             $suppliers = Supplier::pluck('name', 'id')->toArray();
             $result = $this->fileProcessor->processFile($filePath);
+            
             $this->preparePrompt($result['content'], $suppliers);
-
+            \Log::info($this->mistralPrompt);
             $response = $this->callAgentWithRetry();
+            if($response['error'] ?? false) {
+                return AnalyseResponse::error($response['error']);
+            }
             return AnalyseResponse::success($response);
         } catch (ProcessorException $e) {
             Log::error('Analyse échouée : ' . $e->getMessage());
