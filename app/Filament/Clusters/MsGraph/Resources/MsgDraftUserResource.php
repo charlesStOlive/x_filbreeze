@@ -44,8 +44,8 @@ class MsgDraftUserResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('email')->searchable()->sortable(),
-                TextColumn::make('ms_id')->searchable()->sortable(),
-                TextColumn::make('subscription_id'),
+                TextColumn::make('ms_id')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('subscription_id')->toggleable(isToggledHiddenByDefault: true),
                 MailServiceColumn::make('services_options')->serviceType('email-draft'),
                 //
             ])

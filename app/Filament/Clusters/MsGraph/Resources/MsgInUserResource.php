@@ -41,8 +41,8 @@ class MsgInUserResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('email')->searchable()->sortable(),
-                TextColumn::make('ms_id')->searchable()->sortable(),
+                TextColumn::make('email')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('ms_id')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('subscription_id'),
                 MailServiceColumn::make('services_options')->serviceType('email-in'),
                 //

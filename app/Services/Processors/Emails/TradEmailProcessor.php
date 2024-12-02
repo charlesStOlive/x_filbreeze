@@ -98,7 +98,7 @@ class TradEmailProcessor  implements ShouldQueue
             \Log::info($newEmailData->bodyOriginal);
             $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
             $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
-            $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');;
+            $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');
             $responseD = $this->emailService->updateEmail($this->user, $this->email, [
                 'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
             ]);
@@ -173,7 +173,7 @@ class TradEmailProcessor  implements ShouldQueue
             'code' => [
                 'type' => 'string',
                 'default' => 'slug',
-                'label' => 'Code de lancement de la fonction',
+                'label' => 'Code',
             ],
         ];
     }

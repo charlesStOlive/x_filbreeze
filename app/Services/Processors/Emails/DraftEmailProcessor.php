@@ -168,7 +168,7 @@ class DraftEmailProcessor  implements ShouldQueue
             'code' => [
                 'type' => 'string',
                 'default' => 'slug',
-                'label' => 'Code de lancement de la fonction',
+                'label' => 'Code',
             ],
         ];
     }
