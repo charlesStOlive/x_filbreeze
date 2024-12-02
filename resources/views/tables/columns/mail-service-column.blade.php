@@ -1,23 +1,30 @@
 <div class="text-sm px-3 py-4">
     @foreach ($getState() as $service)
-        <div class="mb-2">
-            <span class="font-bold">{{ $service['label'] }}</span>: 
-            <span class="text-primary-500">{{ $service['mode'] }}</span>
-
-            @if (!empty($service['options']))
-                <ul class="ml-4 text-xs">
-                    @foreach ($service['options'] as $option)
-                        <li>
-                            <span @class([
-                                'text-primary-500 font-bold' => $option['value'],
-                                'italic' => !$option['value'],
-                            ])>
-                                {{ $option['label'] }}: {{ $option['value'] }}
-                            </span>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </div>
+    <div
+        class="mb-2 p-3 rounded {{ 
+        $service['mode'] === 'Actif' ? 'bg-green-100' : 
+        ($service['mode'] === 'Test' ? 'bg-orange-100' : 
+        ($service['mode'] === 'false' || $service['mode'] === 'non' ? 'bg-gray-100 bg-pattern-diagonal-stripes' : '')) 
+    }}">
+        <span class="font-bold">{{ $service['label'] }}&nbsp;: {{ $service['mode'] }}</span>
+        @if (!empty($service['options']))
+        <ul class="ml-4 text-xs">
+            @foreach ($service['options'] as $option)
+            <li>
+                <span @class([ ''=> $option['value'],
+                    'italic' => !$option['value'],
+                    ])>
+                    {{ $option['label'] }}
+                </span>
+                <span @class([ 'font-bold'=> $option['value'],
+                    'italic' => !$option['value'],
+                    ])>
+                    : {{ $option['value'] }}
+                </span>
+            </li>
+            @endforeach
+        </ul>
+        @endif
+    </div>
     @endforeach
 </div>
