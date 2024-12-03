@@ -2,12 +2,13 @@
 
 namespace App\Filament\Clusters\MsGraph\Resources\MsgInUserResource\Pages;
 
-use App\Filament\Clusters\MsGraph\Resources\MsgInUserResource;
-use Filament\Resources\Pages\EditRecord;
 use Filament\Actions\Action;
 use App\Facades\MsGraph\MsgConnect;
 use Filament\Forms\Components\TextInput;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Forms\Components\RichEditor;
+use Illuminate\Contracts\Support\Htmlable;
+use App\Filament\Clusters\MsGraph\Resources\MsgInUserResource;
 
 
 
@@ -15,9 +16,15 @@ class EditMsgUser extends EditRecord
 {
     protected static string $resource = MsgInUserResource::class;
 
+    public function getTitle(): string | Htmlable
+    {
+        return __('Voir mail entrants');
+    }
+
     protected function getFormActions (): array {
         return [];
     }
+
 
     protected function getHeaderActions(): array
     {

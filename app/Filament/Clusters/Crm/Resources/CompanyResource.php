@@ -2,17 +2,19 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
-use App\Filament\Clusters\Crm;
-use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
-use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
-use App\Models\Company;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Sector;
+use App\Models\Company;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use App\Filament\Clusters\Crm;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
 
 class CompanyResource extends Resource
 {
@@ -22,52 +24,94 @@ class CompanyResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
+    public static function getLabel(): string
+    {
+        return 'Clients';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('slug')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('primary_color')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('secondary_color')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('sector_id')
-                    ->numeric(),
-                Forms\Components\Toggle::make('is_ex'),
-                Forms\Components\TextInput::make('nb_collab')
-                    ->numeric()
-                    ->default(10),
-                Forms\Components\Textarea::make('address')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('city')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('tel')
-                    ->tel()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('site_url')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('siret')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('longitude')
-                    ->numeric(),
-                Forms\Components\TextInput::make('latitude')
-                    ->numeric(),
-                Forms\Components\TextInput::make('distance')
-                    ->numeric(),
-                Forms\Components\TextInput::make('others')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('country_id')
-                    ->numeric(),
-                Forms\Components\Textarea::make('memo')
-                    ->columnSpanFull(),
+                Forms\Components\Split::make([
+                    Forms\Components\Section::make([
+                        Forms\Components\Fieldset::make('Informations générales')
+                            ->schema([
+                                Forms\Components\Toggle::make('is_ex')->columnSpanFull(),
+                                Forms\Components\TextInput::make('title')->label('Nom entreprise')
+                                    ->required()
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (callable $set, $state) {
+                                        $set('slug', Str::slug($state));
+                                    })
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('slug')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\Select::make('sector_id')
+                                    ->relationship(name: 'sector', titleAttribute: 'title')->options(Sector::selectArrayNested()),
+                                Forms\Components\TextInput::make('nb_collab')
+                                    ->numeric()
+                                    ->default(10),
+                            ])
+                            ->columns([
+                                'sm' => 1, // Mobile: 1 colonne
+                                'md' => 2, // Écran normal: 4 colonnes
+                            ]),
+                        Forms\Components\Fieldset::make('Localisation')
+                            ->schema([
+                                Forms\Components\Textarea::make('address')
+                                    ->columnSpanFull(),
+                                Forms\Components\TextInput::make('city')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('tel')
+                                    ->tel()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('longitude')
+                                    ->numeric(),
+                                Forms\Components\TextInput::make('latitude')
+                                    ->numeric(),
+                                Forms\Components\TextInput::make('distance')
+                                    ->numeric(),
+                                Forms\Components\TextInput::make('country_id')
+                                    ->numeric(),
+                            ])
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 4,
+                            ]),
+                        Forms\Components\Fieldset::make('Paramètres et autres')
+                            ->schema([
+                                Forms\Components\TextInput::make('siret')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('others')
+                                    ->maxLength(255),
+                                Forms\Components\Textarea::make('memo')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 4,
+                            ]),
+                    ])->compact(),
+                    Forms\Components\Section::make([
+                        Forms\Components\Fieldset::make('Contact')
+                            ->schema([
+                                Forms\Components\TextInput::make('site_url')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('email')
+                                    ->email()
+                                    ->maxLength(255),
+                            ])
+                            ->columns(1),
+                        Forms\Components\Fieldset::make('style')
+                            ->schema([
+                                Forms\Components\ColorPicker::make('primary_color'),
+                                Forms\Components\ColorPicker::make('secondary_color'),
+                            ])
+                            ->columns(1),
+                    ])->grow(false)->compact(),
+                ])->from('md')->columnSpanFull()
             ]);
     }
 

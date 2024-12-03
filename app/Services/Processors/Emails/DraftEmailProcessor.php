@@ -63,7 +63,7 @@ class DraftEmailProcessor  implements ShouldQueue
     {
         // Exemple de logique pour déterminer si l'exécution est requise
         if ($this->emailData->regexCode !== 'corrige') {
-            $this->setError('Pas de code ou mauvais code : ' . $this->emailData->regexCode);
+            $this->setError('erreur code : ' . $this->emailData->regexCode ?? 'NULL');
             //$this->email->save(); necessaire ? 
             return false;
         } else {

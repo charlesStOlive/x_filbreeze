@@ -23,6 +23,11 @@ class SectorResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
+    public static function getLabel(): string
+    {
+        return 'Secteurs';
+    }
+
     public static function getWidgets(): array
     {
         return [

@@ -31,6 +31,11 @@ class SupplierInvoiceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
+    public static function getLabel(): string
+    {
+        return 'Factures fournisseurs';
+    }
+
     public static function form(Form $form): Form
     {
         return $form

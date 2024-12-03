@@ -14,6 +14,8 @@ class MsgEmailDraftRelationManager extends RelationManager
 {
     protected static string $relationship = 'msg_email_drafts';
 
+    protected static ?string $title = 'Emails';
+
     protected $listeners = ['refreshMsgEmailDraftsRelationManager' => '$refresh'];
 
     public function table(Table $table): Table

@@ -27,6 +27,11 @@ class MsgDraftUserResource extends Resource
 
     protected static ?string $cluster = MsGraph::class;
 
+    public static function getLabel(): string
+    {
+        return 'utilisateurs email brouillons';
+    }
+
 
 
     public static function form(Form $form): Form
@@ -46,7 +51,7 @@ class MsgDraftUserResource extends Resource
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('ms_id')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('subscription_id')->toggleable(isToggledHiddenByDefault: true),
-                MailServiceColumn::make('services_options')->serviceType('email-draft'),
+                MailServiceColumn::make('services_options')->label('Services')->serviceType('email-draft'),
                 //
             ])
             ->filters([

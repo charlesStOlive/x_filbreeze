@@ -17,7 +17,7 @@ class ListMsgUsers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('createUser')
+            Action::make('createUser')->label('Ajouter utilisateur')
                 ->form([
                     Select::make('msg_id')
                         ->label('Choisissez un Email')

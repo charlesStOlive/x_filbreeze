@@ -24,6 +24,11 @@ class SupplierResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 
+    public static function getLabel(): string
+    {
+        return 'Fournisseurs';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -33,7 +38,7 @@ class SupplierResource extends Resource
                         TextInput::make('name')
                             ->required()
                             ->label('Supplier Name')
-                            ->live(debounce: 500) // Ajoute un délai pour la génération du slug
+                            ->live(onBlur: true) // Ajoute un délai pour la génération du slug
                             ->afterStateUpdated(function (callable $set, $state) {
                                 $set('slug', Str::slug($state));
                             }),
