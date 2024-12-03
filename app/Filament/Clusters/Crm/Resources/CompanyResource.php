@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 
 class CompanyResource extends Resource
 {
@@ -28,6 +29,7 @@ class CompanyResource extends Resource
     {
         return 'Clients';
     }
+    
 
     public static function form(Form $form): Form
     {
@@ -53,6 +55,11 @@ class CompanyResource extends Resource
                                 Forms\Components\TextInput::make('nb_collab')
                                     ->numeric()
                                     ->default(10),
+                                Forms\Components\TextInput::make('site_url')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('email')
+                                    ->email()
+                                    ->maxLength(255),
                             ])
                             ->columns([
                                 'sm' => 1, // Mobile: 1 colonne
@@ -94,23 +101,21 @@ class CompanyResource extends Resource
                                 'md' => 4,
                             ]),
                     ])->compact(),
-                    Forms\Components\Section::make([
-                        Forms\Components\Fieldset::make('Contact')
-                            ->schema([
-                                Forms\Components\TextInput::make('site_url')
-                                    ->maxLength(255),
-                                Forms\Components\TextInput::make('email')
-                                    ->email()
-                                    ->maxLength(255),
-                            ])
-                            ->columns(1),
-                        Forms\Components\Fieldset::make('style')
-                            ->schema([
-                                Forms\Components\ColorPicker::make('primary_color'),
-                                Forms\Components\ColorPicker::make('secondary_color'),
-                            ])
-                            ->columns(1),
-                    ])->grow(false)->compact(),
+                    Forms\Components\Section::make('Style')
+                        ->schema([
+                            SpatieMediaLibraryFileUpload::make('logo'),
+                            Forms\Components\ColorPicker::make('primary_color'),
+                            Forms\Components\ColorPicker::make('secondary_color'),
+                        ])
+                        ->footerActions([
+                            Forms\Components\Actions\Action::make('trouver les couleurs')
+                                ->action(function ($record, callable $get) {
+                                    // Ouvrir un modal
+                                    \Log::info($record->getFirstMediaPath('logo'));
+                                    $this->emit('openColorPaletteModal', $record->getFirstMediaPath('logo'));
+                                }),
+                        ])
+                        ->grow(false)->compact()->columns(1),
                 ])->from('md')->columnSpanFull()
             ]);
     }
@@ -123,42 +128,42 @@ class CompanyResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('primary_color')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('secondary_color')
-                    ->searchable(),
+                // Tables\Columns\TextColumn::make('primary_color')
+                //     ->searchable(),
+                // Tables\Columns\TextColumn::make('secondary_color')
+                //     ->searchable(),
                 Tables\Columns\TextColumn::make('sector_id')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_ex')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('nb_collab')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('city')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('tel')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('site_url')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('siret')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('longitude')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('latitude')
-                    ->numeric()
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('nb_collab')
+                //     ->numeric()
+                //     ->sortable(),
+                // Tables\Columns\TextColumn::make('city')
+                //     ->searchable(),
+                // Tables\Columns\TextColumn::make('tel')
+                //     ->searchable(),
+                // Tables\Columns\TextColumn::make('site_url')
+                //     ->searchable(),
+                // Tables\Columns\TextColumn::make('email')
+                //     ->searchable(),
+                // Tables\Columns\TextColumn::make('siret')
+                //     ->searchable(),
+                // Tables\Columns\TextColumn::make('longitude')
+                //     ->numeric()
+                //     ->sortable(),
+                // Tables\Columns\TextColumn::make('latitude')
+                //     ->numeric()
+                //     ->sortable(),
                 Tables\Columns\TextColumn::make('distance')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('others')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('country_id')
-                    ->numeric()
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('country_id')
+                //     ->numeric()
+                //     ->sortable(),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

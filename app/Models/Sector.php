@@ -9,7 +9,7 @@ use App\Traits\VendorOverrides\ModelTree;
 class Sector extends Model
 {
     use HasFactory, ModelTree;
-    use InteractsWithMedia;
+    
 
     /**
      * The attributes that aren't mass assignable.
@@ -33,11 +33,7 @@ class Sector extends Model
         return $this->hasMany(Company::class, 'sector_id');
     }
 
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection('logo')
-            ->singleFile();
-    }
+    
 
     
 }
