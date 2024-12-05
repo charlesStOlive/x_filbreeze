@@ -9,13 +9,14 @@ use App\Models\Company;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+use App\Filament\Utils\Utils;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
-use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
+
+
+
 
 class CompanyResource extends Resource
 {
@@ -25,11 +26,13 @@ class CompanyResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
+    public $colorsForColorPicker = [];
+
     public static function getLabel(): string
     {
         return 'Clients';
     }
-    
+
 
     public static function form(Form $form): Form
     {
@@ -103,19 +106,19 @@ class CompanyResource extends Resource
                     ])->compact(),
                     Forms\Components\Section::make('Style')
                         ->schema([
-                            SpatieMediaLibraryFileUpload::make('logo'),
-                            Forms\Components\ColorPicker::make('primary_color'),
-                            Forms\Components\ColorPicker::make('secondary_color'),
+                            SpatieMediaLibraryFileUpload::make('logo')
+                                ->collection('logo')
+                                ->label('Logo'),
+                            Forms\Components\ColorPicker::make('primary_color')
+                                ->label('Couleur primaire')
+                                ->suffixAction(Utils::getPalettesFromImage('logo', 'primary_color')),
+                            Forms\Components\ColorPicker::make('secondary_color')
+                                ->label('Couleur secondaire')
+                                ->suffixAction(Utils::getPalettesFromImage('logo', 'secondary_color')),
                         ])
-                        ->footerActions([
-                            Forms\Components\Actions\Action::make('trouver les couleurs')
-                                ->action(function ($record, callable $get) {
-                                    // Ouvrir un modal
-                                    \Log::info($record->getFirstMediaPath('logo'));
-                                    $this->emit('openColorPaletteModal', $record->getFirstMediaPath('logo'));
-                                }),
-                        ])
-                        ->grow(false)->compact()->columns(1),
+                        ->grow(false)
+                        ->compact()
+                        ->columns(1),
                 ])->from('md')->columnSpanFull()
             ]);
     }
@@ -128,42 +131,19 @@ class CompanyResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
-                // Tables\Columns\TextColumn::make('primary_color')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('secondary_color')
-                //     ->searchable(),
-                Tables\Columns\TextColumn::make('sector_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('sector.title')
+                    ->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('contacts_count')
+                    ->label('NB contacts')
+                    ->counts('contacts')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_ex')
                     ->boolean(),
-                // Tables\Columns\TextColumn::make('nb_collab')
-                //     ->numeric()
-                //     ->sortable(),
-                // Tables\Columns\TextColumn::make('city')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('tel')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('site_url')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('email')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('siret')
-                //     ->searchable(),
-                // Tables\Columns\TextColumn::make('longitude')
-                //     ->numeric()
-                //     ->sortable(),
-                // Tables\Columns\TextColumn::make('latitude')
-                //     ->numeric()
-                //     ->sortable(),
                 Tables\Columns\TextColumn::make('distance')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('others')
                     ->searchable(),
-                // Tables\Columns\TextColumn::make('country_id')
-                //     ->numeric()
-                //     ->sortable(),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

@@ -24,7 +24,13 @@ class Company extends Model implements HasMedia
      *
      * @var array
      */
-    protected $guarded = ['id'];
+    protected $guarded = [];
+
+
+
+    protected $casts = [
+        'others' => 'json'
+    ];
 
     /**
      * Get the sector that owns the company.

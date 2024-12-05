@@ -26,10 +26,10 @@ class ContactResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('firstName')
+                Forms\Components\TextInput::make('first_name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('lastName')
+                Forms\Components\TextInput::make('last_name')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('civ')
@@ -56,17 +56,15 @@ class ContactResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('firstName')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('lastName')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('full_name')
+                    ->searchable(['first_name', 'last_name']),
                 Tables\Columns\TextColumn::make('civ')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_ex')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('company_id')
+                Tables\Columns\TextColumn::make('company.title')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tel')
