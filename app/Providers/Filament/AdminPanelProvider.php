@@ -20,6 +20,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Althinect\FilamentSpatieRolesPermissions\FilamentSpatieRolesPermissionsPlugin;
+use Pboivin\FilamentPeek\FilamentPeekPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -30,15 +31,19 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandLogo(asset('images/logo.png'))
+            ->darkModeBrandLogo(asset('images/logo white.png'))
+            ->brandLogoHeight('4rem')
             ->plugins([
+                FilamentPeekPlugin::make()->disablePluginStyles(),
                 BreezyCore::make()
                     ->myProfile()
                     // ->myProfileComponents([MyCustomComponent::class])
-                    ->enableSanctumTokens(permissions: ['my','custom','permissions']),  
+                    // ->enableSanctumTokens(permissions: ['my','custom','permissions']),  
             ])
             ->plugin(FilamentSpatieRolesPermissionsPlugin::make())
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => "#F87F04",
             ])
             ->maxContentWidth(MaxWidth::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

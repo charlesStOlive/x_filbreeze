@@ -7,7 +7,7 @@ use App\Services\EmailsProcessorRegisterServices;
 
 class MailResultColumn extends Column
 {
-    protected string $view = 'tables.columns.mail-result-column';
+    protected string $view = 'filament.tables.columns.mail-result-column';
     protected string $serviceType;
 
     /**

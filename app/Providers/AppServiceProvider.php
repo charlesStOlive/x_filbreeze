@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\View\View;
 use App\Policies\RolePolicy;
 use App\Policies\PermissionPolicy;
 use Spatie\Permission\Models\Role;
@@ -10,9 +11,10 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
+use Filament\Support\Facades\FilamentView;
 use App\Listeners\SupplierInvoiceFileAdded;
-use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,5 +40,9 @@ class AppServiceProvider extends ServiceProvider
         });
         Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
         Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
+        FilamentView::registerRenderHook(
+            'panels::auth.login.form.after',
+            fn(): View => view('filament.login_extra')
+        );
     }
 }

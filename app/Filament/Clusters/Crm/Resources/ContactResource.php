@@ -51,26 +51,28 @@ class ContactResource extends Resource
                     ->maxLength(255),
             ]);
     }
-
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('civ')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('full_name')
                     ->searchable(['first_name', 'last_name']),
-                Tables\Columns\TextColumn::make('civ')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_ex')
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('company.title')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tel')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('linkedin_ext_id')
-                    ->searchable(),
+                    ->url(fn($record) => $record->linkedin_ext_id ? 'https://www.linkedin.com/in/' . $record->linkedin_ext_id : null)
+                    ->openUrlInNewTab(),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
@@ -84,8 +86,15 @@ class ContactResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('full_name', 'asc')
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('is_ex')->label('Exemple')->default(false),
+                Tables\Filters\SelectFilter::make('company')
+                    ->label('Entreprise')
+                    ->relationship('company', 'title'), // Assuming 'company' is a valid relationship
+                Tables\Filters\Filter::make('linkedin_ext_id')
+                    ->label('Has LinkedIn?')
+                    ->query(fn(Builder $query): Builder => $query->whereNotNull('linkedin_ext_id')->where('linkedin_ext_id', '!=', ''))
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -96,6 +105,7 @@ class ContactResource extends Resource
                 ]),
             ]);
     }
+
 
     public static function getRelations(): array
     {

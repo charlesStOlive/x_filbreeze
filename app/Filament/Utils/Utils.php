@@ -42,7 +42,7 @@ class Utils
             ->form([
                 Select::make('select-color')
                     ->label('Palette de couleurs')
-                    ->view('forms.components.color-palette')
+                    ->view('filament.forms.components.color-palette')
                     ->options(fn($livewire) => $livewire->colorPalettes ?? []) // Récupère les options depuis Livewire
                     ->reactive(), // Rend le champ réactif
             ])

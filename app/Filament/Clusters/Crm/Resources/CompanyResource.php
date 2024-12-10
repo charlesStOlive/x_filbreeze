@@ -127,6 +127,9 @@ class CompanyResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('id')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
@@ -138,12 +141,14 @@ class CompanyResource extends Resource
                     ->counts('contacts')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_ex')
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('distance')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('others')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
@@ -157,8 +162,12 @@ class CompanyResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('title', 'asc')
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('is_ex')->label('Exemple')->default(false),
+                Tables\Filters\SelectFilter::make('sector')
+                    ->label('Secteur')
+                    ->relationship('sector', 'title'), // Assuming 'company' is a valid relationship
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

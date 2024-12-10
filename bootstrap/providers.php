@@ -5,4 +5,5 @@ return [
     App\Providers\EventServiceProvider::class,
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\FlySystemSharepointProvider::class,
+    App\Providers\SchemaServiceProvider::class,
 ];

@@ -34,7 +34,7 @@ class ColorPickerAction extends Action
     {
         return [
             ViewField::make('color-picker')
-                ->view('forms.components.color-palette', ['colorPalettes' => $this->colorPalettes]),
+                ->view('filament.forms.components.color-palette', ['colorPalettes' => $this->colorPalettes]),
         ];
     }
 

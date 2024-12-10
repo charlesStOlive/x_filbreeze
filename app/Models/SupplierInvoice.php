@@ -38,17 +38,17 @@ class SupplierInvoice extends Model implements HasMedia
             ->singleFile();
     }
 
-    protected static function booted()
-    {
-        // Avant de sauvegarder, calcul des attributs basés sur invoice_at
-        static::saving(function ($invoice) {
-            if ($invoice->invoice_at) {
-                $date = Carbon::parse($invoice->invoice_at);
-                $invoice->invoice_my = $date->format('Y_m'); // Format ANNEE_MOIS (ex: 2024_11)
-                $year = $date->format('Y');
-                $quarter = ceil($date->month / 3); // Calcul du trimestre
-                $invoice->invoice_qy = "{$year}_Q{$quarter}";
-            }
-        });
-    }
+    // protected static function booted()
+    // {
+    //     // Avant de sauvegarder, calcul des attributs basés sur invoice_at
+    //     static::saving(function ($invoice) {
+    //         if ($invoice->invoice_at) {
+    //             $date = Carbon::parse($invoice->invoice_at);
+    //             $invoice->invoice_at_my = $date->format('Y_m'); // Format ANNEE_MOIS (ex: 2024_11)
+    //             $year = $date->format('Y');
+    //             $quarter = ceil($date->month / 3); // Calcul du trimestre
+    //             $invoice->invoice_at_qy = "{$year}_Q{$quarter}";
+    //         }
+    //     });
+    // }
 }

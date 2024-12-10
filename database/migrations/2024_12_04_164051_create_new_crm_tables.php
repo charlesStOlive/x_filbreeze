@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('primary_color')->nullable();
             $table->string('secondary_color')->nullable();
             $table->integer('sector_id')->unsigned()->nullable();
-            $table->boolean('is_ex')->nullable()->default(false);
+            $table->boolean('is_ex')->nullable()->default(0);
             $table->integer('nb_collab')->nullable()->default(10);
             $table->text('address')->nullable();
             $table->string('cp')->nullable();
@@ -45,7 +45,7 @@ return new class extends Migration
             $table->string('full_name')->virtualAs('concat(first_name, " ", last_name)');
             $table->string('civ')->nullable()->default('Mme/M.');
             $table->string('email');
-            $table->boolean('is_ex')->nullable()->default(false);
+            $table->boolean('is_ex')->nullable()->default(0);
             $table->foreignId('company_id')->nullable()->constrained('crm_companies')->onDelete('cascade');
             $table->string('tel')->nullable();
             $table->string('linkedin_ext_id')->nullable();

@@ -21,7 +21,7 @@ class SupplierInvoiceFileAdded
 
             // if ($invoice instanceof \App\Models\SupplierInvoice) {
             //     $supplierSlug = $invoice->supplier->slug ?? 'unknown-supplier';
-            //     $invoiceDate = $invoice->invoice_my;
+            //     $invoiceDate = $invoice->invoice_at_my;
             //     $newFileName = "{$supplierSlug}-{$file->file_name}";
             //     $invoice->sharepoint_path = "x_factures/{$invoiceDate}/{$newFileName}";
                 

@@ -70,14 +70,14 @@ class SupplierInvoiceResource extends Resource
                             ->label('Has TVA')
                             ->default(true)
                             ->columnSpan('full')
-                            ->live(debounce: 500)
+                            ->live(debounce: 1000)
                             ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'has_tva')),
 
                         Forms\Components\TextInput::make('total_ht')
                             ->numeric()
                             ->label('Total HT')
                             ->suffix('€ HT')
-                            ->live(debounce: 500)
+                            ->live(debounce: 1000)
                             ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'total_ht'))
                             ->requiredIf('status', 'validated'),
 
@@ -87,7 +87,7 @@ class SupplierInvoiceResource extends Resource
                             ->default('20')
                             ->label('Tx TVA')
                             ->suffix('%')
-                            ->live(debounce: 500)
+                            ->live(debounce: 1000)
                             ->visible(fn(callable $get) => $get('has_tva'))
                             ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'tx_tva'))
                             ->requiredIf('has_tva', true),
@@ -212,9 +212,9 @@ class SupplierInvoiceResource extends Resource
             ->groups([
                 Group::make('supplier.name')
                     ->label('Fournisseur'),
-                Group::make('invoice_my')
+                Group::make('invoice_at_my')
                     ->label('Annes Mois'),
-                Group::make('invoice_qy')
+                Group::make('invoice_at_qy')
                     ->label('Semestre Mois'),
 
             ])

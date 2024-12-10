@@ -10,7 +10,7 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class NotilacRepeater extends Repeater
 {
-    protected string $view = 'forms.components.notilac-repeater';
+    protected string $view = 'filament.forms.components.notilac-repeater';
 
     protected string | Closure | null $itemColor = null;
 
