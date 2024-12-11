@@ -3,7 +3,8 @@
 <style>
 body {
     background: rgb(34,193,195) !important;
-    background: url('{{ asset('images/pierres.jpg') }}') no-repeat right  center fixed !important;
+    background: url('{{ asset('images/pierres.jpg') }}') no-repeat right center fixed !important;
+    background-size: cover !important;
 }
 
 @media screen and (min-width: 1024px) {
@@ -12,7 +13,7 @@ body {
         margin-top: 0!important;
         margin-bottom: 0!important;
         border-radius: 0 !important; /* Supprime les coins arrondis */
-        opacity: 0.7!important;
+        opacity: 0.8!important;
     }
 }
 

@@ -1,13 +1,13 @@
-import preset from '../../../../vendor/filament/filament/tailwind.config.preset';
+// resources/css/pdf/tailwind.pdf.config.js
+import preset from '../../../vendor/filament/filament/tailwind.config.preset'
 
 export default {
     presets: [preset],
     content: [
-        './app/Filament/**/*.php',
-        './resources/views/**/*.blade.php',
-        './vendor/filament/**/*.blade.php',
-        './vendor/pboivin/filament-peek/resources/**/*.blade.php',
+        './resources/views/pdf/**/*.blade.php',
+        // Ajoutez d'autres chemins si nécessaire
     ],
+    // Ajoutez des extensions spécifiques pour les PDF si besoin
     theme: {
         extend: {
             colors: {

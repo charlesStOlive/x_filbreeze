@@ -129,10 +129,6 @@ class SupplierInvoiceResource extends Resource
                     ->extraAttributes(['style' => 'background-color: #fff9c4;'])
                     ->columnSpan(2),
 
-                // EmbedAction::make('logInvoicePath')
-                //     ->label('Afficher le chemin du fichier')
-                //     ->action(fn() => static::logInvoicePath()),
-
 
 
 
@@ -186,24 +182,7 @@ class SupplierInvoiceResource extends Resource
         }
     }
 
-    // Fonction statique pour analyser le PDF
-    protected static function logInvoicePath()
-    {
-        // Utilisez $this->record pour accéder à l'enregistrement en cours
-        $record = self::getCurrentRecord();
-
-        if ($record) {
-            $pdfFile = $record->getFirstMediaPath('invoice');
-
-            if ($pdfFile) {
-                Log::info("Chemin du fichier PDF dans 'invoice': " . $pdfFile);
-            } else {
-                Log::warning("Aucun fichier PDF trouvé dans la collection 'invoice'.");
-            }
-        } else {
-            Log::error("Enregistrement introuvable.");
-        }
-    }
+    
 
 
     public static function table(Table $table): Table

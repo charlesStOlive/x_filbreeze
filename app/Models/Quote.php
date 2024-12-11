@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Models\ItemsManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -15,15 +16,6 @@ class Quote extends Model
      * @var string
      */
     protected $table = 'crm_quotes';
-
-    /**
-     * The attributes that aren't mass assignable.
-     *
-     * @var array
-     */
-    protected $guarded = [
-        'validated_at_my'
-    ];
 
     /**
      * The attributes that aren't mass assignable.
@@ -92,22 +84,23 @@ class Quote extends Model
         });
     }
 
+    public function getModelNumber() {
+        $clientId = $this->company_id;
+        $number = static::where('company_id', $clientId)->max('number');
+        return $number + 1;
+    }
 
     public function getModelCode()
     {
         $clientId = $this->company_id;
-
         // Formatage de l'ID du client en 3 chiffres
         $clientCode = str_pad($clientId, 3, '0', STR_PAD_LEFT);
-
         // Compter les devis existants pour ce client avec version == 1
-        $count = static::where('company_id', $clientId)
-            ->where('is_retained')
-            ->count();
-
+        if(!$this->number) {
+           $this->number = $this->getModelNumber();
+        }
         // Incrémenter le compteur pour obtenir le prochain numéro
-        $quoteNumber = str_pad($count + 1, 3, '0', STR_PAD_LEFT);
-
+        $quoteNumber = str_pad($this->number, 3, '0', STR_PAD_LEFT);
         // Générer le code final
         return "D_{$clientCode}_{$quoteNumber}";
     }
@@ -120,10 +113,11 @@ class Quote extends Model
         $this->save();
     }
 
-    public function createNewVersion() : Quote
+    public function createNewVersion($data): Quote
     {
         $newRecord = $this->replicate();
-        \Log::info($newRecord->end_at);
+        $newRecord->fill($data);
+        \Log::info($data);
         $newRecord->version = Quote::where('code', $this->code)->max('version') + 1;
         $newRecord->is_retained = false;
         unset($newRecord->created_at_my);
@@ -134,12 +128,13 @@ class Quote extends Model
         return $newRecord;
     }
 
-    public function createNewReplication($data) : Quote
+    public function createNewReplication($data): Quote
     {
         $newRecord = $this->replicate();
         $newRecord->version = 1;
         $newRecord->is_retained = true;
         $newRecord->status = 'draft';
+        $newRecord->number = null;
         $newRecord->fill($data);
         unset($newRecord->created_at_my);
         unset($newRecord->validated_at_my);
@@ -149,17 +144,17 @@ class Quote extends Model
         return $newRecord;
     }
 
-    public function cleanUnactiveTest() : int
+    public function cleanUnactiveTest(): int
     {
-        $count = Quote::where('code', $this->code)->where('is_retained', false)->where('status', '<>' , 'validated')
+        $count = Quote::where('code', $this->code)->where('is_retained', false)->where('status', '<>', 'validated')
             ->count();
         \Log::info($count);
-        
+
         return $count;
     }
-    public function cleanUnactive() : bool
+    public function cleanUnactive(): bool
     {
-        Quote::where('code', $this->code)->where('is_retained', false)->where('status', '<>' , 'validated')
+        Quote::where('code', $this->code)->where('is_retained', false)->where('status', '<>', 'validated')
             ->delete();
         return true;
     }

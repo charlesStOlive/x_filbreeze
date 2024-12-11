@@ -22,6 +22,7 @@
         "smalot/pdfparser": "^2.11",
         "solution-forest/filament-tree": "^2.1",
         "soundasleep/html2text": "^2.1",
+        "spatie/browsershot": "^5.0",
         "spatie/laravel-data": "^4.11",
         "spatie/laravel-settings": "^3.4",
         "thiagoalessio/tesseract_ocr": "^2.13",

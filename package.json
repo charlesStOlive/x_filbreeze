@@ -3,7 +3,9 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "dev:pdf": "vite --config vite.pdf.config.js",
+        "build:pdf": "vite build --config vite.pdf.config.js"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.9",
@@ -15,5 +17,8 @@
         "postcss-nesting": "^13.0.1",
         "tailwindcss": "^3.4.15",
         "vite": "^5.0"
+    },
+    "dependencies": {
+        "puppeteer": "^23.10.2"
     }
 }

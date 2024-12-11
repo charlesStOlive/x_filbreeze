@@ -1,0 +1,5 @@
+/* resources/css/pdf/theme.css */
+@import '/vendor/filament/filament/resources/css/theme.css';
+/* Ajoutez d'autres imports si nécessaire */
+
+@config 'tailwind.pdf.config.js';

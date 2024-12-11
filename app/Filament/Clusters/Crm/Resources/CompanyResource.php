@@ -9,7 +9,7 @@ use App\Models\Company;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use App\Filament\Utils\Utils;
+use App\Filament\Utils\ImageUtils;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -111,10 +111,10 @@ class CompanyResource extends Resource
                                 ->label('Logo'),
                             Forms\Components\ColorPicker::make('primary_color')
                                 ->label('Couleur primaire')
-                                ->suffixAction(Utils::getPalettesFromImage('logo', 'primary_color')),
+                                ->suffixAction(ImageUtils::getPalettesFromImage('logo', 'primary_color')),
                             Forms\Components\ColorPicker::make('secondary_color')
                                 ->label('Couleur secondaire')
-                                ->suffixAction(Utils::getPalettesFromImage('logo', 'secondary_color')),
+                                ->suffixAction(ImageUtils::getPalettesFromImage('logo', 'secondary_color')),
                         ])
                         ->grow(false)
                         ->compact()

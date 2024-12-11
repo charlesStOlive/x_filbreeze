@@ -29,6 +29,7 @@ return new class extends Migration
             $table->float('total_ht')->nullable();
             $table->float('total_ht_br')->nullable();
             $table->float('total_ttc')->nullable();
+            $table->integer('number')->nullable();
             $table->date('validated_at')->nullable();
             $table->createMQY('validated_at');
             $table->timestamps();

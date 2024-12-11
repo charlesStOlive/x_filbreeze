@@ -6,9 +6,13 @@ use Filament\Forms;
 use App\Models\Quote;
 use Filament\Actions;
 use Filament\Forms\Form;
+use App\Filament\Utils\PdfUtils;
 use Illuminate\Support\HtmlString;
+use Spatie\Browsershot\Browsershot;
+use App\Services\Helpers\ViteHelper;
+use Illuminate\Support\Facades\View;
 use Filament\Resources\Pages\EditRecord;
-use Pboivin\FilamentPeek\Pages\Actions\PreviewAction;
+use Guava\FilamentClusters\Forms\Cluster;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 
@@ -43,39 +47,20 @@ class EditQuote extends EditRecord
                     $newRecord = $record->createNewReplication($data);
                     return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
                 }),
-            Actions\Action::make('generate_quote')
-                ->label('Génerer un devis')
-                ->action(function ($record, $data) {
-                    $pdf = \PDF::loadView('pdf.quote.main', ['quote' => $record])
-                        ->setPaper('a4')
-                        ->setOption('margin-top', '15mm')
-                        ->setOption('margin-bottom', '15mm');
-                    return $pdf->stream();
-                }),
-            PreviewAction::make()->label('Prévisualiser le devis'),
+            $this->getSaveFormAction(),
+            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main')->icon('heroicon-o-document'),
         ];
-    }
-
-    protected function getPreviewModalView(): ?string
-    {
-        // This corresponds to resources/views/posts/preview.blade.php
-        return 'pdf.quote.main';
-    }
-
-    protected function getPreviewModalDataRecordKey(): ?string
-    {
-        return 'quote';
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Split::make([
+                Forms\Components\Section::make([
                     // Section principale
                     Forms\Components\Section::make('Edition')
                         ->schema([
-                            Forms\Components\Fieldset::make('Base')
+                            Forms\Components\Section::make('Base (titre, description, date de validité)')
                                 ->schema([
                                     Forms\Components\TextInput::make('title')
                                         ->label('Titre')
@@ -84,22 +69,30 @@ class EditQuote extends EditRecord
                                         ->label('Fin')
                                         ->default(now()->addMonth())
                                         ->required(),
-                                ])
+                                    ...QuoteResource::getContactAndCompanyFields(false),
+                                    Forms\Components\MarkdownEditor::make('description')
+                                        ->label('Description du devis')
+                                        ->columnSpanFull(),
+                                ])->collapsed(true)
                                 ->columns(2),
                             ...QuoteResource::getItemsBuilderComponent(),
-                        ]),
+                        ])->compact()
+                        ->columnSpan(3),
                     // Section latérale
                     Forms\Components\Section::make('Informations')
                         ->schema([
-                            Forms\Components\TextInput::make('code')
-                                ->label('Code')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('status')
-                                ->label('État')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('version')
-                                ->label('Version')
-                                ->disabled(),
+                            Cluster::make([
+                                Forms\Components\TextInput::make('code')
+                                    ->label('Code')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('status')
+                                    ->label('État')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('version')
+                                    ->label('Version')
+                                    ->disabled(),
+                            ])->label('Code / Etat / Version'),
+
                             Forms\Components\TextInput::make('total_ht_br')
                                 ->label('Total avant remise HT')
                                 ->numeric()
@@ -120,12 +113,7 @@ class EditQuote extends EditRecord
                                     ->color('success'),
                                 Forms\Components\Actions\Action::make('validate')
                                     ->label('Valider ce devis')
-                                    ->modalHeading(fn($record) => $record->total_ht == 0
-                                        ? 'Validation impossible'
-                                        : 'Valider ce devis')
-                                    ->modalDescription(fn($record) => $record->total_ht == 0
-                                        ? new HtmlString("Il est interdit de valider un devis dont le montant HT est égal à 0.")
-                                        : new HtmlString("Attention <b>valider</b> un devis verrouille en partie ce devis<br> Avez-vous eu un BDC ou êtes-vous certain de vouloir la faire ?"))
+                                    ->modalDescription(new HtmlString("Attention <b>valider</b> un devis verrouille en partie ce devis<br> Avez-vous eu un BDC ou êtes-vous certain de vouloir la faire ?"))
                                     ->form(fn($record) => $record->total_ht == 0
                                         ? []
                                         : [
@@ -133,18 +121,17 @@ class EditQuote extends EditRecord
                                                 ->label('Validé le')
                                                 ->default(now())
                                         ])
-                                    ->action(function ($record, $data) {
+                                    ->action(function ($record, $data, $component) {
+                                        $formData = $component->getState();
+                                        $record->fill($formData);
                                         if ($record->total_ht == 0) {
                                             return;
                                         }
-
                                         $record->validated_at = $data['validated_at'];
                                         $record->status = 'validated';
                                         $record->save();
-
                                         return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
                                     })
-                                    ->modalSubmitAction(fn($record) => $record->total_ht == 0 ? false : true)
                                     ->hidden(fn($record) => !$record->is_retained || $record->status === 'validated')
                                     ->color(fn($record) => $record->total_ht == 0 ? 'danger' : 'success'),
                                 Forms\Components\Actions\Action::make('deactivate')
@@ -161,8 +148,9 @@ class EditQuote extends EditRecord
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('create_v')
                                     ->label('Créer une nouvelle version')
-                                    ->action(function ($record) {
-                                        $newRecord = $record->createNewVersion();
+                                    ->action(function ($record, $component)  {
+                                        $data = $component->getState();
+                                        $newRecord = $record->createNewVersion($data);
                                         return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
                                     }),
                             ])->hidden(fn($record) => $record->status === 'validated')->fullWidth(),
@@ -174,19 +162,20 @@ class EditQuote extends EditRecord
                                     })
                                     ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0)),
                             ])->fullWidth(),
-
-                            ...QuoteResource::getContactAndCompanyFields(false),
-                            // Forms\Components\DateTimePicker::make('validated_at')
-                            //     ->label('Validé le')
-                            //     ->disabled(),
-                            // Forms\Components\DateTimePicker::make('created_at')
-                            //     ->label('Créé le')
-                            //     ->disabled(),
                         ])
-                        ->grow(false)
                         ->compact()
-                        ->columns(1),
-                ])->from('md')->columnSpanFull(),
+                        ->columns(1)
+                        ->columnSpan(1),
+                ])->columns(4),
             ]);
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getSaveFormAction(),
+            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main')->icon('heroicon-o-document'),
+            $this->getCancelFormAction()
+        ];
     }
 }

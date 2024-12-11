@@ -111,14 +111,10 @@ class QuoteResource extends Resource
     public static function getItemsBuilderComponent(): array
     {
         return [
-            Forms\Components\Fieldset::make('main_quote')
+            Forms\Components\Fieldset::make('Elements du devis')
                 ->schema([
-
-                    Forms\Components\MarkdownEditor::make('description')
-                        ->label('Description du devis')
-                        ->columnSpanFull(),
                     Builder::make('items')
-                        ->label('Éléments')
+                        ->label('Liste des élements')
                         ->collapsed()
                         ->live()
                         ->cloneable()
@@ -222,15 +218,12 @@ class QuoteResource extends Resource
         // Récupérer les valeurs de cu et qty
         $cu = $get('cu') ?? 0;
         $qty = $get('qty') ?? 0;
-
         // Calculer le total pour ce bloc
         $total = $cu * $qty;
-
         // Mettre à jour le champ total
         $set('total', $total);
-
         // Appeler la mise à jour globale du total_ht
-        self::updateTotal($set, $get);
+        self::updateItemsTotal($set, $get);
     }
 
 
@@ -256,8 +249,8 @@ class QuoteResource extends Resource
     public static function getActionActivateQuote()
     {
         return [
-            Forms\Components\Actions::make([
-                Forms\Components\Actions\Action::make('activate_v')
+            Actions::make([
+                Actions\Action::make('activate_v')
                     ->label(fn($record) => $record->is_retained ? 'Devis Actif' : 'Activer ce devis')
                     ->disabled(fn($record) => $record->is_retained)
                     ->action(function ($record) {
@@ -279,6 +272,7 @@ class QuoteResource extends Resource
         return [
             'index' => Pages\ListQuotes::route('/'),
             'edit' => Pages\EditQuote::route('/{record}/edit'),
+            'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }
 }

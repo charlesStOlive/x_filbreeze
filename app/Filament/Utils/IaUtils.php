@@ -6,12 +6,13 @@ use ColorThief\ColorThief;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Actions\Action;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use App\Services\Helpers\ViteHelper;
 
-class Utils
+class ImageUtils
 {
-    public static function getPalettesFromImage(string $source, string $fieldName): Action
+    public static function getMistralCorrection(string $source, string $fieldName): Action
     {
-        return Action::make('trouver les couleurs')
+        return Action::make('Corriger le texte')
             ->icon('heroicon-o-photo')
             ->mountUsing(function ($livewire, $record, $get) use ($source) {
                 $finalPath = null;
@@ -51,4 +52,6 @@ class Utils
                 $set($fieldName, $data['select-color']);
             });
     }
+
+    
 }
