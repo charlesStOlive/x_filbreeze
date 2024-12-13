@@ -13,7 +13,9 @@ class PdfUtils
     public static function CreateActionPdf(string $label, string $pdv_view_path): Action
     {
         return Action::make('generate_invoice')
-            ->label('Génerer '. $label)
+            ->label($label)
+            ->color('danger')
+            ->icon('far-file-pdf', 30)
             ->form([
                 // Champs de configuration du PDF
                 Forms\Components\Checkbox::make('avoid_full_break')

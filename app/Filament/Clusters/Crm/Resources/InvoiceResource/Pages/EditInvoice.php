@@ -23,7 +23,7 @@ class EditInvoice extends EditRecord
         return [
             Actions\DeleteAction::make(),
             Actions\Action::make('duplicate')
-                ->label('Dupliquer la facture')
+                ->label('Dpuliuer')->icon('heroicon-o-document-duplicate')
                 ->modalHeading('Dupliquer la facture')
                 ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> une facture <br> l état sera réinitialisé "))
                 ->fillForm(fn($record): array => [
@@ -49,7 +49,7 @@ class EditInvoice extends EditRecord
     {
         return [
             ...parent::getFormActions(),
-            PdfUtils::CreateActionPdf('Générer facture', 'pdf.invoice.main')->icon('heroicon-o-document')
+            PdfUtils::CreateActionPdf('facture', 'pdf.invoice.main')
         ];
     }
 
