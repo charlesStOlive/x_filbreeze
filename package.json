@@ -19,6 +19,7 @@
         "vite": "^5.0"
     },
     "dependencies": {
+        "diff2html": "^3.4.48",
         "puppeteer": "^23.10.2"
     }
 }

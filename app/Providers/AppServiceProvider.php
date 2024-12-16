@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\View\View;
 use Filament\Tables\Table;
 use App\Policies\RolePolicy;
+use Filament\Support\Assets\Js;
+use Filament\Support\Assets\Css;
 use App\Policies\PermissionPolicy;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Gate;
@@ -14,6 +16,7 @@ use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
 use Filament\Support\Facades\FilamentView;
 use App\Listeners\SupplierInvoiceFileAdded;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Forms\Components\DateTimePicker;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
@@ -46,12 +49,16 @@ class AppServiceProvider extends ServiceProvider
             'panels::auth.login.form.after',
             fn(): View => view('filament.login_extra')
         );
-        DateTimePicker::configureUsing(fn(DateTimePicker $component) => $component->format("d/m/Y"));
         Table::configureUsing(function (Table $table): void {
             $table
                 ->paginationPageOptions([15, 25, 50,100])
                 ->defaultPaginationPageOption(25)
                 ->defaultSort('updated_at', 'desc');
         });
+        FilamentAsset::register([
+            Js::make('diff-js', 'https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js'),
+            Js::make('diff2html-js', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js'),
+            Css::make('diff2html-css', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css'),
+        ]);
     }
 }

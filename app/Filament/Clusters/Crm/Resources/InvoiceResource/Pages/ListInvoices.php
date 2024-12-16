@@ -2,10 +2,11 @@
 
 namespace App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 
+use Filament\Forms;
 use Filament\Actions;
 use Filament\Forms\Form;
-use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
+use Guava\FilamentClusters\Forms\Cluster;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 
 class ListInvoices extends ListRecords
@@ -30,17 +31,26 @@ class ListInvoices extends ListRecords
         return $form
             ->schema([
                 ...InvoiceResource::getContactAndCompanyFields(),
-                Forms\Components\TextInput::make('modalite')
-                    ->label('Modalité')
-                    ->default('fin de mois')
-                    ->required(),
                 Forms\Components\TextInput::make('title')
                     ->label('Titre')
-                    ->required()
-                    ->columnSpanFull(),
+                    ->required(),
+                Cluster::make()->label('modalité & TVA')
+                    ->schema([
+                        Forms\Components\TextInput::make('modalite')
+                            ->label('Modalité')
+                            ->default('fin de mois')
+                            ->required(),
+                        Forms\Components\Select::make('tx_tva')
+                            ->label('TVA')
+                            ->options([
+                                0 => '0%',
+                                0.2 => '20%',
+                            ])
+                            ->default('0.2')
+                    ])->columns(2),
                 Forms\Components\MarkdownEditor::make('description')
                     ->label('Description facture')
                     ->columnSpanFull(),
-            ])->columns(3);
+            ])->columns(2);
     }
 }

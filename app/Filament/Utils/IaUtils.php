@@ -4,55 +4,56 @@ namespace App\Filament\Utils;
 
 
 use Filament\Actions\Action;
-use Filament\Forms\Components\Actions\Action as FormAction;
+use App\Forms\Components\Diff2Html;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use ValentinMorice\FilamentJsonColumn\FilamentJsonColumn;
+use Filament\Forms\Components\Actions\Action as FormAction;
 
 
 class IaUtils
 {
-    public static function MisrtalCorrectionAction(): Action
+    /**
+     * Crée une action pour corriger les textes via Mistral IA.
+     *
+     * @param  string  $resource  La classe de la ressource utilisée
+     * @return Action
+     */
+    public static function MisrtalCorrectionAction(string $resource): Action
     {
-        return Action::make('Corriger le texte')
+        return Action::make('Orthographes')
             ->icon('fas-wand-sparkles')
-            ->fillForm(function ($record)   {
-                // Obtenir le chemin du CSS généré par Vite
-                $updatedData = parent::getState();
-                $record->fill($updatedData);
-                $dataToSend = $record->extractTextToJson();
-
+            ->fillForm(function ($record) {
+                $texts = $record->extractTextToJson();
+                $corrected = static::callMistralAgent(json_encode($texts));
                 return [
-                    'data_for_ia' => $dataToSend,
+                    'data_for_ia' => $texts,
+                    'data_corrected' => $corrected,
                 ];
             })
             ->form([
                 FilamentJsonColumn::make('data_for_ia'),
+                FilamentJsonColumn::make('data_corrected'),
+                Diff2Html::make('jsonComparison')
+                    ->version1(fn($get) => $get('data_for_ia'))
+                    ->version2(fn($get) => json_decode($get('data_corrected'), true)),
             ])
-            ->action(function (array $data)  {
-               \Log::info($data);
-            });
-    }
-
-    public static function MisrtalCorrectionFormAction(): FormAction
-    {
-        return FormAction::make('Corriger le texte')
-            ->icon('fas-wand-sparkles')
-            ->fillForm(function ($record, $component)   {
-                // Obtenir le chemin du CSS généré par Vite
-                $updatedData = $component->getState();
-                $record->fill($updatedData);
-                $dataToSend = $record->extractTextToJson();
-
-                return [
-                    'data_for_ia' => $dataToSend,
-                ];
+            ->action(function ($record, $livewire, $data) use ($resource) {
+                $record->injectTextFromJson(json_decode($data['data_corrected'], true));
+                $record->save();
+                return redirect()->to($resource::getUrl('edit', ['record' => $record]));
             })
-            ->form([
-                FilamentJsonColumn::make('data_for_ia'),
-            ])
-            ->action(function (array $data)  {
-               \Log::info($data);
-            });
+            ->modalWidth('7xl');
     }
+
+    public static function callMistralAgent(string $mistralPrompt): string
+    {
+        $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
+        $agentId = 'ag:3e2c948d:20241213:correction-ortographe:b3c27f0b';
+        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
+        return $response['choices'][0]['message']['content'] ?? '';
+    }
+
+    
 
     
 }

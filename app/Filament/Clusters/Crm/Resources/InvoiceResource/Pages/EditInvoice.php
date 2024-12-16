@@ -9,6 +9,8 @@ use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
 use Filament\Actions\EditAction;
 use Illuminate\Support\HtmlString;
+use App\Forms\Components\Diff2Html;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\Pages\EditRecord;
 use Guava\FilamentClusters\Forms\Cluster;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
@@ -28,65 +30,21 @@ class EditInvoice extends EditRecord
         ];
     }
 
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $record->update($data);
+        \Log::info('handleRecordUpdate', $data);
+        return $record;
+    }
+
     protected function getFormActions(): array
     {
         return [
-            $this->getSaveFormAction(),
+            $this->getSaveFormAction()->icon('far-floppy-disk'),
             PdfUtils::CreateActionPdf('facture', 'pdf.invoice.main'),
-
-            Actions\Action::make('Orthographes')
-                ->icon('fas-wand-sparkles')
-                ->fillForm(function ($data, $record, $livewire) {
-                    $dataToSend = $record->extractTextToJson();
-                    return [
-                        'data_for_ia' => $dataToSend,
-                    ];
-                })
-                ->form([
-                    Forms\Components\Wizard::make([
-                        // Étape 1 : 
-                        Forms\Components\Wizard\Step::make('Données à corriger')
-                            ->schema([
-                                FilamentJsonColumn::make('data_for_ia'),
-                            ])
-                            ->afterValidation(function ($get, $set) {
-                                $dataCorrected = static::callMistralAgent(json_encode($get('data_for_ia')));
-                                // $dataCorrected = '{"title":"Ceci est un test de correction d\'orthographes","description":"Une simulation de correction d\'un devis qui a des erreurs d\'orthographe. \\n* Il doit conserver la mise en forme normalement\\n* Il faut que je trouve un moyen de comparer avant et après","items":[{"data":{"title":"Une première ligne","description":"Voici est mon contenu de la facture. \\nIl possède du texte et du **markdown**"}},{"data":{"title":"Une autre ligne","description":"Là aussi j\'ai une autre ligne. \\n"}},{"data":{"title":"remise exceptionnelle de 500 €","description":"Parce que vous le valez bien une réduction. "}}]}';
-                                $set('data_corrected', $dataCorrected);
-                            }),
-
-                        // Étape 2 : Vérification des informations
-                        Forms\Components\Wizard\Step::make('Vérifier les informations')
-                            ->schema([
-                                FilamentJsonColumn::make('data_for_ia'),
-                                FilamentJsonColumn::make('data_corrected'),
-                            ])->columns(2)
-                            ->afterValidation(function ($get, $record)   {
-                                $dataCorrected = $get('data_corrected');
-                                \Log::info($dataCorrected);
-                                $dataCorrected = json_decode($dataCorrected, true);
-                                \Log::info($dataCorrected);
-                                $record->injectTextFromJson($dataCorrected);
-                                $record->save();
-                                return redirect()->to(self::$resource::getUrl('edit', ['record' => $record]));
-
-                            }),
-
-                        // Étape 3 : Confirmation
-                        Forms\Components\Wizard\Step::make('Confirmation')
-                            ->schema([])
-                    ])
-                ])->modalWidth('7xl'),
-                $this->getCancelFormAction(),
+            IaUtils::MisrtalCorrectionAction(static::class),
+            $this->getCancelFormAction(),
         ];
-    }
-
-    public static function callMistralAgent(string $mistralPrompt): string
-    {
-        $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
-        $agentId = 'ag:3e2c948d:20241213:correction-ortographe:b3c27f0b';
-        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        return $response['choices'][0]['message']['content'] ?? '';
     }
 
     public function form(Form $form): Form
@@ -102,10 +60,21 @@ class EditInvoice extends EditRecord
                                     Forms\Components\TextInput::make('title')
                                         ->label('Titre')
                                         ->required(),
-                                    Forms\Components\TextInput::make('modalite')
-                                        ->label('Modalité')
-                                        ->default('fin de mois')
-                                        ->required(),
+                                    Cluster::make()->label('modalité & TVA')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('modalite')
+                                                ->label('Modalité')
+                                                ->default('fin de mois')
+                                                ->required(),
+                                            Forms\Components\Select::make('tx_tva')
+                                                ->label('TVA')
+                                                ->selectablePlaceholder(false)
+                                                ->options([
+                                                    null => '0%',
+                                                    '0.2' => '20%',
+                                                ])
+                                                ->default('0.2')
+                                        ])->columns(2),
                                     ...InvoiceResource::getContactAndCompanyFields(false),
                                     Forms\Components\MarkdownEditor::make('description')
                                         ->label('Description de la facture')
@@ -127,18 +96,20 @@ class EditInvoice extends EditRecord
                                 Forms\Components\TextInput::make('total_ht_br')
                                     ->label('Total avant remise HT')
                                     ->numeric()
+                                    ->inputMode('decimal')
                                     ->disabled()
                                     ->dehydrated(),
                                 Forms\Components\TextInput::make('total_ht')
                                     ->numeric()
                                     ->disabled()
+                                    ->inputMode('decimal')
                                     ->dehydrated()
                             ])->label("Total (AV/AP remise)"),
                             Cluster::make([
                                 Forms\Components\TextInput::make('tx_tva')
                                     ->numeric()
-                                    ->length(8)
                                     ->disabled()
+                                    ->inputMode('decimal')
                                     ->dehydrated(),
                                 Forms\Components\TextInput::make('tva')
                                     ->numeric()
@@ -150,14 +121,15 @@ class EditInvoice extends EditRecord
                             Forms\Components\TextInput::make('total_ttc')
                                 ->label('Total TTC')
                                 ->numeric()
+                                ->inputMode('decimal')
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('validate')
-                                    ->label('Valider ce devis')
+                                    ->label('Valider facture')
                                     ->modalHeading(fn($record) => $record->total_ht == 0
                                         ? 'Validation impossible'
-                                        : 'Valider ce devis')
+                                        : 'Valider cette facture')
                                     ->modalDescription(fn($record) => $record->total_ht == 0
                                         ? new HtmlString("Il est interdit de valider une facture dont le montant HT est égal à 0.")
                                         : new HtmlString("Attention <b>valider</b> une facture la verouille. <br> Avez-vous eu un BDC ?  êtes-vous certain de vouloir la faire ?"))
@@ -172,15 +144,14 @@ class EditInvoice extends EditRecord
                                         if ($record->total_ht == 0) {
                                             return;
                                         }
-
-                                        $record->submited_at = $data['submited_at'];
-                                        $record->status = 'validated';
+                                        \Log::info($this->data);
+                                        $this->data['submited_at'] = $data['submited_at'];
+                                        $this->data['status'] = 'validated';
+                                        $record->fill($this->data);
                                         $record->save();
-
-                                        return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
+                                        return redirect()->to(static::$resource::getUrl('edit', ['record' => $record]));
                                     })
-                                    ->modalSubmitAction(fn($record) => $record->total_ht == 0 ? false : true)
-                                    ->hidden(fn($record) => !$record->is_retained || $record->status === 'validated')
+                                    ->hidden(fn($record) => !$record->status || $record->status !== 'draft')
                                     ->color(fn($record) => $record->total_ht == 0 ? 'danger' : 'success'),
                             ])->fullWidth(),
                         ])

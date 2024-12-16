@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('modalite')->nullable();
             $table->unsignedBigInteger('company_id')->nullable()->index();
             $table->unsignedBigInteger('contact_id')->nullable()->index();
-            $table->string('description')->nullable();
+            $table->text('description')->nullable();
             $table->json('items')->nullable();
             $table->float('total_ht_br')->nullable();
             $table->float('total_ht')->nullable();
