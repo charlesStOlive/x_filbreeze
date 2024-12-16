@@ -6,5 +6,5 @@ use Filament\Clusters\Cluster;
 
 class MsGraph extends Cluster
 {
-    protected static ?string $navigationIcon = 'heroicon-o-cloud';
+    protected static ?string $navigationIcon = 'fab-microsoft';
 }

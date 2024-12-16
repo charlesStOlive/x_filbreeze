@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Tables\Columns;
+namespace App\Filament\Components\Tables;
 
 use Filament\Tables\Columns\Column;
 use App\Services\EmailsProcessorRegisterServices;

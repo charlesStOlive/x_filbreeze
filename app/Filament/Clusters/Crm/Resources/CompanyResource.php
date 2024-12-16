@@ -9,9 +9,11 @@ use App\Models\Company;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use App\Filament\Utils\ImageUtils;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
+use App\Filament\Utils\ImageUtils;
+use App\Filament\Components\Tables\DateColumn;
+use App\Filament\Components\Tables\DateTimeColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 
@@ -131,9 +133,9 @@ class CompanyResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('title')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('slug')
-                    ->searchable(),
+                    ->searchable()
+                    ->description(fn ($record): string => \Str::limit($record->slug, 35))
+                    ->searchable(['slug', 'title']),
                 Tables\Columns\TextColumn::make('sector.title')
                     ->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('contacts_count')
@@ -149,17 +151,11 @@ class CompanyResource extends Resource
                 Tables\Columns\TextColumn::make('others')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('deleted_at')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('created_at')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('updated_at')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('title', 'asc')

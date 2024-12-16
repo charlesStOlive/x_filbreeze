@@ -5,8 +5,8 @@ namespace App\Filament\Clusters\MsGraph\Resources\MsgInUserResource\RelationMana
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ViewColumn;
-use App\Tables\Columns\MailResultColumn;
-use App\Tables\Columns\MailServiceColumn;
+use App\Filament\Tables\Columns\MailResultColumn;
+use App\Filament\Tables\Columns\MailServiceColumn;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
 
@@ -28,7 +28,6 @@ class MsgEmailInsRelationManager extends RelationManager
                 MailServiceColumn::make('services_options')->serviceType('email-in'),
                 MailResultColumn::make('services_results')->serviceType('email-in'),
             ])
-            ->defaultSort('created_at', 'desc')
             ->filters([
                 //En attente
             ])

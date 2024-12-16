@@ -14,7 +14,7 @@ class PdfUtils
     {
         return Action::make('generate_invoice')
             ->label($label)
-            ->color('danger')
+            ->color('redpdf')
             ->icon('far-file-pdf', 30)
             ->form([
                 // Champs de configuration du PDF

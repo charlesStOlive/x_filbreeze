@@ -1,13 +1,12 @@
 <?php 
 
-namespace App\Tables\Columns;
+namespace App\Filament\Components\Tables;
 
 use Filament\Tables\Columns\Column;
 use App\Services\EmailsProcessorRegisterServices;
 
-class MailServiceColumn extends Column
+abstract class MailServiceBaseColumn extends Column
 {
-    protected string $view = 'filament.tables.columns.mail-service-column';
     protected string $serviceType;
 
     /**
@@ -22,11 +21,19 @@ class MailServiceColumn extends Column
     /**
      * Transmet les données à la vue via `getState`.
      */
-    public function getState(): mixed
+    public function getState() :mixed
+    {
+        return $this->getTableData();
+    }
+
+    /**
+     * Récupère les données pour la colonne.
+     */
+    protected function getTableData(): array
     {
         $record = $this->getRecord();
         $services = EmailsProcessorRegisterServices::getAll($this->serviceType);
-
+        
         $data = [];
 
         foreach ($services as $serviceKey => $service) {
@@ -40,27 +47,11 @@ class MailServiceColumn extends Column
                 ];
             }
         }
-
         return $data;
     }
 
     /**
-     * Récupère les options des services.
+     * Récupère les options spécifiques à chaque colonne.
      */
-    protected function getOptions(string $serviceKey, $record, array $service): array
-    {
-        $options = [];
-
-        foreach ($service['options'] as $optionKey => $option) {
-            if ($optionKey !== 'mode') {
-                $value = $record->getAttribute("{$this->getName()}.{$serviceKey}.{$optionKey}") ?? null;
-                $options[] = [
-                    'label' => $option['label'] ?? ucfirst($optionKey),
-                    'value' => $value,
-                ];
-            }
-        }
-
-        return $options;
-    }
+    abstract protected function getOptions(string $serviceKey, $record, array $service): array;
 }

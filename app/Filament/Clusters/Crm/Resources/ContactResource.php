@@ -2,17 +2,18 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Forms;
+use Filament\Tables;
+use App\Models\Contact;
+use Filament\Forms\Form;
+use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
+use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Components\Tables\DateColumn;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Clusters\Crm\Resources\ContactResource\Pages;
 use App\Filament\Clusters\Crm\Resources\ContactResource\RelationManagers;
-use App\Models\Contact;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ContactResource extends Resource
 {
@@ -59,6 +60,7 @@ class ContactResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('full_name')
+                    ->description(fn ($record): string => \Str::limit($record->company->title, 35))
                     ->searchable(['first_name', 'last_name']),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
@@ -66,24 +68,19 @@ class ContactResource extends Resource
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('company.title')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('tel')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('linkedin_ext_id')
                     ->url(fn($record) => $record->linkedin_ext_id ? 'https://www.linkedin.com/in/' . $record->linkedin_ext_id : null)
                     ->openUrlInNewTab(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('deleted_at')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('created_at')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('updated_at')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('full_name', 'asc')

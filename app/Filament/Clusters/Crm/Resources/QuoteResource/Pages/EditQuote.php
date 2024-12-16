@@ -24,31 +24,10 @@ class EditQuote extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
-            Actions\Action::make('duplicate')
-                ->label('Dupliquer le devis')
-                ->modalHeading('Dupliquer le devis')
-                ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> un devis <br> pour créer une nouvelle version cliquez sur nouvelle vesion dans la page d'édition "))
-                ->fillForm(fn($record): array => [
-                    'client_id' => $record->client_id,
-                    'contact_id' => $record->contact_id,
-                ])
-                ->form([
-                    ...QuoteResource::getContactAndCompanyFields(),
-                    Forms\Components\TextInput::make('title')
-                        ->label('Titre')
-                        ->required(),
-                    Forms\Components\DatePicker::make('end_at')
-                        ->label('Fin')
-                        ->default(now()->addMonth())
-                        ->required()
-                ])
-                ->action(function ($record, $data) {
-                    $newRecord = $record->createNewReplication($data);
-                    return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
-                }),
             $this->getSaveFormAction(),
-            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main')->icon('heroicon-o-document'),
+            QuoteResource::getDuplicateAction(),
+            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main'),
+            Actions\DeleteAction::make(),
         ];
     }
 
@@ -174,7 +153,7 @@ class EditQuote extends EditRecord
     {
         return [
             $this->getSaveFormAction(),
-            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main')->icon('heroicon-o-document'),
+            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main'),
             $this->getCancelFormAction()
         ];
     }

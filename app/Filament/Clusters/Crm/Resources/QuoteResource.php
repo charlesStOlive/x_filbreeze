@@ -5,17 +5,20 @@ namespace App\Filament\Clusters\Crm\Resources;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Quote;
+use Filament\Actions;
 use App\Models\Contact;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
+use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Builder;
+use Filament\Tables\Actions\CreateAction;
+use App\Filament\Components\Tables\DateColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\RelationManagers;
-use Filament\Tables\Actions\CreateAction;
 
 class QuoteResource extends Resource
 {
@@ -24,6 +27,11 @@ class QuoteResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $cluster = Crm::class;
+
+    public static function getLabel(): string
+    {
+        return 'Devis';
+    }
 
 
     public static function table(Table $table): Table
@@ -45,22 +53,14 @@ class QuoteResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('version')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('end_at')
-                    ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('validated_at')
-                    ->date()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('total_ht')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('end_at'),
+                DateColumn::make('validated_at'),
+                DateColumn::make('created_at')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('updated_at')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
@@ -182,6 +182,32 @@ class QuoteResource extends Resource
                         ->columnSpanFull(),
                 ])
         ];
+    }
+
+    public static function getDuplicateAction() {
+        return Actions\Action::make('duplicate')
+                ->label('Dupliquer')
+                ->icon('heroicon-o-document-duplicate')
+                ->modalHeading('Dupliquer')
+                ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> un devis <br> pour créer une nouvelle version cliquez sur nouvelle vesion dans la page d'édition "))
+                ->fillForm(fn($record): array => [
+                    'client_id' => $record->client_id,
+                    'contact_id' => $record->contact_id,
+                ])
+                ->form([
+                    ...self::getContactAndCompanyFields(),
+                    Forms\Components\TextInput::make('title')
+                        ->label('Titre')
+                        ->required(),
+                    Forms\Components\DatePicker::make('end_at')
+                        ->label('Fin')
+                        ->default(now()->addMonth())
+                        ->required()
+                ])
+                ->action(function ($record, $data) {
+                    $newRecord = $record->createNewReplication($data);
+                    return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
+                });
     }
 
     public static function updateItemsTotal(callable $set, callable $get)

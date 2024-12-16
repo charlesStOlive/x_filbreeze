@@ -2,54 +2,55 @@
 
 namespace App\Filament\Utils;
 
-use ColorThief\ColorThief;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Actions\Action;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use App\Services\Helpers\ViteHelper;
 
-class ImageUtils
+use Filament\Actions\Action;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use ValentinMorice\FilamentJsonColumn\FilamentJsonColumn;
+
+
+class IaUtils
 {
-    public static function getMistralCorrection(string $source, string $fieldName): Action
+    public static function MisrtalCorrectionAction(): Action
     {
         return Action::make('Corriger le texte')
-            ->icon('heroicon-o-photo')
-            ->mountUsing(function ($livewire, $record, $get) use ($source) {
-                $finalPath = null;
-                $temporaryFile =  $get($source);
-                \Log::info($temporaryFile);
-                $uploadedFile = reset($temporaryFile);
+            ->icon('fas-wand-sparkles')
+            ->fillForm(function ($record)   {
+                // Obtenir le chemin du CSS généré par Vite
+                $updatedData = parent::getState();
+                $record->fill($updatedData);
+                $dataToSend = $record->extractTextToJson();
 
-                if ($uploadedFile instanceof TemporaryUploadedFile) {
-                    $finalPath = $uploadedFile->getRealPath() ?? null;
-                } else if ($record->getFirstMedia('logo') ?? null) {
-                    $finalPath = $record->getFirstMedia('logo')->getPath();
-                } else {
-                    $livewire->colorPalettes = [];
-                    return;
-                }
-
-                $palette = ColorThief::getPalette($finalPath, 4);
-
-                \Log::info($palette);
-
-                // Convertir en hexadécimal
-                $colorPalettes = array_map(function ($color) {
-                    return sprintf('#%02x%02x%02x', ...$color);
-                }, $palette);
-                // Mettre à jour les options dynamiquement dans Livewire
-                $livewire->colorPalettes = $colorPalettes;
+                return [
+                    'data_for_ia' => $dataToSend,
+                ];
             })
             ->form([
-                Select::make('select-color')
-                    ->label('Palette de couleurs')
-                    ->view('filament.forms.components.color-palette')
-                    ->options(fn($livewire) => $livewire->colorPalettes ?? []) // Récupère les options depuis Livewire
-                    ->reactive(), // Rend le champ réactif
+                FilamentJsonColumn::make('data_for_ia'),
             ])
-            ->action(function (array $data, callable $set) use ($fieldName) {
-                // Mettre à jour le champ avec la couleur sélectionnée
-                $set($fieldName, $data['select-color']);
+            ->action(function (array $data)  {
+               \Log::info($data);
+            });
+    }
+
+    public static function MisrtalCorrectionFormAction(): FormAction
+    {
+        return FormAction::make('Corriger le texte')
+            ->icon('fas-wand-sparkles')
+            ->fillForm(function ($record, $component)   {
+                // Obtenir le chemin du CSS généré par Vite
+                $updatedData = $component->getState();
+                $record->fill($updatedData);
+                $dataToSend = $record->extractTextToJson();
+
+                return [
+                    'data_for_ia' => $dataToSend,
+                ];
+            })
+            ->form([
+                FilamentJsonColumn::make('data_for_ia'),
+            ])
+            ->action(function (array $data)  {
+               \Log::info($data);
             });
     }
 

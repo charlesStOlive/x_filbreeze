@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 use Filament\Forms;
 use Filament\Actions;
 use Filament\Forms\Form;
+use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
 use Filament\Actions\EditAction;
 use Illuminate\Support\HtmlString;
@@ -12,6 +13,7 @@ use Filament\Resources\Pages\EditRecord;
 use Guava\FilamentClusters\Forms\Cluster;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
+use ValentinMorice\FilamentJsonColumn\FilamentJsonColumn;
 
 class EditInvoice extends EditRecord
 {
@@ -22,35 +24,69 @@ class EditInvoice extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
-            Actions\Action::make('duplicate')
-                ->label('Dpuliuer')->icon('heroicon-o-document-duplicate')
-                ->modalHeading('Dupliquer la facture')
-                ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> une facture <br> l état sera réinitialisé "))
-                ->fillForm(fn($record): array => [
-                    'client_id' => $record->client_id,
-                    'contact_id' => $record->contact_id,
-                    'title' => $record->title,
-                ])
-                ->form([
-                    ...InvoiceResource::getContactAndCompanyFields(),
-                    Forms\Components\TextInput::make('title')
-                        ->label('Titre')
-                        ->required(),
-                ])
-                ->action(function ($record, $data) {
-                    $newRecord = $record->createNewReplication($data);
-                    return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $newRecord]));
-                }),
-
+            InvoiceResource::getDuplicateAction(),
         ];
     }
 
     protected function getFormActions(): array
     {
         return [
-            ...parent::getFormActions(),
-            PdfUtils::CreateActionPdf('facture', 'pdf.invoice.main')
+            $this->getSaveFormAction(),
+            PdfUtils::CreateActionPdf('facture', 'pdf.invoice.main'),
+
+            Actions\Action::make('Orthographes')
+                ->icon('fas-wand-sparkles')
+                ->fillForm(function ($data, $record, $livewire) {
+                    $dataToSend = $record->extractTextToJson();
+                    return [
+                        'data_for_ia' => $dataToSend,
+                    ];
+                })
+                ->form([
+                    Forms\Components\Wizard::make([
+                        // Étape 1 : 
+                        Forms\Components\Wizard\Step::make('Données à corriger')
+                            ->schema([
+                                FilamentJsonColumn::make('data_for_ia'),
+                            ])
+                            ->afterValidation(function ($get, $set) {
+                                $dataCorrected = static::callMistralAgent(json_encode($get('data_for_ia')));
+                                // $dataCorrected = '{"title":"Ceci est un test de correction d\'orthographes","description":"Une simulation de correction d\'un devis qui a des erreurs d\'orthographe. \\n* Il doit conserver la mise en forme normalement\\n* Il faut que je trouve un moyen de comparer avant et après","items":[{"data":{"title":"Une première ligne","description":"Voici est mon contenu de la facture. \\nIl possède du texte et du **markdown**"}},{"data":{"title":"Une autre ligne","description":"Là aussi j\'ai une autre ligne. \\n"}},{"data":{"title":"remise exceptionnelle de 500 €","description":"Parce que vous le valez bien une réduction. "}}]}';
+                                $set('data_corrected', $dataCorrected);
+                            }),
+
+                        // Étape 2 : Vérification des informations
+                        Forms\Components\Wizard\Step::make('Vérifier les informations')
+                            ->schema([
+                                FilamentJsonColumn::make('data_for_ia'),
+                                FilamentJsonColumn::make('data_corrected'),
+                            ])->columns(2)
+                            ->afterValidation(function ($get, $record)   {
+                                $dataCorrected = $get('data_corrected');
+                                \Log::info($dataCorrected);
+                                $dataCorrected = json_decode($dataCorrected, true);
+                                \Log::info($dataCorrected);
+                                $record->injectTextFromJson($dataCorrected);
+                                $record->save();
+                                return redirect()->to(self::$resource::getUrl('edit', ['record' => $record]));
+
+                            }),
+
+                        // Étape 3 : Confirmation
+                        Forms\Components\Wizard\Step::make('Confirmation')
+                            ->schema([])
+                    ])
+                ])->modalWidth('7xl'),
+                $this->getCancelFormAction(),
         ];
+    }
+
+    public static function callMistralAgent(string $mistralPrompt): string
+    {
+        $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
+        $agentId = 'ag:3e2c948d:20241213:correction-ortographe:b3c27f0b';
+        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
+        return $response['choices'][0]['message']['content'] ?? '';
     }
 
     public function form(Form $form): Form
@@ -82,10 +118,10 @@ class EditInvoice extends EditRecord
                     Forms\Components\Section::make('Informations')
                         ->schema([
                             Cluster::make([
-                            Forms\Components\TextInput::make('code')
-                                ->disabled(),
-                            Forms\Components\TextInput::make('status')
-                                ->disabled(),
+                                Forms\Components\TextInput::make('code')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('status')
+                                    ->disabled(),
                             ])->label('Code / Etat'),
                             Cluster::make([
                                 Forms\Components\TextInput::make('total_ht_br')

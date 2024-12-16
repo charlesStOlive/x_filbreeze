@@ -12,10 +12,10 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Forms\Components\TextInput;
-use App\Tables\Columns\MailServiceColumn;
 use App\Services\MsGraph\DynamicFormBuilder;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use App\Filament\Components\Tables\MailServiceColumn;
 use App\Filament\Clusters\MsGraph\Resources\MsgInUserResource\Pages;
 use App\Filament\Clusters\MsGraph\Resources\MsgInUserResource\RelationManagers\MsgEmailInsRelationManager;
 
@@ -23,7 +23,7 @@ class MsgInUserResource extends Resource
 {
     protected static ?string $model = MsgUserIn::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cloud';
+    protected static ?string $navigationIcon = 'fas-right-to-bracket';
 
     protected static ?string $cluster = MsGraph::class;
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasTextExtraction;
 use App\Services\Models\ItemsManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Quote extends Model
 {
     use HasFactory;
+    use HasTextExtraction;
 
     /**
      * The table associated with the model.
@@ -40,6 +42,15 @@ class Quote extends Model
         'total_ttc',
         'payed_at',
         'submited_at',
+    ];
+
+    /**
+     * Configuration des champs à extraire et injecter trait 
+     */
+    protected $getTextes = [
+        'title',
+        'description',
+        'items' => ['title', 'description'], // Champs imbriqués
     ];
 
 

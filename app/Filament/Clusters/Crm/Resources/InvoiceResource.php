@@ -4,31 +4,51 @@ namespace App\Filament\Clusters\Crm\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
-use App\Models\Invoice;
+use Filament\Actions;
 use App\Models\Contact;
+use App\Models\Invoice;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
+use Illuminate\Support\HtmlString;
+use Filament\Tables\Grouping\Group;
 use Filament\Forms\Components\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\RelationManagers;
 use Filament\Tables\Actions\CreateAction;
+use Filament\Tables\Columns\Summarizers\Sum;
+use App\Filament\Components\Tables\DateColumn;
+use App\Filament\Components\Tables\DateTimeColumn;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\RelationManagers;
 
 class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
 
     protected static ?string $cluster = Crm::class;
+
+    public static function getLabel(): string
+    {
+        return 'Factures clients';
+    }
 
 
     public static function table(Table $table): Table
     {
         return $table
+            ->groups([
+                Group::make('company.name')
+                    ->label('Client'),
+                Group::make('submited_at_my')
+                    ->label('Soumis Ans/Mois'),
+                Group::make('payed_at_my')
+                    ->label('Payement Ans/Mois'),
+
+            ])
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->sortable()
@@ -37,18 +57,18 @@ class InvoiceResource extends Resource
                 Tables\Columns\TextColumn::make('company.title')
                     ->sortable()
                     ->description(fn ($record): string => $record->contact->full_name),
-                Tables\Columns\TextColumn::make('submited_at')
-                    ->date()
+                DateTimeColumn::make('submited_at')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('payed_at')
-                    ->date()
+                DateColumn::make('payed_at')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_ht')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(Sum::make()),
                 Tables\Columns\TextColumn::make('total_ttc')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(Sum::make()),
                 Tables\Columns\IconColumn::make('has_tva')
                     ->icon(fn(string $state): string => match ($state) {
                         "1" => 'heroicon-o-check-circle',
@@ -57,18 +77,15 @@ class InvoiceResource extends Resource
                         "1" => 'success',
                         default => 'info',
                     })
-
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tva')
                     ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
                     ->sortable()
+                    ->summarize(Sum::make()),
+                DateColumn::make('created_at')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
+                DateColumn::make('updated_at')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
@@ -190,6 +207,30 @@ class InvoiceResource extends Resource
                         ->columnSpanFull(),
                 ])
         ];
+    }
+
+    public static function getDuplicateAction(): Actions\Action
+    {
+        return Actions\Action::make('duplicate')
+                ->label('Dupliquer')
+                ->icon('heroicon-o-document-duplicate')
+                ->modalHeading('Dupliquer la facture')
+                ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> une facture <br> l'état sera réinitialisé "))
+                ->fillForm(fn($record): array => [
+                    'client_id' => $record->client_id,
+                    'contact_id' => $record->contact_id,
+                    'title' => $record->title,
+                ])
+                ->form([
+                    ...InvoiceResource::getContactAndCompanyFields(),
+                    Forms\Components\TextInput::make('title')
+                        ->label('Titre')
+                        ->required(),
+                ])
+                ->action(function ($record, $data) {
+                    $newRecord = $record->createNewReplication($data);
+                    return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $newRecord]));
+                });
     }
 
     public static function updateItemsTotal(callable $set, callable $get)

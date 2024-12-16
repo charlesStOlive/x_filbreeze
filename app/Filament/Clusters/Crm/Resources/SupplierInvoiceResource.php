@@ -18,6 +18,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Database\Eloquent\Collection;
+use App\Filament\Components\Tables\DateColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\RelationManagers;
@@ -29,7 +30,7 @@ class SupplierInvoiceResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-credit-card';
+    protected static ?string $navigationIcon = 'fas-receipt';
 
     public static function getLabel(): string
     {
@@ -228,14 +229,11 @@ class SupplierInvoiceResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true), // Masquer par défaut
 
-                Tables\Columns\TextColumn::make('invoice_at')
-                    ->label('Invoice Date')
-                    ->dateTime('d/m/Y')
-                    ->sortable(),
+                DateColumn::make('invoice_at')
+                    ->label('Invoice Date'),
 
 
             ])
-            ->defaultSort('invoice_at', 'desc')
             ->filters([
                 // Add any filters if necessary
             ])

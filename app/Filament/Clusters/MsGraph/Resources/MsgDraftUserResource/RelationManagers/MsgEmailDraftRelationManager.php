@@ -5,9 +5,10 @@ namespace App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource\RelationM
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ViewColumn;
-use App\Tables\Columns\MailResultColumn;
-use App\Tables\Columns\MailServiceColumn;
+use App\Filament\Tables\Columns\MailResultColumn;
+use App\Filament\Tables\Columns\MailServiceColumn;
 use Filament\Tables\Actions\DeleteBulkAction;
+use App\Filament\Components\Tables\DateTimeColumn;
 use Filament\Resources\RelationManagers\RelationManager;
 
 class MsgEmailDraftRelationManager extends RelationManager
@@ -24,11 +25,10 @@ class MsgEmailDraftRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('subject')->label('Sujet')->limit(50)->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('status')->label('Etat'),
-                Tables\Columns\TextColumn::make('created_at')->label('Crée le')->dateTime('d/m h:i')->timezone('Europe/Paris')->sortable(),
+                DateTimeColumn::make('created_at')->label('Crée le'),
                 MailServiceColumn::make('services_options')->serviceType('email-draft'),
                 MailResultColumn::make('services_results')->serviceType('email-draft'),
             ])
-            ->defaultSort('created_at', 'desc')
             ->filters([
                 //En attente
             ])

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use Illuminate\View\View;
+use Filament\Tables\Table;
 use App\Policies\RolePolicy;
 use App\Policies\PermissionPolicy;
 use Spatie\Permission\Models\Role;
@@ -13,6 +14,7 @@ use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
 use Filament\Support\Facades\FilamentView;
 use App\Listeners\SupplierInvoiceFileAdded;
+use Filament\Forms\Components\DateTimePicker;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
@@ -44,5 +46,12 @@ class AppServiceProvider extends ServiceProvider
             'panels::auth.login.form.after',
             fn(): View => view('filament.login_extra')
         );
+        DateTimePicker::configureUsing(fn(DateTimePicker $component) => $component->format("d/m/Y"));
+        Table::configureUsing(function (Table $table): void {
+            $table
+                ->paginationPageOptions([15, 25, 50,100])
+                ->defaultPaginationPageOption(25)
+                ->defaultSort('updated_at', 'desc');
+        });
     }
 }

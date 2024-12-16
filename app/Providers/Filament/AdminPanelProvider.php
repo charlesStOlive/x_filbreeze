@@ -44,6 +44,8 @@ class AdminPanelProvider extends PanelProvider
             ->plugin(FilamentSpatieRolesPermissionsPlugin::make())
             ->colors([
                 'primary' => "#F87F04",
+                'redpdf' => Color::hex('#e30022')
+                
             ])
             ->maxContentWidth(MaxWidth::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Company;
 use App\Models\Contact;
 
+use App\Traits\HasTextExtraction;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Invoice extends Model
 {
     use HasFactory;
+    use HasTextExtraction;
 
     /**
      * The table associated with the model.
@@ -46,10 +48,21 @@ class Invoice extends Model
         'updated_at',
     ];
 
+    /**
+     * Configuration des champs à extraire et injecter trait 
+     */
+    protected $getTextes = [
+        'title',
+        'description',
+        'items.*.data.title',
+        'items.*.data.description',
+    ];
+    
+
     protected $casts = [
         'items' => 'json'
     ];
-    
+
 
 
     /**
@@ -80,7 +93,8 @@ class Invoice extends Model
         });
     }
 
-    public function getModelNumber() {
+    public function getModelNumber()
+    {
         $clientId = $this->company_id;
         $number = static::where('company_id', $clientId)->max('number');
         return $number + 1;
@@ -92,8 +106,8 @@ class Invoice extends Model
         // Formatage de l'ID du client en 3 chiffres
         $clientCode = str_pad($clientId, 3, '0', STR_PAD_LEFT);
         // Compter les devis existants pour ce client avec version == 1
-        if(!$this->number) {
-           $this->number = $this->getModelNumber();
+        if (!$this->number) {
+            $this->number = $this->getModelNumber();
         }
         // Incrémenter le compteur pour obtenir le prochain numéro
         $quoteNumber = str_pad($this->number, 3, '0', STR_PAD_LEFT);
