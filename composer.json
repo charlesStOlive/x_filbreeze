@@ -18,6 +18,7 @@
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
+        "maartenpaauw/model-states-for-filament": "*",
         "owenvoke/blade-fontawesome": "^2.8",
         "pboivin/filament-peek": "^2.2",
         "smalot/pdfparser": "^2.11",
@@ -25,6 +26,7 @@
         "soundasleep/html2text": "^2.1",
         "spatie/browsershot": "^5.0",
         "spatie/laravel-data": "^4.11",
+        "spatie/laravel-model-states": "^2.9",
         "spatie/laravel-settings": "^3.4",
         "thiagoalessio/tesseract_ocr": "^2.13",
         "valentin-morice/filament-json-column": "^1.5"
@@ -82,6 +84,12 @@
             "php-http/discovery": true
         }
     },
+    "repositories": [
+    {
+      "type": "composer",
+      "url": "https://model-states-for-filament.composer.sh"
+    }
+  ],
     "minimum-stability": "stable",
     "prefer-stable": true
 }

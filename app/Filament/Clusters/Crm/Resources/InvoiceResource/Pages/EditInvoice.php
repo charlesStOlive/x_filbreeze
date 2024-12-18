@@ -89,7 +89,7 @@ class EditInvoice extends EditRecord
                             Cluster::make([
                                 Forms\Components\TextInput::make('code')
                                     ->disabled(),
-                                Forms\Components\TextInput::make('status')
+                                Forms\Components\TextInput::make('state')
                                     ->disabled(),
                             ])->label('Code / Etat'),
                             Cluster::make([
@@ -146,12 +146,12 @@ class EditInvoice extends EditRecord
                                         }
                                         \Log::info($this->data);
                                         $this->data['submited_at'] = $data['submited_at'];
-                                        $this->data['status'] = 'validated';
+                                        $this->data['state'] = 'validated';
                                         $record->fill($this->data);
                                         $record->save();
                                         return redirect()->to(static::$resource::getUrl('edit', ['record' => $record]));
                                     })
-                                    ->hidden(fn($record) => !$record->status || $record->status !== 'draft')
+                                    ->hidden(fn($record) => !$record->state || $record->state !== 'draft')
                                     ->color(fn($record) => $record->total_ht == 0 ? 'danger' : 'success'),
                             ])->fullWidth(),
                         ])
