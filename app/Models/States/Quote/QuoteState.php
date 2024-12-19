@@ -1,25 +1,24 @@
-<?php 
+<?php
 
-namespace App\Models\States\Invoice;
-
+namespace App\Models\States\Quote;
 
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
 use App\Filament\ModelStates\Contracts\FilamentSpatieState;
 use App\Filament\ModelStates\Concerns\ProvidesSpatieStateToFilament;
 
-abstract class InvoiceState extends State implements FilamentSpatieState
+abstract class QuoteState extends State implements FilamentSpatieState
 {
     use ProvidesSpatieStateToFilament;
 
     public $isSaveHidden = false;
-    
+
     public static function config(): StateConfig
     {
         return parent::config()
             ->default(Draft::class)
-            ->allowTransition(Draft::class, Submited::class, ToSubmited::class)
-            ->allowTransition(Submited::class, Payed::class, ToPayed::class)
-        ;
+            ->allowTransition(Draft::class, Validated::class, ToValidated::class)
+            ->allowTransition(Validated::class, Draft::class, ToDraft::class);;
+            
     }
 }

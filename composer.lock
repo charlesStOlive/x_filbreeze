@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "359bdc1da5253f1e9146dfa8f43c383e",
+    "content-hash": "ee1061631cf3f1ac0a0a3fe5df3405e6",
     "packages": [
         {
             "name": "althinect/filament-spatie-roles-permissions",
@@ -5088,98 +5088,6 @@
                 }
             ],
             "time": "2024-11-21T08:11:15+00:00"
-        },
-        {
-            "name": "maartenpaauw/model-states-for-filament",
-            "version": "2.4.0",
-            "dist": {
-                "type": "zip",
-                "url": "https://model-states-for-filament.composer.sh/download/9da9195b-6244-4c81-adde-7767e7876422/model-states-for-filament-2.4.0.zip",
-                "reference": "0fa83567279392792afed9173d64c66c9cfdcc6d",
-                "shasum": "636c1a24cc1f9af2ff9a3fa920785c07d5ba8b82"
-            },
-            "require": {
-                "filament/filament": "^3.2.39",
-                "illuminate/contracts": "^10.10.1|^11.0",
-                "illuminate/database": "^10.10.1|^11.0",
-                "illuminate/support": "^10.10.1|^11.0",
-                "maartenpaauw/laravel-specification-pattern": "^2.2",
-                "php": "^8.1",
-                "spatie/laravel-model-states": "^2.7",
-                "spatie/laravel-package-tools": "^1.16.2",
-                "symfony/polyfill-php83": "^1.30",
-                "webmozart/assert": "^1.11"
-            },
-            "require-dev": {
-                "larastan/larastan": "^2.9",
-                "laravel/pint": "^1.17",
-                "nunomaduro/collision": "^7.9|^8.1",
-                "orchestra/testbench": "^8.8|^9.0",
-                "pestphp/pest": "^2.34",
-                "pestphp/pest-plugin-arch": "^2.7",
-                "pestphp/pest-plugin-laravel": "^2.4",
-                "pestphp/pest-plugin-type-coverage": "^2.8",
-                "phpstan/extension-installer": "^1.4",
-                "phpstan/phpstan-deprecation-rules": "^1.2",
-                "phpstan/phpstan-phpunit": "^1.4",
-                "phpstan/phpstan-webmozart-assert": "^1.2"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Maartenpaauw\\Filament\\ModelStates\\FilamentModelStatesServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Maartenpaauw\\Filament\\ModelStates\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "Workbench\\App\\": "workbench/app/",
-                    "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-                    "Maartenpaauw\\Filament\\ModelStates\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ],
-                "format": [
-                    "vendor/bin/pint"
-                ],
-                "analyse": [
-                    "vendor/bin/phpstan analyse"
-                ],
-                "test-coverage": [
-                    "vendor/bin/pest --coverage"
-                ],
-                "post-autoload-dump": [
-                    "@php ./vendor/bin/testbench package:discover --ansi"
-                ]
-            },
-            "authors": [
-                {
-                    "name": "Maarten Paauw",
-                    "role": "Developer",
-                    "email": "maartenpaauw@gmail.com"
-                }
-            ],
-            "description": "Model States for Filament",
-            "homepage": "https://filamentphp.com/plugins/maartenpaauw-model-states",
-            "keywords": [
-                "filamentphp",
-                "laravel",
-                "maartenpaauw",
-                "model-states-for-filament"
-            ],
-            "support": {
-                "email": "filamentphp@paauw.dev"
-            },
-            "time": "2024-12-06T14:40:06+00:00"
         },
         {
             "name": "maennchen/zipstream-php",

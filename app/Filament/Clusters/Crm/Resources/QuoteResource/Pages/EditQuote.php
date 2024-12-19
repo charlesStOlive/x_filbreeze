@@ -6,12 +6,18 @@ use Filament\Forms;
 use App\Models\Quote;
 use Filament\Actions;
 use Filament\Forms\Form;
+use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
+use App\Filament\Utils\StateUtils;
+use App\Models\States\Quote\Draft;
 use Illuminate\Support\HtmlString;
 use Spatie\Browsershot\Browsershot;
 use App\Services\Helpers\ViteHelper;
 use Illuminate\Support\Facades\View;
+use App\Models\States\Quote\Validated;
+use App\Models\States\Invoice\Submited;
 use Filament\Resources\Pages\EditRecord;
+use App\Filament\ModelStates\StateAction;
 use Guava\FilamentClusters\Forms\Cluster;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
@@ -24,10 +30,20 @@ class EditQuote extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            $this->getSaveFormAction(),
             QuoteResource::getDuplicateAction(),
             PdfUtils::CreateActionPdf('devis', 'pdf.quote.main'),
-            Actions\DeleteAction::make(),
+            StateAction::make('a_valide')
+                ->before(function ($record) {
+                    $record->fill($this->data);
+                })
+                ->transitionTo(Validated::class)
+                ->after(function ($record) {
+                    return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
+                })->disabled(fn($record) => !$record->is_retained)
+                ->label(fn($record) => !$record->is_retained ? 'Activer dabord le devis' : 'Valider ce devis'),
+            StateAction::make('a_delete')
+                ->transitionTo(Draft::class),
+            Actions\DeleteAction::make()->hidden(fn($record) => $record->state->isSaveHidden)
         ];
     }
 
@@ -64,7 +80,7 @@ class EditQuote extends EditRecord
                                 Forms\Components\TextInput::make('code')
                                     ->label('Code')
                                     ->disabled(),
-                                Forms\Components\TextInput::make('status')
+                                Forms\Components\TextInput::make('state')
                                     ->label('État')
                                     ->disabled(),
                                 Forms\Components\TextInput::make('version')
@@ -85,40 +101,17 @@ class EditQuote extends EditRecord
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('activate_v')
                                     ->label('Activer ce devis')
-                                    ->hidden(fn($record) => $record->is_retained)
+                                    ->hidden(fn($record) => $record->hasOneVersionValidated())
                                     ->action(function ($record) {
                                         $record->swapRetainedQuote();
                                     })
                                     ->color('success'),
-                                Forms\Components\Actions\Action::make('validate')
-                                    ->label('Valider ce devis')
-                                    ->modalDescription(new HtmlString("Attention <b>valider</b> un devis verrouille en partie ce devis<br> Avez-vous eu un BDC ou êtes-vous certain de vouloir la faire ?"))
-                                    ->form(fn($record) => $record->total_ht == 0
-                                        ? []
-                                        : [
-                                            Forms\Components\DateTimePicker::make('validated_at')
-                                                ->label('Validé le')
-                                                ->default(now())
-                                        ])
-                                    ->action(function ($record, $data, $component) {
-                                        $formData = $component->getState();
-                                        $record->fill($formData);
-                                        if ($record->total_ht == 0) {
-                                            return;
-                                        }
-                                        $record->validated_at = $data['validated_at'];
-                                        $record->status = 'validated';
-                                        $record->save();
-                                        return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
-                                    })
-                                    ->hidden(fn($record) => !$record->is_retained || $record->status === 'validated')
-                                    ->color(fn($record) => $record->total_ht == 0 ? 'danger' : 'success'),
                                 Forms\Components\Actions\Action::make('deactivate')
                                     ->label('DéActiver')
-                                    ->hidden(fn($record) => $record->status !== 'validated')
+                                    ->hidden(fn($record) => $record->state !== 'validated')
                                     ->action(function ($record) {
                                         $record->validated_at = null;
-                                        $record->status = 'draft';
+                                        $record->state = 'draft';
                                         $record->save();
                                         return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
                                     })
@@ -132,14 +125,18 @@ class EditQuote extends EditRecord
                                         $newRecord = $record->createNewVersion($data);
                                         return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
                                     }),
-                            ])->hidden(fn($record) => $record->status === 'validated')->fullWidth(),
+                            ])->hidden(function($record) {
+                                $validatedExist = $record->hasOneVersionValidated();
+                                \Log::info($validatedExist);
+                                return (bool) $validatedExist;
+                            })->fullWidth(),
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('clean')
                                     ->label('Nettoyer autres V')
                                     ->action(function ($record) {
-                                        $newRecord = $record->cleanUnactive();
+                                        $record->cleanUnactive();
                                     })
-                                    ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0)),
+                                    ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0 )),
                             ])->fullWidth(),
                         ])
                         ->compact()
@@ -152,8 +149,9 @@ class EditQuote extends EditRecord
     protected function getFormActions(): array
     {
         return [
-            $this->getSaveFormAction(),
+            StateUtils::getStateSaveButton(),
             PdfUtils::CreateActionPdf('devis', 'pdf.quote.main'),
+            IaUtils::MisrtalCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
             $this->getCancelFormAction()
         ];
     }

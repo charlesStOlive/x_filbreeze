@@ -13,6 +13,7 @@ use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Builder;
+use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
 use App\Filament\Components\Tables\DateColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -33,22 +34,19 @@ class QuoteResource extends Resource
         return 'Devis';
     }
 
-
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->sortable()
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('title')
-                    ->sortable()
-                    ->searchable(),
+                    ->description(fn($record): string => \Str::limit($record->title, 35))
+                    ->searchable(['title', 'code']),
+                StateColumn::make('state'),
                 Tables\Columns\TextColumn::make('company.title')
                     ->sortable()
+                    ->description(fn($record): string => \Str::limit($record->contact->full_name, 35))
                     ->searchable(['title']),
-                Tables\Columns\TextColumn::make('contact.full_name')
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('is_retained')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('version')

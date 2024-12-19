@@ -122,6 +122,7 @@ class Invoice extends Model
         $newRecord = $this->replicate();
         $newRecord->code = null;
         $newRecord->number = null;
+        $newRecord->state = null;
         $newRecord->fill($data);
         unset($newRecord->created_at);
         unset($newRecord->created_at_my);
