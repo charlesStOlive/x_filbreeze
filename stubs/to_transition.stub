@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Models\States\{{ model }};
+
+use App\Models\{{ model }};
+use Closure;
+use DateTime;
+use Filament\Forms;
+use Spatie\ModelStates\Transition;
+use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
+use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+
+class To{{ to }} extends Transition implements FilamentSpatieTransition
+{
+    use ProvidesSpatieTransitionToFilament;
+    private {{ model }} ${{ model_lowercase }};
+    private $other;
+
+    public function __construct({{ model }} ${{ model_lowercase }}, $other = null)
+    {
+        $this->{{ model_lowercase }} = ${{ model_lowercase }};
+        $this->other  = $other ? $other : null;
+    }
+
+     public function handle(): {{ model }}
+    {
+        $this->{{ model_lowercase }}->state = new {{ to }}($this->{{ model_lowercase }});
+        $this->{{ model_lowercase }}->other = $this->other;
+        $this->{{ model_lowercase }}->save();
+        return $this->{{ model_lowercase }};
+    }
+
+    public static function fill($model, $formData): self
+    {
+        return new self(
+            {{ model_lowercase }}: $model,
+            other: null,
+        );
+    }
+
+    public function form(): array | Closure | null
+    {
+        return [
+            Forms\Components\DateTimePicker::make('other')
+                ->label('other')
+                ->default(now())
+                ->helperText(__('other...'))
+        ];
+    }
+
+}

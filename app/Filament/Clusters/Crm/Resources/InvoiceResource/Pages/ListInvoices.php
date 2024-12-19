@@ -46,7 +46,8 @@ class ListInvoices extends ListRecords
                                 0 => '0%',
                                 0.2 => '20%',
                             ])
-                            ->default('0.2')
+                            ->default(0.2)
+                            ->selectablePlaceholder(false)
                     ])->columns(2),
                 Forms\Components\MarkdownEditor::make('description')
                     ->label('Description facture')

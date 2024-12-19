@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Grouping\Group;
 use Filament\Forms\Components\Builder;
+use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Columns\Summarizers\Sum;
 use App\Filament\Components\Tables\DateColumn;
@@ -52,11 +53,13 @@ class InvoiceResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->sortable()
-                    ->description(fn ($record): string => \Str::limit($record->title, 35))
+                    ->description(fn($record): string => \Str::limit($record->title, 35))
                     ->searchable(['code', 'title']),
+                StateColumn::make('state')
+                    ->badge(),
                 Tables\Columns\TextColumn::make('company.title')
                     ->sortable()
-                    ->description(fn ($record): string => $record->contact->full_name),
+                    ->description(fn($record): string => $record->contact->full_name),
                 DateTimeColumn::make('submited_at')
                     ->sortable(),
                 DateColumn::make('payed_at')
@@ -69,16 +72,6 @@ class InvoiceResource extends Resource
                     ->numeric()
                     ->sortable()
                     ->summarize(Sum::make()),
-                Tables\Columns\IconColumn::make('has_tva')
-                    ->icon(fn(string $state): string => match ($state) {
-                        "1" => 'heroicon-o-check-circle',
-                        default => 'heroicon-o-x-circle',
-                    })->color(fn(string $state): string => match ($state) {
-                        "1" => 'success',
-                        default => 'info',
-                    })
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('tva')
                     ->numeric()
                     ->sortable()
@@ -212,25 +205,25 @@ class InvoiceResource extends Resource
     public static function getDuplicateAction(): Actions\Action
     {
         return Actions\Action::make('duplicate')
-                ->label('Dupliquer')
-                ->icon('heroicon-o-document-duplicate')
-                ->modalHeading('Dupliquer la facture')
-                ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> une facture <br> l'état sera réinitialisé "))
-                ->fillForm(fn($record): array => [
-                    'client_id' => $record->client_id,
-                    'contact_id' => $record->contact_id,
-                    'title' => $record->title,
-                ])
-                ->form([
-                    ...InvoiceResource::getContactAndCompanyFields(),
-                    Forms\Components\TextInput::make('title')
-                        ->label('Titre')
-                        ->required(),
-                ])
-                ->action(function ($record, $data) {
-                    $newRecord = $record->createNewReplication($data);
-                    return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $newRecord]));
-                });
+            ->label('Dupliquer')
+            ->icon('heroicon-o-document-duplicate')
+            ->modalHeading('Dupliquer la facture')
+            ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> une facture <br> l'état sera réinitialisé "))
+            ->fillForm(fn($record): array => [
+                'client_id' => $record->client_id,
+                'contact_id' => $record->contact_id,
+                'title' => $record->title,
+            ])
+            ->form([
+                ...InvoiceResource::getContactAndCompanyFields(),
+                Forms\Components\TextInput::make('title')
+                    ->label('Titre')
+                    ->required(),
+            ])
+            ->action(function ($record, $data) {
+                $newRecord = $record->createNewReplication($data);
+                return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $newRecord]));
+            });
     }
 
     public static function updateItemsTotal(callable $set, callable $get)
@@ -254,18 +247,12 @@ class InvoiceResource extends Resource
             ->sum();
 
         // Mettre à jour total_ht_br
-        $set('total_ht_br', $totalHtBr);
-
+        $set('total_ht_br', round($totalHtBr,2));
         // Calculer et mettre à jour total_ht
         $totalHt = $totalHtBr - $totalRemise;
-        $set('total_ht', $totalHt);
-        if ($get('has_tva')) {
-            $set('tva', round($totalHt * $get('tx_tva'),2));
-            $set('total_ttc', round($totalHt + $get('tva'),2));
-        } else {
-            $set('tva', 0);
-            $set('total_ttc', round($totalHt,2));
-        }
+        $set('total_ht', round($totalHt,2));
+        $set('tva', round($totalHt * $get('tx_tva'), 2));
+        $set('total_ttc', round($totalHt + $get('tva'), 2));
     }
 
 

@@ -6,14 +6,17 @@ use App\Models\Company;
 use App\Models\Contact;
 
 use App\Traits\HasTextExtraction;
+use Spatie\ModelStates\HasStates;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\MediaLibrary\InteractsWithMedia;
+use App\Models\States\Invoice\InvoiceState;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Invoice extends Model
 {
     use HasFactory;
     use HasTextExtraction;
+    use HasStates;
+
 
     /**
      * The table associated with the model.
@@ -30,7 +33,7 @@ class Invoice extends Model
     protected $fillable = [
         'code',
         'title',
-        'status',
+        'state',
         'modalite',
         'company_id',
         'contact_id',
@@ -60,7 +63,9 @@ class Invoice extends Model
     
 
     protected $casts = [
-        'items' => 'json'
+        'items' => 'json',
+        'state' => InvoiceState::class,
+        
     ];
 
 
@@ -86,9 +91,6 @@ class Invoice extends Model
         static::creating(function ($model) {
             if (is_null($model->code)) {
                 $model->code = $model->getModelCode();
-            }
-            if (is_null($model->state)) {
-                $model->status = 'draft';
             }
         });
     }
@@ -120,7 +122,7 @@ class Invoice extends Model
         $newRecord = $this->replicate();
         $newRecord->code = null;
         $newRecord->number = null;
-        $newRecord->status = 'draft';
+        $newRecord->state = null;
         $newRecord->fill($data);
         unset($newRecord->created_at);
         unset($newRecord->created_at_my);

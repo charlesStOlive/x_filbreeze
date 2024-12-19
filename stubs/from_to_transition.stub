@@ -1,0 +1,9 @@
+<?php
+
+namespace App\Models\States\{{ model }};
+
+use Spatie\ModelStates\Transition;
+
+class From{{ from }}To{{ to }} extends Transition
+{
+}

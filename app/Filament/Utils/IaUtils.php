@@ -5,6 +5,7 @@ namespace App\Filament\Utils;
 
 use Filament\Actions\Action;
 use App\Forms\Components\Diff2Html;
+use Filament\Forms\Components\Hidden;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use ValentinMorice\FilamentJsonColumn\FilamentJsonColumn;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -18,7 +19,7 @@ class IaUtils
      * @param  string  $resource  La classe de la ressource utilisée
      * @return Action
      */
-    public static function MisrtalCorrectionAction(string $resource): Action
+    public static function MisrtalCorrectionAction(string $resource, $hidden = false): Action
     {
         return Action::make('Orthographes')
             ->icon('fas-wand-sparkles')
@@ -31,8 +32,8 @@ class IaUtils
                 ];
             })
             ->form([
-                FilamentJsonColumn::make('data_for_ia'),
-                FilamentJsonColumn::make('data_corrected'),
+                Hidden::make('data_for_ia'),
+                Hidden::make('data_corrected'),
                 Diff2Html::make('jsonComparison')
                     ->version1(fn($get) => $get('data_for_ia'))
                     ->version2(fn($get) => json_decode($get('data_corrected'), true)),
@@ -42,6 +43,7 @@ class IaUtils
                 $record->save();
                 return redirect()->to($resource::getUrl('edit', ['record' => $record]));
             })
+            ->hidden($hidden)
             ->modalWidth('7xl');
     }
 

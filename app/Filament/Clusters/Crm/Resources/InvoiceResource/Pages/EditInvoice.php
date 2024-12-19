@@ -7,12 +7,18 @@ use Filament\Actions;
 use Filament\Forms\Form;
 use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
-use Filament\Actions\EditAction;
-use Illuminate\Support\HtmlString;
-use App\Forms\Components\Diff2Html;
+
+use App\Filament\Utils\StateUtils;
+use App\Models\States\Invoice\Draft;
+use App\Models\States\Invoice\Payed;
+use App\Models\States\Invoice\Submited;
 use Illuminate\Database\Eloquent\Model;
+
+use App\Filament\ModelStates\StateRadio;
 use Filament\Resources\Pages\EditRecord;
+use App\Filament\ModelStates\StateAction;
 use Guava\FilamentClusters\Forms\Cluster;
+use Illuminate\Validation\ValidationException;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use ValentinMorice\FilamentJsonColumn\FilamentJsonColumn;
@@ -22,11 +28,34 @@ class EditInvoice extends EditRecord
     protected static string $resource = InvoiceResource::class;
     use HasPreviewModal;
 
+    // protected function onValidationError(ValidationException $exception): void
+    // {
+    //     Notification::make()
+    //         ->title('Erreur de validation')
+    //         ->body($exception->validator->errors()->first()) // Affiche le premier message d'erreur
+    //         ->danger()
+    //         ->send();
+    // }
+
     protected function getHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),
             InvoiceResource::getDuplicateAction(),
+            StateAction::make('state')
+                ->before(function ($record) {
+                    $record->fill($this->data);
+                })
+                ->transitionTo(Submited::class)
+                ->after(function ($record) {
+                    return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
+                })->disabled(fn() => $this->data['total_ht'] > 0 ? false : true),
+            StateAction::make('state')
+                ->transitionTo(Payed::class)
+                ->after(function ($record) {
+                    return redirect()->to(InvoiceResource::getUrl('index'));
+                }),
+
         ];
     }
 
@@ -39,10 +68,12 @@ class EditInvoice extends EditRecord
 
     protected function getFormActions(): array
     {
+
+
         return [
-            $this->getSaveFormAction()->icon('far-floppy-disk'),
+            StateUtils::getStateSaveButton(),
             PdfUtils::CreateActionPdf('facture', 'pdf.invoice.main'),
-            IaUtils::MisrtalCorrectionAction(static::class),
+            IaUtils::MisrtalCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
             $this->getCancelFormAction(),
         ];
     }
@@ -68,12 +99,12 @@ class EditInvoice extends EditRecord
                                                 ->required(),
                                             Forms\Components\Select::make('tx_tva')
                                                 ->label('TVA')
-                                                ->selectablePlaceholder(false)
                                                 ->options([
-                                                    null => '0%',
-                                                    '0.2' => '20%',
+                                                    0 => '0%',
+                                                    0.2 => '20%',
                                                 ])
-                                                ->default('0.2')
+                                                ->default(0.2)
+                                                ->selectablePlaceholder(false)
                                         ])->columns(2),
                                     ...InvoiceResource::getContactAndCompanyFields(false),
                                     Forms\Components\MarkdownEditor::make('description')
@@ -89,7 +120,7 @@ class EditInvoice extends EditRecord
                             Cluster::make([
                                 Forms\Components\TextInput::make('code')
                                     ->disabled(),
-                                Forms\Components\TextInput::make('status')
+                                Forms\Components\TextInput::make('state')
                                     ->disabled(),
                             ])->label('Code / Etat'),
                             Cluster::make([
@@ -125,34 +156,6 @@ class EditInvoice extends EditRecord
                                 ->disabled()
                                 ->dehydrated(),
                             Forms\Components\Actions::make([
-                                Forms\Components\Actions\Action::make('validate')
-                                    ->label('Valider facture')
-                                    ->modalHeading(fn($record) => $record->total_ht == 0
-                                        ? 'Validation impossible'
-                                        : 'Valider cette facture')
-                                    ->modalDescription(fn($record) => $record->total_ht == 0
-                                        ? new HtmlString("Il est interdit de valider une facture dont le montant HT est égal à 0.")
-                                        : new HtmlString("Attention <b>valider</b> une facture la verouille. <br> Avez-vous eu un BDC ?  êtes-vous certain de vouloir la faire ?"))
-                                    ->form(fn($record) => $record->total_ht == 0
-                                        ? []
-                                        : [
-                                            Forms\Components\DateTimePicker::make('submited_at')
-                                                ->label('Validé le')
-                                                ->default(now())
-                                        ])
-                                    ->action(function ($record, $data) {
-                                        if ($record->total_ht == 0) {
-                                            return;
-                                        }
-                                        \Log::info($this->data);
-                                        $this->data['submited_at'] = $data['submited_at'];
-                                        $this->data['status'] = 'validated';
-                                        $record->fill($this->data);
-                                        $record->save();
-                                        return redirect()->to(static::$resource::getUrl('edit', ['record' => $record]));
-                                    })
-                                    ->hidden(fn($record) => !$record->status || $record->status !== 'draft')
-                                    ->color(fn($record) => $record->total_ht == 0 ? 'danger' : 'success'),
                             ])->fullWidth(),
                         ])
                         ->compact()

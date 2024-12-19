@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Traits\HasTextExtraction;
+use Spatie\ModelStates\HasStates;
 use App\Services\Models\ItemsManager;
+use App\Models\States\Quote\QuoteState;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -11,6 +13,7 @@ class Quote extends Model
 {
     use HasFactory;
     use HasTextExtraction;
+    use HasStates;
 
     /**
      * The table associated with the model.
@@ -50,13 +53,15 @@ class Quote extends Model
     protected $getTextes = [
         'title',
         'description',
-        'items' => ['title', 'description'], // Champs imbriqués
+        'items.*.data.title',
+        'items.*.data.description',
     ];
 
 
 
     protected $casts = [
-        'items' => 'json'
+        'items' => 'json',
+        'state' => QuoteState::class,
     ];
 
     /**
@@ -85,9 +90,6 @@ class Quote extends Model
             }
             if (is_null($model->version)) {
                 $model->version = 1;
-            }
-            if (is_null($model->state)) {
-                $model->status = 'draft';
             }
             if ($model->version == 1) {
                 $model->is_retained = true;
@@ -143,8 +145,9 @@ class Quote extends Model
     {
         $newRecord = $this->replicate();
         $newRecord->version = 1;
+        $newRecord->code = null;
         $newRecord->is_retained = true;
-        $newRecord->status = 'draft';
+        $newRecord->state = null;
         $newRecord->number = null;
         $newRecord->fill($data);
         unset($newRecord->created_at_my);
@@ -155,9 +158,22 @@ class Quote extends Model
         return $newRecord;
     }
 
+    public function hasOneVersionValidated(): bool
+    {
+        if($this->state == 'validated') {
+            return true;
+        }
+        $otherExiste = Quote::where('code', $this->code)->where('state', 'validated')->count();
+        \Log::info('otherExiste '.$otherExiste);
+        if($otherExiste) {
+            return true;
+        }
+        return false;
+    }
+
     public function cleanUnactiveTest(): int
     {
-        $count = Quote::where('code', $this->code)->where('is_retained', false)->where('status', '<>', 'validated')
+        $count = Quote::where('code', $this->code)->where('is_retained', false)->where('state', '<>', 'validated')
             ->count();
         \Log::info($count);
 
@@ -165,7 +181,7 @@ class Quote extends Model
     }
     public function cleanUnactive(): bool
     {
-        Quote::where('code', $this->code)->where('is_retained', false)->where('status', '<>', 'validated')
+        Quote::where('code', $this->code)->where('is_retained', false)->where('state', '<>', 'validated')
             ->delete();
         return true;
     }

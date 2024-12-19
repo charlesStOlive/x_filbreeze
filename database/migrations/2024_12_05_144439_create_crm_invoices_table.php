@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->nullable();
             $table->string('title')->nullable();
-            $table->string('status')->nullable();
+            $table->string('state')->nullable();
             $table->string('modalite')->nullable();
             $table->unsignedBigInteger('company_id')->nullable()->index();
             $table->unsignedBigInteger('contact_id')->nullable()->index();
