@@ -69,7 +69,7 @@ class CreatSupplieFromFile extends Page implements HasForms
                                     $mystate = $state['state'] ?? false;
                                     \Log::info('state : ' . $mystate);
                                     return match ($state['state'] ?? null) {
-                                        'Erreur' => 'bg-primary-500',
+                                        'Erreur' => 'bg-red-500',
                                         default => 'bg-white',
                                     };
                                 })
@@ -151,10 +151,6 @@ class CreatSupplieFromFile extends Page implements HasForms
 
         // Vérifier si les données sont déjà en cache
         // if (false) {
-        Cache::forget('test_invoice_data');
-        if (Cache::has($cacheKey)) {
-            $invoiceData = Cache::get($cacheKey);
-        } else {
             foreach ($files as $file) {
                 $data = [];
                 if ($file instanceof TemporaryUploadedFile) {
@@ -174,12 +170,6 @@ class CreatSupplieFromFile extends Page implements HasForms
                 }
                 $invoiceData[] = $data;
             }
-
-            // Mettre en cache les données pour 1 heure
-            // Cache::put($cacheKey, $invoiceData, now()->addHour());
-        }
-
-        // \Log::info($invoiceData);
 
         // Associer les données d'invoice
         $set('invoice_data', $invoiceData);

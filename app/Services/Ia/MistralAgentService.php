@@ -13,8 +13,10 @@ class MistralAgentService
 
     public function __construct()
     {
-        $this->apiUrl = env('MISTRAL_API_URL');
-        $this->apiKey = env('MISTRAL_API_KEY');
+        $this->apiUrl = config('services.mistral.api_url');
+        $this->apiKey = config('services.mistral.api_key');
+        \Log::info('Mistral API URL', ['url' => $this->apiUrl]);
+        \Log::info('Mistral API Key', ['key' => $this->apiKey]);
         $this->client = new Client([
             'base_uri' => $this->apiUrl,
             'headers' => [

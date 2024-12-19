@@ -16,18 +16,18 @@ class SupplierInvoiceFileAdded
     {
         if ($event instanceof MediaHasBeenAddedEvent) {
             Log::info('MediaHasBeenAdded event déclenché');
-            // $file = $event->media;
-            // $invoice = $event->media->model;
+            $file = $event->media;
+            $invoice = $event->media->model;
 
-            // if ($invoice instanceof \App\Models\SupplierInvoice) {
-            //     $supplierSlug = $invoice->supplier->slug ?? 'unknown-supplier';
-            //     $invoiceDate = $invoice->invoice_at_my;
-            //     $newFileName = "{$supplierSlug}-{$file->file_name}";
-            //     $invoice->sharepoint_path = "x_factures/{$invoiceDate}/{$newFileName}";
+            if ($invoice instanceof \App\Models\SupplierInvoice) {
+                $supplierSlug = $invoice->supplier->slug ?? 'unknown-supplier';
+                $invoiceDate = $invoice->invoice_at_my;
+                $newFileName = "{$supplierSlug}-{$file->file_name}";
+                $invoice->sharepoint_path = "x_factures/{$invoiceDate}/{$newFileName}";
                 
-            //     Storage::disk('sharepoint')->put($invoice->sharepoint_path, file_get_contents($file->getPath()));
-            //     $invoice->saveQuietly();
-            // }
+                Storage::disk('sharepoint')->put($invoice->sharepoint_path, file_get_contents($file->getPath()));
+                $invoice->saveQuietly();
+            }
         }
 
         if ($event instanceof Media) { // Traite l'événement `eloquent.deleted`

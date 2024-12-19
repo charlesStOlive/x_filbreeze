@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'mistral' => [
+        'api_url' => env('MISTRAL_API_URL'),
+        'api_key' => env('MISTRAL_API_KEY'),
+    ],
+
+
+
 ];

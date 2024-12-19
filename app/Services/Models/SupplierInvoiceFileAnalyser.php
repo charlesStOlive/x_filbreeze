@@ -15,7 +15,7 @@ class SupplierInvoiceFileAnalyser
     private MistralAgentService $mistralAgent;
     private ?AnalyseResponse $response = null;
     public string $mistralPrompt = '';
-    private const MAX_RETRY = 2;
+    private const MAX_RETRY = 5;
 
     public function __construct(FileProcessor $fileProcessor, MistralAgentService $mistralAgent)
     {

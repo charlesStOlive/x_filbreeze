@@ -211,6 +211,9 @@ class SupplierInvoiceResource extends Resource
                         'pending' => 'secondary',
                         'validated' => 'success',
                     ]),
+                Tables\Columns\TextColumn::make('invoice_number')
+                    ->label('Numéro')
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('total_ttc')
                     ->summarize(Sum::make())
