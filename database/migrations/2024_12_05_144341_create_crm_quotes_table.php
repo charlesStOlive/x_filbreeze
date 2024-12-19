@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->nullable();
             $table->string('title')->nullable();
-            $table->string('status')->nullable();
+            $table->string('state')->nullable();
             $table->integer('version')->nullable();
             $table->boolean('is_retained')->default(0);
             $table->string('parent_id')->nullable();
