@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Models\States\{{ model }};
+
+use Filament\Support\Colors\Color;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasDescription;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
+
+class {{ state }} extends {{ model }}State implements HasDescription, HasColor, HasIcon, HasLabel
+{
+    public static $name = '{{ state_lowercase }}';
+    public $isSaveHidden = true;
+
+    public function getLabel(): string
+    {
+        return __('{{ state_lowercase }}');
+    }
+
+    public function getColor(): array
+    {
+        return Color::Gray;
+    }
+
+    public function getIcon(): string
+    {
+        return 'heroicon-o-pencil';
+    }
+
+    public function getDescription(): ?string
+    {
+        return '{{ state_lowercase }} description';
+    }
+}

@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Models\States\{{ model }};
+
+use Spatie\ModelStates\State;
+use Spatie\ModelStates\StateConfig;
+use App\Filament\ModelStates\Contracts\FilamentSpatieState;
+use App\Filament\ModelStates\Concerns\ProvidesSpatieStateToFilament;
+
+abstract class {{ model }}State extends State implements FilamentSpatieState
+{
+    use ProvidesSpatieStateToFilament;
+
+    public $isSaveHidden = false;
+
+    public static function config(): StateConfig
+    {
+        return parent::config()
+            ->default({{ first_state_created }}::class)
+            {{ transitions }};
+    }
+}
