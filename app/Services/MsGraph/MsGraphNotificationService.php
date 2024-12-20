@@ -78,14 +78,14 @@ class MsGraphNotificationService
         if ($newEmailDraft->{'services_options.d-cor.mode'} === 'actif') {
             $emailDraftClient = new DraftEmailProcessor($user, $emailDTO, $newEmailDraft);
             if ($emailDraftClient->shouldResolve()) {
-                \Log::info('demarage queue');
+                //\Log::info('demarage queue');
                 DraftEmailProcessor::onQueue($user, $emailDTO, $newEmailDraft);
             }
         }
         if ($newEmailDraft->{'services_options.d-trad.mode'} === 'actif') {
             $emailDraftClient = new TradEmailProcessor($user, $emailDTO, $newEmailDraft);
             if ($emailDraftClient->shouldResolve()) {
-                \Log::info('demarage queue trad');
+                //\Log::info('demarage queue trad');
                 TradEmailProcessor::onQueue($user, $emailDTO, $newEmailDraft);
             }
         }

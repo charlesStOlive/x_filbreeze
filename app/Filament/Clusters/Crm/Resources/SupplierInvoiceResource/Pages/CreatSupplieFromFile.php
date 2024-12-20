@@ -66,17 +66,28 @@ class CreatSupplieFromFile extends Page implements HasForms
                         ->schema([
                             NotilacRepeater::make('invoice_data')
                                 ->itemColor(function ($state) {
-                                    $mystate = $state['state'] ?? false;
-                                    \Log::info('state : ' . $mystate);
-                                    return match ($state['state'] ?? null) {
-                                        'Erreur' => 'bg-red-500',
-                                        default => 'bg-white',
-                                    };
+                                    $error = $state['state'] ?? null;
+                                    $warning = $state['supplier_id'] ?? null;
+                                    if ($error === 'Erreur') {
+                                        return 'bg-red-100 dark:bg-red-800';
+                                    }
+                                    if ($warning == 1) {
+                                        return 'bg-blue-100 dark:bg-orange-800';
+                                    }
+                                    return 'bg-white dark:bg-white/5';
                                 })
                                 ->label('Données des factures')
                                 ->collapsed()
                                 ->addable(false)
                                 ->itemLabel(fn($state) => sprintf('%s (%s)', $state['file_name'] ?? 'Fichier inconnu', $state['state'] ?? ''))
+                                ->extraItemActions([
+                                    Action::make('retry')
+                                        ->icon('heroicon-o-arrow-path')
+                                        ->action(function (array $arguments, Repeater $component, $set) {
+                                            $itemData = $component->getItemState($arguments['item']);
+                                            $this->retryFileAnalysis($itemData, $set);
+                                        })
+                                ])
                                 ->schema([
                                     TextInput::make('file_name')
                                         ->label('Nom du fichier')
@@ -134,7 +145,6 @@ class CreatSupplieFromFile extends Page implements HasForms
                                         ->action(function (array $arguments, Repeater $component): void {
                                             $itemData = $component->getRawItemState($arguments['item']);
                                             $si = SupplierInvoice::find($itemData['id']);
-                                            \Log::info($si);
                                             redirect(SupplierInvoiceResource::getUrl('edit', ['record' => $si->id]));
                                         })
                                 ])
@@ -151,25 +161,25 @@ class CreatSupplieFromFile extends Page implements HasForms
 
         // Vérifier si les données sont déjà en cache
         // if (false) {
-            foreach ($files as $file) {
-                $data = [];
-                if ($file instanceof TemporaryUploadedFile) {
-                    $tempPath = $file->getRealPath();
-                    $response = $this->fileAnalyzer->analyzeFile($tempPath);
+        foreach ($files as $file) {
+            $data = [];
+            if ($file instanceof TemporaryUploadedFile) {
+                $tempPath = $file->getRealPath();
+                $response = $this->fileAnalyzer->analyzeFile($tempPath);
 
-                    $data['file_name'] = $file->getClientOriginalName(); // Récupérer le nom du fichier source
+                $data['file_name'] = $file->getClientOriginalName(); // Récupérer le nom du fichier source
 
-                    if ($response->isSuccess()) {
-                        $data = array_merge($data, $response->getDataArray());
-                        $data['state'] = 'Succès';
-                        $data['error_comment'] = null; // Pas de commentaire pour le succès
-                    } else {
-                        $data['state'] = 'Erreur';
-                        $data['error_comment'] = $response->getMessage(); // Message d'erreur
-                    }
+                if ($response->isSuccess()) {
+                    $data = array_merge($data, $response->getDataArray());
+                    $data['state'] = 'Succès';
+                    $data['error_comment'] = null; // Pas de commentaire pour le succès
+                } else {
+                    $data['state'] = 'Erreur';
+                    $data['error_comment'] = $response->getMessage(); // Message d'erreur
                 }
-                $invoiceData[] = $data;
             }
+            $invoiceData[] = $data;
+        }
 
         // Associer les données d'invoice
         $set('invoice_data', $invoiceData);
@@ -188,8 +198,6 @@ class CreatSupplieFromFile extends Page implements HasForms
 
 
             foreach ($files as $file) {
-                \Log::info($file->getClientOriginalName());
-                \Log::info($data['file_name']);
                 if ($file->getClientOriginalName() === $data['file_name']) {
                     $supplierInvoice->addMedia($file)->toMediaCollection('invoice');
                 }
@@ -208,6 +216,60 @@ class CreatSupplieFromFile extends Page implements HasForms
             ->success()
             ->send();
     }
+
+    public function retryFileAnalysis(array $itemData, callable $set): void
+    {
+        // Récupérer le nom du fichier de la ligne
+        $fileName = $itemData['file_name'] ?? null;
+        if (!$fileName) {
+            Notification::make()
+                ->title('Erreur : Nom du fichier introuvable.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Rechercher le fichier correspondant
+        $file = collect($this->file_pdf_image)->first(fn($file) => $file->getClientOriginalName() === $fileName);
+
+        if (!$file) {
+            Notification::make()
+                ->title('Erreur : Fichier correspondant introuvable.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Réanalyse du fichier
+        $this->fileAnalyzer = app(SupplierInvoiceFileAnalyser::class);
+        $tempPath = $file->getRealPath();
+        $response = $this->fileAnalyzer->analyzeFile($tempPath);
+
+        // Mise à jour des données de la ligne
+        $updatedData = $itemData;
+        if ($response->isSuccess()) {
+            $updatedData = array_merge($updatedData, $response->getDataArray());
+            $updatedData['state'] = 'Succès';
+            $updatedData['error_comment'] = null; // Pas de commentaire pour le succès
+        } else {
+            $updatedData['state'] = 'Erreur';
+            $updatedData['error_comment'] = $response->getMessage();
+        }
+
+        // Mettre à jour l'état dans le Repeater
+        $invoiceData = collect($this->invoice_data)
+            ->map(fn($data) => $data['file_name'] === $fileName ? $updatedData : $data)
+            ->toArray();
+
+        $set('invoice_data', $invoiceData);
+
+        // Notification
+        Notification::make()
+            ->title('Analyse relancée pour le fichier : ' . $fileName)
+            ->success()
+            ->send();
+    }
+
 
     public function deleteInvoice(int $invoiceId): void
     {

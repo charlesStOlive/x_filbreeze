@@ -212,8 +212,6 @@ class QuoteResource extends Resource
     {
         // Récupère tous les éléments du parent
         $items = $get('items') ?? [];
-        \Log::info('Données items', ['items' => $items]);
-
         // Séparer les éléments par type
         $totals = collect($items)
             ->partition(fn($item) => $item['type'] === 'remise');

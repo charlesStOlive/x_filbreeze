@@ -27,7 +27,6 @@ class ColorPickerAction extends Action
         $this->colorPalettes = array_map(function ($color) {
             return sprintf('#%02x%02x%02x', ...$color);
         }, $palette);
-        \Log::info($this->colorPalettes);
     }
 
     public function getFormSchema(): array

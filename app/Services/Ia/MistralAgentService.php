@@ -15,8 +15,7 @@ class MistralAgentService
     {
         $this->apiUrl = config('services.mistral.api_url');
         $this->apiKey = config('services.mistral.api_key');
-        \Log::info('Mistral API URL', ['url' => $this->apiUrl]);
-        \Log::info('Mistral API Key', ['key' => $this->apiKey]);
+
         $this->client = new Client([
             'base_uri' => $this->apiUrl,
             'headers' => [
@@ -72,8 +71,6 @@ class MistralAgentService
                     ],
                 ],
             ];
-
-            \Log::info('Calling chat completion', ['url' => "/v1/chat/completions", 'data' => $data]);
 
             $response = $this->client->post("/v1/chat/completions", [
                 'json' => $data,

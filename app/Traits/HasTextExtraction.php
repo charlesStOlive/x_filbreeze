@@ -88,7 +88,7 @@ trait HasTextExtraction
             }
         }
 
-       \Log::info('injectTextFromJson', $this->attributes);
+       //\Log::info('injectTextFromJson', $this->attributes);
     }
 
     /**

@@ -124,7 +124,6 @@ class MsgUserIn extends Model
     public function revokeSubscription()
     {
         if (!$this->subscription_id) {
-            \Log::info('No subscription ID found to revoke.');
             return;
         }
         $authService = app(MsGraphAuthService::class);
@@ -150,7 +149,7 @@ class MsgUserIn extends Model
     public function refreshSubscription()
     {
         if (!$this->subscription_id) {
-            \Log::info('No subscription ID found to refresh.');
+            //\Log::info('No subscription ID found to refresh.');
             return;
         }
 

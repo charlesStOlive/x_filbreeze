@@ -76,7 +76,6 @@ class MsGraphAuthService
     public function verifyDraftSubscriptionAndGetUser(string $clientState, string $tenantId): MsgUserDraft
     {
         $this->verifyTenant($tenantId);
-        \Log::info($clientState);
 
         $user = MsgUserDraft::where('abn_secret', $clientState)->first();
         if (!$user) {

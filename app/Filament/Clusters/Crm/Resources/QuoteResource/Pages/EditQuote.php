@@ -127,7 +127,6 @@ class EditQuote extends EditRecord
                                     }),
                             ])->hidden(function($record) {
                                 $validatedExist = $record->hasOneVersionValidated();
-                                \Log::info($validatedExist);
                                 return (bool) $validatedExist;
                             })->fullWidth(),
                             Forms\Components\Actions::make([

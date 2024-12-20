@@ -62,7 +62,7 @@ class EditInvoice extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         $record->update($data);
-        \Log::info('handleRecordUpdate', $data);
+
         return $record;
     }
 

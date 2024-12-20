@@ -1,1 +1,1 @@
-<div class="sticky top-24"></div>
+<div class="sticky top-24  "></div>

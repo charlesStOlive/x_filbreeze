@@ -55,7 +55,7 @@ class MsgEmailNotification extends Controller
      */
     public function handleDraft(Request $request)
     {
-        \Log::info('MsgEmailNotification handleDraft start-----------------');
+        //\Log::info('MsgEmailNotification handleDraft start-----------------');
         // Validation d'abonnement
         if ($request->has('validationToken')) {
             return response($request->input('validationToken'))
@@ -68,7 +68,6 @@ class MsgEmailNotification extends Controller
             $messageId = $notificationData['value'][0]['resourceData']['id'];
             $existingEmail = MsgEmailDraft::where('email_id', $messageId)->whereNotIn('status', ['end', 'error'])->first();
             if ($existingEmail) {
-                \Log::info('le mail existe déjà');
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Draft processed successfully'
@@ -85,7 +84,7 @@ class MsgEmailNotification extends Controller
         try {
             // Appel au service pour traiter la notification
             $this->notificationService->processDraftNotification($notificationData);
-            \Log::info('MsgEmailNotification handleDraft (avant response) FIN-----------------');
+            //\Log::info('MsgEmailNotification handleDraft (avant response) FIN-----------------');
             return response()->json([
                 'status' => 'success',
                 'message' => 'Draft processed successfully'

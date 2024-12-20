@@ -17,7 +17,6 @@ class ImageUtils
             ->mountUsing(function ($livewire, $record, $get) use ($source) {
                 $finalPath = null;
                 $temporaryFile =  $get($source);
-                \Log::info($temporaryFile);
                 $uploadedFile = reset($temporaryFile);
 
                 if ($uploadedFile instanceof TemporaryUploadedFile) {
@@ -30,8 +29,6 @@ class ImageUtils
                 }
 
                 $palette = ColorThief::getPalette($finalPath, 4);
-
-                \Log::info($palette);
 
                 // Convertir en hexadécimal
                 $colorPalettes = array_map(function ($color) {

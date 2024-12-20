@@ -130,7 +130,6 @@ class Quote extends Model
     {
         $newRecord = $this->replicate();
         $newRecord->fill($data);
-        \Log::info($data);
         $newRecord->version = Quote::where('code', $this->code)->max('version') + 1;
         $newRecord->is_retained = false;
         unset($newRecord->created_at_my);
@@ -164,7 +163,6 @@ class Quote extends Model
             return true;
         }
         $otherExiste = Quote::where('code', $this->code)->where('state', 'validated')->count();
-        \Log::info('otherExiste '.$otherExiste);
         if($otherExiste) {
             return true;
         }
@@ -175,8 +173,6 @@ class Quote extends Model
     {
         $count = Quote::where('code', $this->code)->where('is_retained', false)->where('state', '<>', 'validated')
             ->count();
-        \Log::info($count);
-
         return $count;
     }
     public function cleanUnactive(): bool

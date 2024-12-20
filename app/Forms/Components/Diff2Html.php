@@ -38,8 +38,6 @@ class Diff2Html extends Field
     public function getVersion1()
     {
         $result = $this->evaluate($this->version1);
-        \Log::info(is_array($result));
-        \Log::info($result);
         return $result;
     }
 
@@ -49,8 +47,6 @@ class Diff2Html extends Field
     public function getVersion2()
     {
         $result = $this->evaluate($this->version2);
-        \Log::info(is_array($result));
-        \Log::info($result);
         return $result;
     }
 }

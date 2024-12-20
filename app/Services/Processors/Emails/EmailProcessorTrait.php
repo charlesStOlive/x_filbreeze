@@ -129,7 +129,6 @@ trait EmailProcessorTrait
             $this->email->status = 'error';
             $this->email->errors = $ex->getMessage();
             $this->email->save();
-            \Log::info($ex->getMessage());
             return false;
         }
     }

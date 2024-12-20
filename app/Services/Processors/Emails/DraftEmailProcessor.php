@@ -80,7 +80,7 @@ class DraftEmailProcessor  implements ShouldQueue
     public function resolve(): MsgEmailDraft
     {
         // Logique principale
-        \Log::info('Resolve---------');
+        //\Log::info('Resolve---------');
         $options = $this->getResult('code_options');
         $update = false;
         if($options['u'] ?? false) {
@@ -89,12 +89,12 @@ class DraftEmailProcessor  implements ShouldQueue
         if(!$update) {
             $newEmailData = clone $this->emailData;
             $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
-            \Log::info("body original");
-            \Log::info($newEmailData->bodyOriginal);
+            //\Log::info("body original");
+            //\Log::info($newEmailData->bodyOriginal);
             $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
             $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
-            \Log::info("reponse de mistral");
-            \Log::info($responseN);
+            //\Log::info("reponse de mistral");
+            //\Log::info($responseN);
             $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');;
             $responseD = $this->emailService->updateEmail($this->user, $this->email, [
                 'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
@@ -118,8 +118,8 @@ class DraftEmailProcessor  implements ShouldQueue
         $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
         $agentId = 'ag:3e2c948d:20241122:correction-ortho-de-mails:2bf76447';
         $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        \Log::info('MIST>RAL RESPONSE');
-        \Log::info($response);
+        //\Log::info('MIST>RAL RESPONSE');
+        //\Log::info($response);
         return $response['choices'][0]['message']['content'] ?? '';
     }
 
@@ -128,9 +128,9 @@ class DraftEmailProcessor  implements ShouldQueue
      */
     public function handle()
     {
-        \Log::info('----Lancement du handle----');
+        //\Log::info('----Lancement du handle----');
         $this->resolve()->save();
-        \Log::info('----Fin du handle----');
+        //\Log::info('----Fin du handle----');
     }
 
     /**
@@ -138,12 +138,12 @@ class DraftEmailProcessor  implements ShouldQueue
      */
     public static function onQueue(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email)
     {
-        \Log::info('lancement de la queue');
+        //\Log::info('lancement de la queue');
         try {
             $processor = new self($user, $emailData, $email);
             dispatch($processor);
         } catch(\Exception $ex) {
-            \Log::info($ex->getMessage());
+            //\Log::info($ex->getMessage());
         }
         
         

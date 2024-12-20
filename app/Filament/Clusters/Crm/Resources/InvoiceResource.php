@@ -230,22 +230,17 @@ class InvoiceResource extends Resource
     {
         // Récupère tous les éléments du parent
         $items = $get('items') ?? [];
-        \Log::info('Données items', ['items' => $items]);
-
         // Séparer les éléments par type
         $totals = collect($items)
             ->partition(fn($item) => $item['type'] === 'remise');
-
         // Calcule la somme des totaux des remises
         $totalRemise = $totals[0]
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
-
         // Calcule la somme des totaux des autres éléments
         $totalHtBr = $totals[1]
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
-
         // Mettre à jour total_ht_br
         $set('total_ht_br', round($totalHtBr,2));
         // Calculer et mettre à jour total_ht

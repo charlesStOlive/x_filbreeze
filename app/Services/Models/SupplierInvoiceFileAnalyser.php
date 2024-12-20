@@ -34,9 +34,12 @@ class SupplierInvoiceFileAnalyser
         try {
             $suppliers = Supplier::pluck('name', 'id')->toArray();
             $result = $this->fileProcessor->processFile($filePath);
+
+            $this->mistralPrompt = json_encode([
+                'contenu' => $result['content'],
+                'clients' => $suppliers
+            ]);
             
-            $this->preparePrompt($result['content'], $suppliers);
-            \Log::info($this->mistralPrompt);
             $response = $this->callAgentWithRetry();
             if($response['error'] ?? false) {
                 return AnalyseResponse::error($response['error']);
@@ -51,17 +54,7 @@ class SupplierInvoiceFileAnalyser
         }
     }
 
-    /**
-     * Prépare le prompt pour l'agent Mistral.
-     *
-     * @param string $content
-     * @param array $suppliers
-     */
-    private function preparePrompt(string $content, array $suppliers): void
-    {
-        $this->mistralPrompt = "--CONTENU--=\n" . $content;
-        $this->mistralPrompt .= "\n--CLIENTS--=\n" . json_encode($suppliers, JSON_PRETTY_PRINT);
-    }
+    
 
     /**
      * Appelle l'agent Mistral avec une logique de retry si la réponse JSON est invalide.
@@ -77,6 +70,7 @@ class SupplierInvoiceFileAnalyser
         do {
             $response = $this->mistralAgent->callAgent($agentId, $this->mistralPrompt);
             $decodedResponse = json_decode($response['choices'][0]['message']['content'] ?? '', true);
+            
 
             if (json_last_error() === JSON_ERROR_NONE) {
                 return $decodedResponse;

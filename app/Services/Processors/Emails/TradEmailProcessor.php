@@ -80,7 +80,7 @@ class TradEmailProcessor  implements ShouldQueue
     public function resolve(): MsgEmailDraft
     {
         // Logique principale
-        \Log::info('Resolve---------');
+        // \Log::info('Resolve---------');
         $options = $this->getResult('code_options');
         $update = false;
         if($options['u'] ?? false) {
@@ -94,8 +94,8 @@ class TradEmailProcessor  implements ShouldQueue
             $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
             //On ajoute le code langue au debut du texte : 
             $newEmailData->bodyOriginal = sprintf('[%s]%s', $lang, $newEmailData->bodyOriginal);
-            \Log::info("body original");
-            \Log::info($newEmailData->bodyOriginal);
+            // \Log::info("body original");
+            // \Log::info($newEmailData->bodyOriginal);
             $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
             $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
             $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');
@@ -123,8 +123,8 @@ class TradEmailProcessor  implements ShouldQueue
         $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
         $agentId = 'ag:3e2c948d:20241128:untitled-agent:863e968f';
         $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        \Log::info('MISTRAL RESPONSE');
-        \Log::info($response['choices'][0]['message']['content'] ?? '');
+        //\Log::info('MISTRAL RESPONSE');
+        //\Log::info($response['choices'][0]['message']['content'] ?? '');
         return $response['choices'][0]['message']['content'] ?? '';
     }
 
@@ -133,9 +133,9 @@ class TradEmailProcessor  implements ShouldQueue
      */
     public function handle()
     {
-        \Log::info('----Lancement du handle----');
+        //\Log::info('----Lancement du handle----');
         $this->resolve()->save();
-        \Log::info('----Fin du handle----');
+        //\Log::info('----Fin du handle----');
     }
 
     /**
@@ -143,12 +143,12 @@ class TradEmailProcessor  implements ShouldQueue
      */
     public static function onQueue(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email)
     {
-        \Log::info('lancement de la queue');
+        //\Log::info('lancement de la queue');
         try {
             $processor = new self($user, $emailData, $email);
             dispatch($processor);
         } catch(\Exception $ex) {
-            \Log::info($ex->getMessage());
+            //\Log::info($ex->getMessage());
         }
         
         

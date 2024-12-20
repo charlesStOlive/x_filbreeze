@@ -43,7 +43,7 @@ class createUserAndRoles extends Seeder
         // Récupérer toutes les permissions qui commencent par 'User'
         $userPermissions = Permission::where('name', 'like', 'User%')->get();
 
-        \Log::info('userPermissions', $userPermissions->toArray());
+        //\Log::info('userPermissions', $userPermissions->toArray());
 
         // Assigner toutes ces permissions au rôle $userRole
         $userRole->givePermissionTo($userPermissions);
