@@ -124,7 +124,7 @@
                         {{ number_format($record->total_ht ?? 0, 2, ',', ' ') }} €
                     </div>
                 </div>
-                @if ($record->has_tva)
+                 @if ($record->tx_tva)
                     <div class="pt-4 w-full grid grid-cols-6  text-lg  text-right text-zinc-600 font-light">
                         <div class="col-span-4">
                             &nbsp;

@@ -16,6 +16,9 @@ class MistralAgentService
         $this->apiUrl = config('services.mistral.api_url');
         $this->apiKey = config('services.mistral.api_key');
 
+        // \Log::info("apiUrl".$this->apiUrl);
+        // \Log::info("apiUrl 3 premier car".\Str::limit($this->apiKey, 3));
+
         $this->client = new Client([
             'base_uri' => $this->apiUrl,
             'headers' => [
