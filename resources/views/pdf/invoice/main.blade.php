@@ -29,6 +29,8 @@
                 <p>N° : {{ $record->code }}</p>
                 @if($record->submited_at) 
                 <p>Date :  {{ $record->submited_at->format('d/m/Y') }}</p>
+                @else
+                <p class="text-red-500">FACTURE NON VALIDE : BROUILLON</p>
                 @endif
             </div>
             <div>
