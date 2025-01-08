@@ -64,6 +64,8 @@ class Invoice extends Model
 
     protected $casts = [
         'items' => 'json',
+        'submited_at' => 'datetime',
+        'payed_at' => 'datetime',
         'state' => InvoiceState::class,
         
     ];

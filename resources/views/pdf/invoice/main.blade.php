@@ -27,8 +27,7 @@
             <div class="col-span-1">
                 <p class="font-light text-xl text-zinc-600 uppercase">Facture :</p>
                 <p>N° : {{ $record->code }}</p>
-                <p>Date {{ $record->created_at }}</p>
-                <p>Fin validité : {{ $record->end_at }}</p>
+                <p>Date :  {{ $record->submited_at->format('d/m/Y') }}</p>
             </div>
             <div>
                 <p class="font-light text-xl text-zinc-600 uppercase">Émetteur : </p>

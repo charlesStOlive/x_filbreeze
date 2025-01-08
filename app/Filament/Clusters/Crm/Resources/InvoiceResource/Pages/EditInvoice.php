@@ -42,7 +42,7 @@ class EditInvoice extends EditRecord
         return [
             Actions\DeleteAction::make(),
             InvoiceResource::getDuplicateAction(),
-            StateAction::make('state')
+            StateAction::make('state_s')
                 ->before(function ($record) {
                     $record->fill($this->data);
                 })
@@ -50,7 +50,7 @@ class EditInvoice extends EditRecord
                 ->after(function ($record) {
                     return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
                 })->disabled(fn() => $this->data['total_ht'] > 0 ? false : true),
-            StateAction::make('state')
+            StateAction::make('state_p')
                 ->transitionTo(Payed::class)
                 ->after(function ($record) {
                     return redirect()->to(InvoiceResource::getUrl('index'));
@@ -90,7 +90,12 @@ class EditInvoice extends EditRecord
                                 ->schema([
                                     Forms\Components\TextInput::make('title')
                                         ->label('Titre')
-                                        ->required(),
+                                        ->required()
+                                        ->columnSpan(fn($record) => $record->state == 'draft' ? 1 : 2),
+                                    Forms\Components\DatePicker::make('submited_at')
+                                        ->label('Date de soumission')
+                                        ->required()
+                                        ->visible(fn($record) => $record->state == 'draft' ? false : true),
                                     Cluster::make()->label('modalité & TVA')
                                         ->schema([
                                             Forms\Components\TextInput::make('modalite')
