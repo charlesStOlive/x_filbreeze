@@ -27,7 +27,9 @@
             <div class="col-span-1">
                 <p class="font-light text-xl text-zinc-600 uppercase">Facture :</p>
                 <p>N° : {{ $record->code }}</p>
+                @if($record->submited_at) 
                 <p>Date :  {{ $record->submited_at->format('d/m/Y') }}</p>
+                @endif
             </div>
             <div>
                 <p class="font-light text-xl text-zinc-600 uppercase">Émetteur : </p>
