@@ -60,7 +60,7 @@ class InvoiceResource extends Resource
                 Tables\Columns\TextColumn::make('company.title')
                     ->sortable()
                     ->description(fn($record): string => $record->contact->full_name),
-                DateTimeColumn::make('submited_at')
+                DateColumn::make('submited_at')
                     ->sortable(),
                 DateColumn::make('payed_at')
                     ->sortable(),
