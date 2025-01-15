@@ -10,12 +10,14 @@ use App\Models\Invoice;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Grouping\Group;
 use Filament\Forms\Components\Builder;
 use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
+use Guava\FilamentClusters\Forms\Cluster;
 use Filament\Tables\Columns\Summarizers\Sum;
 use App\Filament\Components\Tables\DateColumn;
 use App\Filament\Components\Tables\DateTimeColumn;
@@ -23,7 +25,6 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\RelationManagers;
-use Guava\FilamentClusters\Forms\Cluster;
 
 class InvoiceResource extends Resource
 {
@@ -160,7 +161,7 @@ class InvoiceResource extends Resource
                         ->collapsed()
                         ->live()
                         ->cloneable()
-                        ->afterStateUpdated(fn(callable $set, callable $get) => self::updateItemsTotal($set, $get))
+                        ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire))
                         ->blocks([
                             self::getOnQuoteBlock(),
                             self::getForfaitBlock(),
@@ -207,12 +208,12 @@ class InvoiceResource extends Resource
                     ->label('Total U')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTaskTotal($set, $get)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get,$livewire)),
                 Forms\Components\TextInput::make('qty')
                     ->label('Qty')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTaskTotal($set, $get)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
                 Forms\Components\TextInput::make('total')
                     ->label('Total')
                     ->numeric()
@@ -248,12 +249,12 @@ class InvoiceResource extends Resource
                     ->label('Nombre Heures facturables')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTaskTotal($set, $get)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
                 Forms\Components\TextInput::make('cu')
                     ->label('Cout heure')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTaskTotal($set, $get)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
                 Forms\Components\TextInput::make('total')
                     ->label('total')
                     ->numeric(),
@@ -322,29 +323,29 @@ class InvoiceResource extends Resource
                     ->hintActions([
                         Forms\Components\Actions\Action::make('p_30')
                             ->label('30%')
-                            ->action(function ($get, $set) {
+                            ->action(function ($get, $set, $livewire) {
                                 $set('total', round($get('total_quote') * 30 / 100, 2));
-                                self::updateQuoteTotal($set, $get, 'total');
+                                self::updateQuoteTotal($set, $get, $livewire, 'total');
                             }),
                         Forms\Components\Actions\Action::make('p_40')
                             ->label('40%')
-                            ->action(function ($get, $set) {
+                            ->action(function ($get, $set, $livewire) {
                                 $set('total', round($get('total_quote') * 40 / 100, 2));
-                                self::updateQuoteTotal($set, $get, 'total');
+                                self::updateQuoteTotal($set, $get, $livewire, 'total');
                             }),
                         Forms\Components\Actions\Action::make('p_full')
                             ->label('fin')
-                            ->action(function ($get, $set) {
+                            ->action(function ($get, $set, $livewire) {
                                 $set('total', $get('total_quote_left'));
-                                self::updateQuoteTotal($set, $get, 'total');
+                                self::updateQuoteTotal($set, $get, $livewire, 'total');
                             }),
                     ])
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateQuoteTotal($set, $get, 'billing_percentage')),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateQuoteTotal($set, $get, $livewire, 'billing_percentage')),
                 Forms\Components\TextInput::make('total')
                     ->label('Total')
                     ->dehydrated()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateQuoteTotal($set, $get, 'total'))
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateQuoteTotal($set, $get, $livewire, 'total'))
                     ->rule(function (callable $get) {
                         return 'lte:' . ($get('total_quote_left') ?? 0);
                     }),
@@ -432,7 +433,7 @@ class InvoiceResource extends Resource
             });
     }
 
-    public static function updateTaskTotal(callable $set, callable $get)
+    public static function updateTaskTotal(callable $set, callable $get, $livewire)
     {
         // Récupérer les valeurs de cu et qty
 
@@ -445,10 +446,10 @@ class InvoiceResource extends Resource
 
         \Log::info("updateTaskTotal : " . $total);
         // Appeler la mise à jour globale du total_ht
-        self::updateItemsTotal($set, $get, true);
+        self::updateItemsTotal($set, $get,$livewire, true);
     }
 
-    public static function updateQuoteTotal(callable $set, callable $get, $fieldSrc)
+    public static function updateQuoteTotal(callable $set, callable $get, $livewire, $fieldSrc)
     {
         $billingPercentage = $get('billing_percentage') ?? 0;
         $totalQuote = $get('total_quote') ?? 0;
@@ -462,10 +463,10 @@ class InvoiceResource extends Resource
             $set('billing_percentage', $billingPercentage);
         }
 
-        self::updateItemsTotal($set, $get, true);
+        self::updateItemsTotal($set, $get,$livewire, true);
     }
 
-    public static function updateItemsTotal(callable $set, callable $get, $parent = false)
+    public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false)
     {
         // Récupère tous les éléments du parent
         \Log::info('updateItemsTotal parent ? ' . $parent);
@@ -510,6 +511,7 @@ class InvoiceResource extends Resource
             $set('tva', $tva);
             $set('total_ttc', $totalTTC);
         }
+        $livewire->dispatch('totalsUpdated');
     }
 
     public static function getBasicItemsField()
@@ -542,7 +544,7 @@ class InvoiceResource extends Resource
     {
         return [
             'index' => Pages\ListInvoices::route('/'),
-            'edit' => Pages\EditInvoice::route('/{record}/edit'),
+            'edit' => Pages\EditInvoiceNew::route('/{record}/edit'),
             'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }
