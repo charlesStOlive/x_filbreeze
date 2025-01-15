@@ -101,7 +101,11 @@ class EditQuote extends EditRecord
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('activate_v')
                                     ->label('Activer ce devis')
-                                    ->hidden(fn($record) => $record->hasOneVersionValidated())
+                                    ->hidden(function ($record) {
+                                        $validatedExist = $record->hasOneVersionValidated();
+                                        $alreadyActive = $record->is_retained;
+                                        return $validatedExist || $alreadyActive;
+                                    })
                                     ->action(function ($record) {
                                         $record->swapRetainedQuote();
                                     })
@@ -120,22 +124,21 @@ class EditQuote extends EditRecord
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('create_v')
                                     ->label('Créer une nouvelle version')
-                                    ->action(function ($record, $component)  {
+                                    ->action(function ($record, $component) {
                                         $data = $component->getState();
                                         $newRecord = $record->createNewVersion($data);
                                         return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
                                     }),
-                            ])->hidden(function($record) {
-                                $validatedExist = $record->hasOneVersionValidated();
-                                return (bool) $validatedExist;
-                            })->fullWidth(),
+                            ])
+                            ->hidden(fn($record) => $record->hasOneVersionValidated())
+                            ->fullWidth(),
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('clean')
                                     ->label('Nettoyer autres V')
                                     ->action(function ($record) {
                                         $record->cleanUnactive();
                                     })
-                                    ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0 )),
+                                    ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0)),
                             ])->fullWidth(),
                         ])
                         ->compact()

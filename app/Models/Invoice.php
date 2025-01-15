@@ -9,6 +9,7 @@ use App\Traits\HasTextExtraction;
 use Spatie\ModelStates\HasStates;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\States\Invoice\InvoiceState;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Invoice extends Model
@@ -60,14 +61,14 @@ class Invoice extends Model
         'items.*.data.title',
         'items.*.data.description',
     ];
-    
+
 
     protected $casts = [
         'items' => 'json',
         'submited_at' => 'datetime',
         'payed_at' => 'datetime',
         'state' => InvoiceState::class,
-        
+
     ];
 
 
@@ -85,6 +86,13 @@ class Invoice extends Model
         return $this->belongsTo(Contact::class, 'contact_id');
     }
 
+    public function quotes()
+    {
+        return $this->belongsToMany(Quote::class, 'crm_quotes_invoices')
+            ->withPivot('billing_percentage')
+            ->withTimestamps();
+    }
+
 
     protected static function boot()
     {
@@ -95,6 +103,59 @@ class Invoice extends Model
                 $model->code = $model->getModelCode();
             }
         });
+
+        static::saved(function ($invoice) {
+            if (isset($invoice->items)) {
+                $quotesData = collect($invoice->items)
+                    ->filter(fn($item) => $item['type'] === 'onQuote') // Vérifie le type d'item
+                    ->mapWithKeys(function ($item) {
+                        \Log::info('item!!!', $item);
+                        return [
+                            $item['data']['quote_id'] => [
+                                'total_quote' => $item['data']['total_quote'],
+                                'total_quote_left' => $item['data']['total_quote_left'],
+                                'billing_percentage' => $item['data']['billing_percentage'],
+                                'total' => $item['data']['total']
+                            ],
+                        ];
+                    })
+                    ->toArray();
+                static::syncLinkedQuoteAmountLeft($invoice, $quotesData);
+                // Vérifier le pourcentage total de facturation pour chaque devis
+                
+            }
+        });
+    }
+
+    /**
+     * Attributs
+     */
+    public static function syncLinkedQuoteAmountLeft($invoice, $quotesData) {
+        \Log::info('quotesData!!!', $quotesData);
+        foreach ($quotesData as $quoteId => $pivotData) {
+                    $quote = \App\Models\Quote::find($quoteId);
+                    if ($quote) {
+                        $currentAmount = static::getAmountFactured($quote, $invoice);
+                        $newTotal = $currentAmount + $pivotData['total'];
+                        if ($newTotal > $quote->total_ht) {
+                            throw ValidationException::withMessages([
+                                'items' => "The billing percentage for quote {$quote->code} exceeds amount",
+                            ]);
+                        }
+                    }
+                }
+                // Synchroniser les relations
+                $invoice->quotes()->sync($quotesData);
+    }
+
+    public static function getAmountFactured($quote, $invoice) {
+        $currentAmount = $quote->invoices()->where('invoice_id', '!=', $invoice->id)->sum('crm_quotes_invoices.total');
+        return $currentAmount;
+    }
+
+    public static function getAmountLeft($quote, $invoice) {
+        $currentAmount = round($quote->total_ht - static::getAmountFactured($quote, $invoice), 2);
+        return $currentAmount;
     }
 
     public function getModelNumber()

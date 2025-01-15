@@ -27,10 +27,10 @@
             <div class="col-span-1">
                 <p class="font-light text-xl text-zinc-600 uppercase">Facture :</p>
                 <p>N° : {{ $record->code }}</p>
-                @if($record->submited_at) 
-                <p>Date :  {{ $record->submited_at->format('d/m/Y') }}</p>
+                @if ($record->submited_at)
+                    <p>Date : {{ $record->submited_at->format('d/m/Y') }}</p>
                 @else
-                <p class="text-red-500">FACTURE NON VALIDE : BROUILLON</p>
+                    <p class="text-red-500">FACTURE NON VALIDE : BROUILLON</p>
                 @endif
             </div>
             <div>
@@ -52,11 +52,11 @@
         </div>
         <div class="min-h-[920px]">
             <div class="py-4">
-                <div><span class=" font-light text-xl text-zinc-600 uppercase"> TITRE : </span>{{ $record->title }}</div>
+                <div><span class=" font-light text-xl text-zinc-600 uppercase"> TITRE : </span>{{ $record->title }}
+                </div>
                 @if (!empty($record->description))
                     <div class=" font-light text-xl text-zinc-600 uppercase pb-2 ">Description</div>
-                    <div
-                        class="prose prose-li:m-0 prose-p:my-0 prose-ul:mt-0 max-w-none  bg-slate-100 p-2 rounded-md">
+                    <div class="prose prose-li:m-0 prose-p:my-0 prose-ul:mt-0 max-w-none  bg-slate-100 p-2 rounded-md">
                         {!! str($record->description)->markdown() !!}
                     </div>
                 @endif
@@ -69,37 +69,7 @@
                     <div class="text-xl">Total</div>
                 </div>
                 @foreach ($record->items as $item)
-                    <div style="{{ $avoid_row_break ? 'page-break-inside: avoid;' : '' }}">
-                        <div class="grid grid-cols-6 my-2 p-2 w-full border-b border-zinc-300 text-right">
-                            <!-- Description et groupe -->
-                            <div class="col-span-4 text-left">
-                                <div><span class=" font-light text-lg"> {{ $item['data']['title'] ?? 'N/A' }}</span>
-                                </div>
-                                @if (!empty($item['data']['description']))
-                                    <div
-                                        class="prose prose-p:my-0 prose-ul:mt-0 prose-li:m-0 text-sm text-zinc-600 py-1 max-w-none">
-                                        {!! str($item['data']['description'])->markdown() !!}
-                                    </div>
-                                @endif
-                            </div>
-
-                            <!-- Quantité et coût unitaire -->
-                            <div>
-                                @if (isset($item['data']['qty'], $item['data']['cu']))
-                                    {{ $item['data']['qty'] }} X {{ number_format($item['data']['cu'], 2, ',', ' ') }}
-                                    €
-                                @endif
-                            </div>
-
-                            <!-- Total -->
-                            <div class="@if ($item['type'] == 'remise') text-green-500 @endif">
-                                @if ($item['type'] == 'remise')
-                                    -
-                                @endif
-                                {{ number_format($item['data']['total'] ?? 0, 2, ',', ' ') }} €
-                            </div>
-                        </div>
-                    </div>
+                    @includeIf("pdf.shared.items.{$item['type']}", ['item' => $item])
                 @endforeach
             </div>
             <div style="{{ $avoid_amount_break ? 'page-break-inside: avoid;' : '' }}">
@@ -127,7 +97,7 @@
                         {{ number_format($record->total_ht ?? 0, 2, ',', ' ') }} €
                     </div>
                 </div>
-                 @if ($record->tx_tva)
+                @if ($record->tx_tva)
                     <div class="pt-4 w-full grid grid-cols-6  text-lg  text-right text-zinc-600 font-light">
                         <div class="col-span-4">
                             &nbsp;

@@ -130,8 +130,6 @@ class QuoteResource extends Resource
                                     Forms\Components\TextInput::make('total')
                                         ->label('Total TTC')
                                         ->numeric()
-                                        ->live(onBlur: true)
-                                        // ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTotal($set, $get)),
                                 ])
                                 ->columns(3),
                             Builder\Block::make('tasks')
@@ -208,10 +206,15 @@ class QuoteResource extends Resource
                 });
     }
 
-    public static function updateItemsTotal(callable $set, callable $get)
+    public static function updateItemsTotal(callable $set, callable $get, $parent = false)
     {
         // Récupère tous les éléments du parent
+        \Log::info('updateItemsTotal parent ? '.$parent);
         $items = $get('items') ?? [];
+        if($parent) {
+            $items = $get('../../..') ?? [];
+        }
+        \Log::info($items);
         // Séparer les éléments par type
         $totals = collect($items)
             ->partition(fn($item) => $item['type'] === 'remise');
@@ -226,26 +229,37 @@ class QuoteResource extends Resource
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
 
-        // Mettre à jour total_ht_br
-        $set('total_ht_br', $totalHtBr);
+        foreach($totals[1] as $item) {
+            \Log::info($item['data']['title'] ?? 'titre inc');
+            \Log::info($item['data']['total'] ?? 'pas de total');
+        }
 
-        // Calculer et mettre à jour total_ht
+        // Mettre à jour total_ht_br
         $totalHt = $totalHtBr - $totalRemise;
-        $set('total_ht', $totalHt);
+        if($parent) {
+            $set('../../../total_ht_br', $totalHtBr);
+            $set('../../../total_ht', $totalHt);
+        } else {
+            $set('total_ht_br', $totalHtBr);
+            $set('total_ht', $totalHt);
+        }
     }
 
 
     public static function updateTaskTotal(callable $set, callable $get)
     {
         // Récupérer les valeurs de cu et qty
+        
         $cu = $get('cu') ?? 0;
         $qty = $get('qty') ?? 0;
         // Calculer le total pour ce bloc
         $total = $cu * $qty;
         // Mettre à jour le champ total
         $set('total', $total);
+
+        \Log::info("updateTaskTotal : ".$total);
         // Appeler la mise à jour globale du total_ht
-        self::updateItemsTotal($set, $get);
+        self::updateItemsTotal($set, $get, true);
     }
 
 

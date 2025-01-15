@@ -62,41 +62,11 @@
                 <div
                     class="pb-4 grid grid-cols-6 px-2 w-full border-y bg-primary-base py-4  text-white uppercase text-right rounded-md">
                     <div class="col-span-4 text-left text-xl">Postes</div>
-                    <div></div>
+                    <div> - </div>
                     <div class="text-xl">Total</div>
                 </div>
                 @foreach ($record->items as $item)
-                    <div class="{{ $avoid_row_break ? 'page-break-inside-avoid' : '' }}">
-                        <div class="grid grid-cols-6 my-2 p-2 w-full border-b border-zinc-300 text-right">
-                            <!-- Description et groupe -->
-                            <div class="col-span-4 text-left">
-                                <div><span class="text-zinc-600 font-light text-lg">
-                                        {{ $item['data']['title'] ?? 'N/A' }}</span></div>
-                                @if (!empty($item['data']['description']))
-                                    <div
-                                        class="prose prose-p:my-0 prose-ul:mt-0 prose-li:m-0 text-sm text-gray-400 py-1 max-w-none">
-                                        {!! str($item['data']['description'])->markdown() !!}
-                                    </div>
-                                @endif
-                            </div>
-
-                            <!-- Quantité et coût unitaire -->
-                            <div>
-                                @if (isset($item['data']['qty'], $item['data']['cu']))
-                                    {{ $item['data']['qty'] }} X {{ number_format($item['data']['cu'], 2, ',', ' ') }}
-                                    €
-                                @endif
-                            </div>
-
-                            <!-- Total -->
-                            <div class="@if ($item['type'] == 'remise') text-green-500 @endif">
-                                @if ($item['type'] == 'remise')
-                                    -
-                                @endif
-                                {{ number_format($item['data']['total'] ?? 0, 2, ',', ' ') }} €
-                            </div>
-                        </div>
-                    </div>
+                    @includeIf("pdf.shared.items.{$item['type']}", ['item' => $item])
                 @endforeach
             </div>
             <div @if ($avoid_amount_break) style="page-break-inside: avoid;" @endif>

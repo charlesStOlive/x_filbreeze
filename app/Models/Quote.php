@@ -77,6 +77,13 @@ class Quote extends Model
         return $this->belongsTo(Contact::class, 'contact_id');
     }
 
+    public function invoices()
+    {
+        return $this->belongsToMany(Invoice::class, 'crm_quotes_invoices')
+            ->withPivot('billing_percentage')
+            ->withTimestamps();
+    }
+
     /**
      * Hook sur la création pour générer automatiquement le code
      */
@@ -97,7 +104,19 @@ class Quote extends Model
         });
     }
 
-    public function getModelNumber() {
+    public function scopeWithRemainingAmount($query)
+    {
+        return $query->where(function ($query) {
+            $query->where('total_ht', '>', function ($subquery) {
+                $subquery->selectRaw('COALESCE(SUM(crm_quotes_invoices.total), 0)')
+                    ->from('crm_quotes_invoices')
+                    ->whereColumn('crm_quotes_invoices.quote_id', 'crm_quotes.id');
+            });
+        });
+    }
+
+    public function getModelNumber()
+    {
         $clientId = $this->company_id;
         $number = static::where('company_id', $clientId)->max('number');
         return $number + 1;
@@ -109,8 +128,8 @@ class Quote extends Model
         // Formatage de l'ID du client en 3 chiffres
         $clientCode = str_pad($clientId, 3, '0', STR_PAD_LEFT);
         // Compter les devis existants pour ce client avec version == 1
-        if(!$this->number) {
-           $this->number = $this->getModelNumber();
+        if (!$this->number) {
+            $this->number = $this->getModelNumber();
         }
         // Incrémenter le compteur pour obtenir le prochain numéro
         $quoteNumber = str_pad($this->number, 3, '0', STR_PAD_LEFT);
@@ -159,11 +178,11 @@ class Quote extends Model
 
     public function hasOneVersionValidated(): bool
     {
-        if($this->state == 'validated') {
+        if ($this->state == 'validated') {
             return true;
         }
         $otherExiste = Quote::where('code', $this->code)->where('state', 'validated')->count();
-        if($otherExiste) {
+        if ($otherExiste) {
             return true;
         }
         return false;
