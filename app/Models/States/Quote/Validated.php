@@ -15,7 +15,7 @@ class Validated extends QuoteState implements HasDescription, HasColor, HasIcon,
 
     public function getLabel(): string
     {
-        return __('Valider');
+        return __('Validé');
     }
 
     public function getColor(): array

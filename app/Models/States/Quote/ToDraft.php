@@ -24,7 +24,7 @@ class ToDraft extends Transition implements FilamentSpatieTransition ,HasColor, 
 
     public function getLabel(): string
     {
-        return __('Annuler la validation');
+        return __('Annuler validation');
     }
  
     public function getColor(): array

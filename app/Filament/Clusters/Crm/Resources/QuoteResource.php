@@ -25,7 +25,7 @@ class QuoteResource extends Resource
 {
     protected static ?string $model = Quote::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'fas-file-invoice';
 
     protected static ?string $cluster = Crm::class;
 
@@ -42,7 +42,8 @@ class QuoteResource extends Resource
                     ->sortable()
                     ->description(fn($record): string => \Str::limit($record->title, 35))
                     ->searchable(['title', 'code']),
-                StateColumn::make('state'),
+                StateColumn::make('state')
+                    ->badge(),
                 Tables\Columns\TextColumn::make('company.title')
                     ->sortable()
                     ->description(fn($record): string => \Str::limit($record->contact->full_name, 35))
@@ -112,78 +113,97 @@ class QuoteResource extends Resource
             Forms\Components\Fieldset::make('Elements du devis')
                 ->schema([
                     Builder::make('items')
-                        ->label('Liste des élements')
+                        ->label(false)
+                        ->addActionLabel('Ajouter un élément au devis')
                         ->collapsed()
                         ->live()
                         ->cloneable()
-                        ->afterStateUpdated(fn(callable $set, callable $get) => self::updateItemsTotal($set, $get))
+                        ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire))
                         ->blocks([
-                            Builder\Block::make('forfait')
-                                ->label(function (?array $state): string {
-                                    if ($state === null) {
-                                        return 'Forfait';
-                                    }
-                                    return sprintf('%s %s (%s €HT)', 'Forfait : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
-                                })
-                                ->schema([
-                                    ...self::getBasicItemsField(),
-                                    Forms\Components\TextInput::make('total')
-                                        ->label('Total TTC')
-                                        ->numeric()
-                                ])
-                                ->columns(3),
-                            Builder\Block::make('tasks')
-                                ->label(function (?array $state): string {
-                                    if ($state === null) {
-                                        return 'Taches';
-                                    }
-                                    return sprintf('%s %s (%s €HT)', 'Taches : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
-                                })
-                                ->schema([
-                                    ...self::getBasicItemsField(),
-                                    Forms\Components\TextInput::make('cu')
-                                        ->label('Total U')
-                                        ->numeric()
-                                        ->live(onBlur: true)
-                                        ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTaskTotal($set, $get)),
-                                    Forms\Components\TextInput::make('qty')
-                                        ->label('Qty')
-                                        ->numeric()
-                                        ->live(onBlur: true)
-                                        ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTaskTotal($set, $get)),
-                                    Forms\Components\TextInput::make('total')
-                                        ->label('Total TTC')
-                                        ->numeric()
-                                        ->disabled() // Champ total est calculé automatiquement
-                                        ->dehydrated(),
-                                ])
-                                ->columns(3),
-                            Builder\Block::make('remise')
-                                ->label(function (?array $state): string {
-                                    if ($state === null) {
-                                        return 'Remise';
-                                    }
-                                    return sprintf('%s %s (%s €HT)', 'Remise : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
-                                })
-                                ->schema([
-                                    ...self::getBasicItemsField(),
-                                    Forms\Components\TextInput::make('total')
-                                        ->label('Total')
-                                        ->numeric()
-                                        ->live(onBlur: true),
-                                        // ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTotal($set, $get)),
-                                ])
-                                ->columns(2)
+                            self::getForfaitBlock(),
+                            self::getTasksBlock(),
+                            self::getRemiseBlock(),
                         ])
                         ->columnSpanFull(),
                 ])
         ];
     }
 
+    protected static function getForfaitBlock()
+    {
+        return Builder\Block::make('forfait')
+            ->icon('fas-check-circle')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Forfait';
+                }
+                return sprintf('%s %s (%s €HT)', 'Forfait : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
+            })
+            ->schema([
+                ...self::getBasicItemsField(),
+                Forms\Components\TextInput::make('total')
+                    ->label('Total')
+                    ->numeric()
+                    ->live(onBlur: true)
+            ])
+            ->columns(3);
+    }
+
+    protected static function getTasksBlock()
+    {
+        return Forms\Components\Builder\Block::make('tasks')
+            ->icon('fas-calculator')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Taches';
+                }
+                return sprintf('%s %s (%s €HT)', 'Taches : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
+            })
+            ->schema([
+                ...self::getBasicItemsField(),
+                Forms\Components\TextInput::make('cu')
+                    ->label('Total U')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                Forms\Components\TextInput::make('qty')
+                    ->label('Qty')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                Forms\Components\TextInput::make('total')
+                    ->label('Total')
+                    ->numeric()
+                    ->disabled()
+                    ->dehydrated(),
+            ])
+            ->columns(3);
+    }
+
+    protected static function getRemiseBlock()
+    {
+        return Builder\Block::make('remise')
+            ->icon('fas-percentage')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Remise';
+                }
+                return sprintf('%s %s (%s €HT)', 'Remise : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
+            })
+            ->schema([
+                ...self::getBasicItemsField(),
+                Forms\Components\TextInput::make('total')
+                    ->label('Total')
+                    ->numeric()
+                    ->live(onBlur: true),
+            ])
+            ->columns(2);
+    }
+
     public static function getDuplicateAction() {
         return Actions\Action::make('duplicate')
                 ->label('Dupliquer')
-                ->icon('heroicon-o-document-duplicate')
+                ->icon('heroicon-s-document-duplicate')
                 ->modalHeading('Dupliquer')
                 ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> un devis <br> pour créer une nouvelle version cliquez sur nouvelle vesion dans la page d'édition "))
                 ->fillForm(fn($record): array => [
@@ -206,7 +226,7 @@ class QuoteResource extends Resource
                 });
     }
 
-    public static function updateItemsTotal(callable $set, callable $get, $parent = false)
+    public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false)
     {
         // Récupère tous les éléments du parent
         \Log::info('updateItemsTotal parent ? '.$parent);
@@ -229,11 +249,6 @@ class QuoteResource extends Resource
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
 
-        foreach($totals[1] as $item) {
-            \Log::info($item['data']['title'] ?? 'titre inc');
-            \Log::info($item['data']['total'] ?? 'pas de total');
-        }
-
         // Mettre à jour total_ht_br
         $totalHt = $totalHtBr - $totalRemise;
         if($parent) {
@@ -243,10 +258,11 @@ class QuoteResource extends Resource
             $set('total_ht_br', $totalHtBr);
             $set('total_ht', $totalHt);
         }
+        $livewire->dispatch('totalsUpdated');
     }
 
 
-    public static function updateTaskTotal(callable $set, callable $get)
+    public static function updateTaskTotal(callable $set, callable $get, $livewire)
     {
         // Récupérer les valeurs de cu et qty
         
@@ -256,10 +272,8 @@ class QuoteResource extends Resource
         $total = $cu * $qty;
         // Mettre à jour le champ total
         $set('total', $total);
-
-        \Log::info("updateTaskTotal : ".$total);
         // Appeler la mise à jour globale du total_ht
-        self::updateItemsTotal($set, $get, true);
+        self::updateItemsTotal($set, $get, $livewire, true);
     }
 
 
@@ -307,7 +321,7 @@ class QuoteResource extends Resource
     {
         return [
             'index' => Pages\ListQuotes::route('/'),
-            'edit' => Pages\EditQuote::route('/{record}/edit'),
+            'edit' => Pages\EditQuoteNew::route('/{record}/edit'),
             'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }

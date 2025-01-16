@@ -24,7 +24,7 @@ class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    protected static ?string $navigationIcon = 'heroicon-s-building-office';
 
     protected static ?string $cluster = Crm::class;
 

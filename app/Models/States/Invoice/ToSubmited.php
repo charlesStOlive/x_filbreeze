@@ -23,6 +23,11 @@ class ToSubmited extends Transition implements FilamentSpatieTransition
         $this->submited_at  = $submited_at ? $submited_at : now();
     }
 
+    public function getLabel(): string
+    {
+        return __('Soumettre devis');
+    }
+
     public function handle(): Invoice
     {
         $data = $this->invoice->toArray();

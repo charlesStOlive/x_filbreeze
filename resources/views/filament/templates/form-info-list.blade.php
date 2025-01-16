@@ -9,8 +9,8 @@
 >
     
         @capture($form)
-        <div class="flex space-x-4">
-            <div class=" w-3/4">
+        <div class="flex space-x-4 flex-wrap">
+            <div class="flex-grow">
                 <x-filament-panels::form
                     id="form"
                     :wire:key="$this->getId() . '.forms.' . $this->getFormStatePath()"
@@ -18,13 +18,15 @@
                 >
                     {{ $this->form }}
 
+                    <div class="mb-4">
                     <x-filament-panels::form.actions
                         :actions="$this->getCachedFormActions()"
                         :full-width="$this->hasFullWidthFormActions()"
                     />
+                    </div>
                 </x-filament-panels::form>
             </div>
-            <div class="bg-white dark:bg-zinc-900 p-4 self-start w-1/4 sticky top-20">
+            <div class="self-start w-full md:w-1/4 sticky top-20">
                 {{ $this->infolist }} 
             </div>
         </div>

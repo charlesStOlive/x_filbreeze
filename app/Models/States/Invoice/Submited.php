@@ -13,7 +13,7 @@ class Submited extends InvoiceState implements HasDescription, HasColor, HasIcon
 
     public function getLabel(): string
     {
-        return __('Soumettre facture');
+        return __('Soumise');
     }
  
     public function getColor(): array

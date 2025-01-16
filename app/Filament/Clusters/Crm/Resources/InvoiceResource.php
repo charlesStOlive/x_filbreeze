@@ -30,7 +30,7 @@ class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
+    protected static ?string $navigationIcon = 'heroicon-s-document-currency-dollar';
 
     protected static ?string $cluster = Crm::class;
 
@@ -154,10 +154,11 @@ class InvoiceResource extends Resource
     public static function getItemsBuilderComponent(): array
     {
         return [
-            Forms\Components\Fieldset::make('Elements du facture')
+            Forms\Components\Fieldset::make('Elements de la facture')
                 ->schema([
                     Builder::make('items')
-                        ->label('Liste des élements')
+                        ->label(false)
+                        ->addActionLabel('Ajouter un élément à la facture')
                         ->collapsed()
                         ->live()
                         ->cloneable()
@@ -177,6 +178,7 @@ class InvoiceResource extends Resource
     protected static function getForfaitBlock()
     {
         return Builder\Block::make('forfait')
+            ->icon('fas-check-circle')
             ->label(function (?array $state): string {
                 if ($state === null) {
                     return 'Forfait';
@@ -196,6 +198,7 @@ class InvoiceResource extends Resource
     protected static function getTasksBlock()
     {
         return Builder\Block::make('tasks')
+            ->icon('fas-calculator')
             ->label(function (?array $state): string {
                 if ($state === null) {
                     return 'Taches';
@@ -208,7 +211,7 @@ class InvoiceResource extends Resource
                     ->label('Total U')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get,$livewire)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
                 Forms\Components\TextInput::make('qty')
                     ->label('Qty')
                     ->numeric()
@@ -226,6 +229,7 @@ class InvoiceResource extends Resource
     protected static function getTMABlock()
     {
         return Builder\Block::make('tma')
+            ->icon('fas-ticket')
             ->label(function (?array $state): string {
                 if ($state === null) {
                     return 'TMA';
@@ -265,6 +269,7 @@ class InvoiceResource extends Resource
     protected static function getOnQuoteBlock()
     {
         return Forms\Components\Builder\Block::make('on_quote')
+            ->icon('fas-file-invoice')
             ->label(function (?array $state): string {
                 if ($state === null) {
                     return 'Depuis devis';
@@ -313,7 +318,7 @@ class InvoiceResource extends Resource
                     ->label('Total Restant à facturer')
                     ->disabled()
                     ->dehydrated(),
-                    
+
                 Forms\Components\TextInput::make('billing_percentage')
                     ->label('%')
                     ->numeric()
@@ -393,6 +398,7 @@ class InvoiceResource extends Resource
     protected static function getRemiseBlock()
     {
         return Builder\Block::make('remise')
+            ->icon('fas-percentage')
             ->label(function (?array $state): string {
                 if ($state === null) {
                     return 'Remise';
@@ -435,18 +441,11 @@ class InvoiceResource extends Resource
 
     public static function updateTaskTotal(callable $set, callable $get, $livewire)
     {
-        // Récupérer les valeurs de cu et qty
-
         $cu = $get('cu') ?? 0;
         $qty = $get('qty') ?? 0;
-        // Calculer le total pour ce bloc
         $total = $cu * $qty;
-        // Mettre à jour le champ total
         $set('total', $total);
-
-        \Log::info("updateTaskTotal : " . $total);
-        // Appeler la mise à jour globale du total_ht
-        self::updateItemsTotal($set, $get,$livewire, true);
+        self::updateItemsTotal($set, $get, $livewire, true);
     }
 
     public static function updateQuoteTotal(callable $set, callable $get, $livewire, $fieldSrc)
@@ -454,7 +453,6 @@ class InvoiceResource extends Resource
         $billingPercentage = $get('billing_percentage') ?? 0;
         $totalQuote = $get('total_quote') ?? 0;
         $total = $get('total') ?? 0;
-
         if ($fieldSrc == 'billing_percentage') {
             $total = round($totalQuote * $billingPercentage / 100, 2);
             $set('total', $total);
@@ -462,22 +460,17 @@ class InvoiceResource extends Resource
             $billingPercentage = $totalQuote ? round(($total / $totalQuote) * 100, 2) : 0;
             $set('billing_percentage', $billingPercentage);
         }
-
-        self::updateItemsTotal($set, $get,$livewire, true);
+        self::updateItemsTotal($set, $get, $livewire, true);
     }
 
     public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false)
     {
-        // Récupère tous les éléments du parent
-        \Log::info('updateItemsTotal parent ? ' . $parent);
         $items = $get('items') ?? [];
         $tx_tva = $get('tx_tva') ?? 0;
         if ($parent) {
             $items = $get('../../..') ?? [];
             $tx_tva = $get('../../../tx_tva') ?? 0;
         }
-        \Log::info($items);
-        // Séparer les éléments par type
         $totals = collect($items)
             ->partition(fn($item) => $item['type'] === 'remise');
 
@@ -490,11 +483,6 @@ class InvoiceResource extends Resource
         $totalHtBr = $totals[1]
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
-
-        foreach ($totals[1] as $item) {
-            \Log::info($item['data']['title'] ?? 'titre inc');
-            \Log::info($item['data']['total'] ?? 'pas de total');
-        }
 
         // Mettre à jour total_ht_br
         $totalHt = $totalHtBr - $totalRemise;
