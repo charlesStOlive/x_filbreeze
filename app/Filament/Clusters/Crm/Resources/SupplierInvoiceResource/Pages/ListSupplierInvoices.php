@@ -42,7 +42,7 @@ class ListSupplierInvoices extends ListRecords
             Action::make('createFromFile')
                 ->label('Créer à partir de fichiers')
                 ->url(fn() => SupplierInvoiceResource::getUrl('createfromfile'))
-                ->icon('heroicon-o-document-currency-euro')
+                ->icon('heroicon-s-document-currency-euro')
                 ->color('success'),
         ];
     }

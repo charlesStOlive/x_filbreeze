@@ -82,7 +82,7 @@ class CreatSupplieFromFile extends Page implements HasForms
                                 ->itemLabel(fn($state) => sprintf('%s (%s)', $state['file_name'] ?? 'Fichier inconnu', $state['state'] ?? ''))
                                 ->extraItemActions([
                                     Action::make('retry')
-                                        ->icon('heroicon-o-arrow-path')
+                                        ->icon('heroicon-s-arrow-path')
                                         ->action(function (array $arguments, Repeater $component, $set) {
                                             $itemData = $component->getItemState($arguments['item']);
                                             $this->retryFileAnalysis($itemData, $set);
@@ -140,7 +140,7 @@ class CreatSupplieFromFile extends Page implements HasForms
                                 )
                                 ->extraItemActions([
                                     Action::make('show_item')
-                                        ->icon('heroicon-o-eye')
+                                        ->icon('heroicon-s-eye')
                                         ->color('success')
                                         ->action(function (array $arguments, Repeater $component): void {
                                             $itemData = $component->getRawItemState($arguments['item']);

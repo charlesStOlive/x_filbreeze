@@ -22,7 +22,7 @@ class SupplierResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
+    protected static ?string $navigationIcon = 'heroicon-s-building-storefront';
 
     public static function getLabel(): string
     {
@@ -48,7 +48,7 @@ class SupplierResource extends Resource
                             ->label('Slug')
                             ->unique(table: 'crm_suppliers', column: 'slug') // Assure l'unicité du slug dans la table suppliers
                             ->hint('modifiable si besoin')
-                            ->hintIcon('heroicon-o-information-circle'),
+                            ->hintIcon('heroicon-s-information-circle'),
 
                         TextInput::make('email')
                             ->email()
@@ -65,7 +65,7 @@ class SupplierResource extends Resource
                             ->email()
                             ->nullable()
                             ->hint('Permet de ne traiter ques les mails qui contiennent ce titre')
-                            ->hintIcon('heroicon-o-information-circle')
+                            ->hintIcon('heroicon-s-information-circle')
                             ->label('Filtre titre email de facture')
                             ->columnSpanFull(),
                     ])

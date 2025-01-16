@@ -19,7 +19,7 @@ class SectorResource extends Resource
 {
     protected static ?string $model = Sector::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-library';
+    protected static ?string $navigationIcon = 'heroicon-s-building-library';
 
     protected static ?string $cluster = Crm::class;
 

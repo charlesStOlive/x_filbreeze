@@ -60,7 +60,7 @@ class MsgInUserResource extends Resource
             ->actions([
                 Action::make('editServices')
                     ->label('Services')
-                    ->icon('heroicon-o-cog-6-tooth')
+                    ->icon('heroicon-s-cog-6-tooth')
                     ->form(fn($record) => DynamicFormBuilder::build($record, 'email-in','services_options',  ))
                     ->action(function (array $data, $record) {
                         foreach ($data as $field => $value) {
@@ -71,20 +71,20 @@ class MsgInUserResource extends Resource
                 Action::make('subscribe')
                     ->label('Souscrire')
                     ->requiresConfirmation()
-                    ->icon('heroicon-o-envelope-open')
+                    ->icon('heroicon-s-envelope-open')
                     ->modalDescription('Activez le mode test au préalable, si vous ne voulez pas modifier le mail')
                     ->action(fn(MsgUserIn $record) => $record->subscribe())
                     ->visible(fn(MsgUserIn $record): bool => $record->subscription_id === null),
                 Action::make('revoke')
                     ->label('Révoquer')
-                    ->icon('heroicon-o-x-circle')
+                    ->icon('heroicon-s-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
                     ->action(fn(MsgUserIn $record) => $record->revokeSubscription())
                     ->visible(fn(MsgUserIn $record): bool => $record->subscription_id !== null),
                 Action::make('refresh')
                     ->label('Refresh')
-                    ->icon('heroicon-o-arrow-path')
+                    ->icon('heroicon-s-arrow-path')
                     ->color('gray')
                     ->action(fn(MsgUserIn $record) => $record->refreshSuscription())
                     ->visible(fn(MsgUserIn $record): bool => $record->subscription_id !== null),

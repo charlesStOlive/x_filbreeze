@@ -33,7 +33,7 @@ class EditMsgUser extends EditRecord
         return [
              Action::make('testConnection')
                 ->label('Simuler un email')
-                ->icon('heroicon-o-play')
+                ->icon('heroicon-s-play')
                 ->color('primary')
                 ->form([
                     TextInput::make('test_from')->label('From')->default('alexis.clement@suscillon.com'),
