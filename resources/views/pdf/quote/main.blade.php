@@ -27,8 +27,10 @@
             <div class="col-span-1">
                 <p class=" text-zinc-600 uppercase font-light text-xl">Devis :</p>
                 <p>Codes : {{ $record->code }}<span class="text-zinc-400">V{{ $record->version }}</span></p>
-                <p>Date {{ $record->created_at }}</p>
-                <p>Fin validité : {{ $record->end_at->format('d/m/Y') }}</p>
+                <p>Date {{ $record->end_at }}</p>
+                @if ($record->submited_at)
+                    <p>Fin validité : {{ $record->end_at->format('d/m/Y') }}</p>
+                @endif
             </div>
             <div>
                 <p class=" text-zinc-600 uppercase font-light text-xl">Émetteur : </p>

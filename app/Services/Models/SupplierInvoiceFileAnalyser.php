@@ -39,8 +39,10 @@ class SupplierInvoiceFileAnalyser
                 'contenu' => $result['content'],
                 'clients' => $suppliers
             ]);
-            
+
+            \Log::info($this->mistralPrompt);
             $response = $this->callAgentWithRetry();
+            \Log::info($response);
             if($response['error'] ?? false) {
                 return AnalyseResponse::error($response['error']);
             }
@@ -75,8 +77,8 @@ class SupplierInvoiceFileAnalyser
             if (json_last_error() === JSON_ERROR_NONE) {
                 return $decodedResponse;
             }
-
             Log::warning('Erreur JSON lors de l\'appel à Mistral. Tentative : ' . ($attempts + 1));
+            Log::info($response);
             $attempts++;
         } while ($attempts < self::MAX_RETRY);
 
