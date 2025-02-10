@@ -18,7 +18,7 @@ abstract class QuoteState extends State implements FilamentSpatieState
         return parent::config()
             ->default(Draft::class)
             ->allowTransition(Draft::class, Validated::class, ToValidated::class)
-            ->allowTransition(Validated::class, Draft::class, ToDraft::class);;
-            
+            ->allowTransition(Draft::class, Canceled::class, ToCanceled::class)
+            ->allowTransition(Validated::class, Draft::class, ToDraft::class);
     }
 }

@@ -7,13 +7,13 @@ use Filament\Forms;
 use App\Models\Quote;
 use Filament\Support\Colors\Color;
 use Spatie\ModelStates\Transition;
-use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
 use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use Filament\Support\Contracts\HasIcon;
 
-class ToDraft extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
+class ToCanceled extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
     private Quote $quote;
@@ -25,7 +25,7 @@ class ToDraft extends Transition implements FilamentSpatieTransition ,HasColor, 
 
     public function getLabel(): string
     {
-        return __('Annuler validation');
+        return __('Abandonner');
     }
  
     public function getColor(): array
@@ -40,7 +40,7 @@ class ToDraft extends Transition implements FilamentSpatieTransition ,HasColor, 
 
      public function handle(): Quote
     {
-        $this->quote->state = new Draft($this->quote);
+        $this->quote->state = new Canceled($this->quote);
         $this->quote->validated_at = null;
         $this->quote->save();
         return $this->quote;

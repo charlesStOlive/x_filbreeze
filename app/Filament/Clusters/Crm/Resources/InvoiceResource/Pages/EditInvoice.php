@@ -11,9 +11,10 @@ use App\Filament\Utils\PdfUtils;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Invoice\Draft;
 use App\Models\States\Invoice\Payed;
+use App\Models\States\Invoice\Canceled;
 use App\Models\States\Invoice\Submited;
-use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Database\Eloquent\Model;
 use App\Filament\ModelStates\StateRadio;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\ModelStates\StateAction;
@@ -52,6 +53,11 @@ class EditInvoice extends EditRecord
                 })->disabled(fn() => $this->data['total_ht'] > 0 ? false : true),
             StateAction::make('state_p')
                 ->transitionTo(Payed::class)
+                ->after(function ($record) {
+                    return redirect()->to(InvoiceResource::getUrl('index'));
+                }),
+            StateAction::make('state_cancel')
+                ->transitionTo(Canceled::class)
                 ->after(function ($record) {
                     return redirect()->to(InvoiceResource::getUrl('index'));
                 }),

@@ -13,12 +13,12 @@ class Submited extends InvoiceState implements HasDescription, HasColor, HasIcon
 
     public function getLabel(): string
     {
-        return __('Soumise');
+        return 'Soumise';
     }
  
     public function getColor(): array
     {
-        return Color::Orange;
+        return Color::Blue;
     }
  
     public function getIcon(): string
@@ -28,7 +28,7 @@ class Submited extends InvoiceState implements HasDescription, HasColor, HasIcon
  
     public function getDescription(): ?string
     {
-        return 'Facture soumise.';
+        return 'Facture soumise.X';
     }
 
     public static function rules(): array

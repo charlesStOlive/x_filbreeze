@@ -9,8 +9,12 @@ use App\Models\Invoice;
 use Spatie\ModelStates\Transition;
 use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
 use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use Filament\Support\Colors\Color;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
 
-class ToPayed extends Transition implements FilamentSpatieTransition
+class ToPayed extends Transition implements FilamentSpatieTransition, HasIcon, HasColor, HasLabel
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -21,6 +25,21 @@ class ToPayed extends Transition implements FilamentSpatieTransition
     {
         $this->invoice = $invoice;
         $this->payed_at  = $payed_at ? $payed_at : now();
+    }
+
+    public function getLabel(): string
+    {
+        return __('Payement reçus');
+    }
+ 
+    public function getColor(): array
+    {
+        return Color::Green;
+    }
+
+    public function getIcon(): string
+    {
+        return 'heroicon-o-check';
     }
 
     public function handle(): Invoice

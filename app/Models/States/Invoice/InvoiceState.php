@@ -20,6 +20,8 @@ abstract class InvoiceState extends State implements FilamentSpatieState
             ->default(Draft::class)
             ->allowTransition(Draft::class, Submited::class, ToSubmited::class)
             ->allowTransition(Submited::class, Payed::class, ToPayed::class)
+            ->allowTransition(Draft::class, Canceled::class, ToCanceled::class)
+            
         ;
     }
 }

@@ -20,6 +20,7 @@ use Filament\Tables\Actions\CreateAction;
 use Guava\FilamentClusters\Forms\Cluster;
 use Filament\Tables\Columns\Summarizers\Sum;
 use App\Filament\Components\Tables\DateColumn;
+use App\Filament\ModelStates\StateSelectFilter;
 use App\Filament\Components\Tables\DateTimeColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -86,7 +87,8 @@ class InvoiceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                StateSelectFilter::make('state')
+                    ->multiple()->default(['draft', 'submited', 'payed'])
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

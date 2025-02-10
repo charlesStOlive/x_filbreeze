@@ -14,6 +14,7 @@ use Illuminate\Support\HtmlString;
 use Spatie\Browsershot\Browsershot;
 use App\Services\Helpers\ViteHelper;
 use Illuminate\Support\Facades\View;
+use App\Models\States\Quote\Canceled;
 use App\Models\States\Quote\Validated;
 use App\Models\States\Invoice\Submited;
 use Filament\Resources\Pages\EditRecord;
@@ -41,8 +42,10 @@ class EditQuote extends EditRecord
                     return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
                 })->disabled(fn($record) => !$record->is_retained)
                 ->label(fn($record) => !$record->is_retained ? 'Activer dabord le devis' : 'Valider ce devis'),
-            StateAction::make('a_delete')
+            StateAction::make('a_draft')
                 ->transitionTo(Draft::class),
+            StateAction::make('a_canceled')
+                ->transitionTo(Canceled::class),
             Actions\DeleteAction::make()->hidden(fn($record) => $record->state->isSaveHidden)
         ];
     }

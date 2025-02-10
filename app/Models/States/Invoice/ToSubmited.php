@@ -6,11 +6,15 @@ use Closure;
 use DateTime;
 use Filament\Forms;
 use App\Models\Invoice;
+use Filament\Support\Colors\Color;
 use Spatie\ModelStates\Transition;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
 use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
 use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use Filament\Support\Contracts\HasIcon;
 
-class ToSubmited extends Transition implements FilamentSpatieTransition
+class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -25,18 +29,22 @@ class ToSubmited extends Transition implements FilamentSpatieTransition
 
     public function getLabel(): string
     {
-        return __('Soumettre devis');
+        return __('Soumettre');
     }
+
+    public function getColor(): array
+    {
+        return Color::Green;
+    }
+
+    public function getIcon(): string
+    {
+        return 'heroicon-o-paper-airplane';
+    }
+
 
     public function handle(): Invoice
     {
-        $data = $this->invoice->toArray();
-
-        // Valide les données avec les règles définies dans Submited
-        // $validator = validator($data, Submited::rules());
-        // if ($validator->fails()) {
-        //     throw new ValidationException($validator);
-        // }
         $this->invoice->state = new Submited($this->invoice);
         $this->invoice->submited_at = $this->submited_at;
         $this->invoice->save();

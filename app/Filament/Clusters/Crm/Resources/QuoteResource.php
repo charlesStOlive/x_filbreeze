@@ -16,6 +16,7 @@ use Filament\Forms\Components\Builder;
 use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
 use App\Filament\Components\Tables\DateColumn;
+use App\Filament\ModelStates\StateSelectFilter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -63,7 +64,8 @@ class QuoteResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                StateSelectFilter::make('state')
+                    ->multiple()->default(['draft', 'validated'])
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

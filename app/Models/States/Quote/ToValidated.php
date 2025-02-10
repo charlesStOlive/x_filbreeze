@@ -11,8 +11,9 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
 use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use Filament\Support\Contracts\HasIcon;
 
-class ToValidated extends Transition implements FilamentSpatieTransition, HasColor, HasLabel
+class ToValidated extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
     private Quote $quote;
@@ -32,6 +33,11 @@ class ToValidated extends Transition implements FilamentSpatieTransition, HasCol
     public function getColor(): array
     {
         return Color::Green;
+    }
+
+    public function getIcon(): string
+    {
+        return 'heroicon-o-check';
     }
 
      public function handle(): Quote

@@ -4,17 +4,18 @@ namespace App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 
 use Filament\Forms;
 use Filament\Actions;
+use Filament\Infolists;
 use Filament\Forms\Form;
 use App\Filament\Utils\IaUtils;
-use App\Filament\Utils\PdfUtils;
 
+use App\Filament\Utils\PdfUtils;
 use Filament\Infolists\Infolist;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Invoice\Draft;
 use App\Models\States\Invoice\Payed;
-use App\Models\States\Invoice\Submited;
 
-use Filament\Infolists;
+use App\Models\States\Invoice\Canceled;
+use App\Models\States\Invoice\Submited;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\ModelStates\StateAction;
@@ -37,17 +38,19 @@ class EditInvoiceNew extends EditRecord
         return [
             Actions\DeleteAction::make(),
             InvoiceResource::getDuplicateAction(),
-            StateAction::make('state_s')
-                ->before(function ($record) {
-                    $record->fill($this->data);
-                })
+            StateAction::make('state_submited')
                 ->transitionTo(Submited::class)
                 ->after(function ($record) {
                     return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
-                })->disabled(fn() => $this->data['total_ht'] > 0 ? false : true),
-            StateAction::make('state_p')
+                }),
+            StateAction::make('state_payed')
                 ->transitionTo(Payed::class)
-                ->after(function ($record) {
+                ->after(function () {
+                    return redirect()->to(InvoiceResource::getUrl('index'));
+                }),
+            StateAction::make('state_canceled')
+                ->transitionTo(Canceled::class)
+                ->after(function () {
                     return redirect()->to(InvoiceResource::getUrl('index'));
                 }),
 
