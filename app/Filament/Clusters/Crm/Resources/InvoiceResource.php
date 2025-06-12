@@ -534,7 +534,7 @@ class InvoiceResource extends Resource
     {
         return [
             'index' => Pages\ListInvoices::route('/'),
-            'edit' => Pages\EditInvoiceNew::route('/{record}/edit'),
+            'edit' => Pages\EditInvoice::route('/{record}/edit'),
             'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }

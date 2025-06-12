@@ -7,7 +7,7 @@ use Filament\Actions\Action;
 use App\Forms\Components\Diff2Html;
 use Filament\Forms\Components\Hidden;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
-use ValentinMorice\FilamentJsonColumn\FilamentJsonColumn;
+use ValentinMorice\JsonColum\JsonColum;
 use Filament\Forms\Components\Actions\Action as FormAction;
 
 
