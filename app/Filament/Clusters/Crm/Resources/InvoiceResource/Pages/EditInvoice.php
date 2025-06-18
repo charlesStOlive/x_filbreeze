@@ -36,7 +36,7 @@ class EditInvoice extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            StateUtils::getStateSaveButton(),
             InvoiceResource::getDuplicateAction(),
             StateAction::make('state_submited')
                 ->transitionTo(Submited::class)

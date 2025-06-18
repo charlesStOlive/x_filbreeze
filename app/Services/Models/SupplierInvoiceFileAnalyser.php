@@ -71,6 +71,7 @@ class SupplierInvoiceFileAnalyser
 
         do {
             $response = $this->mistralAgent->callAgent($agentId, $this->mistralPrompt);
+            \Log::info('Réponse de l\'agent Mistral : ' . $response);
             $decodedResponse = json_decode($response['choices'][0]['message']['content'] ?? '', true);
             
 

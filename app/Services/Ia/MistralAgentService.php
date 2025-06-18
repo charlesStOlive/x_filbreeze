@@ -49,11 +49,12 @@ class MistralAgentService
             $response = $this->client->post("/v1/agents/completions", [
                 'json' => $data,
             ]);
+            \Log::info('MistralAgentService callAgent response', ['response' => $response]);
             return json_decode($response->getBody(), true);
         } catch (RequestException $e) {
             if ($e->hasResponse()) {
+                \Log::error('Guzzle RequestException', ['message' => $e->getMessage()]);
                 $response = $e->getResponse();
-                // $this->logResponse($response);
                 return json_decode($response->getBody(), true);
             }
 
