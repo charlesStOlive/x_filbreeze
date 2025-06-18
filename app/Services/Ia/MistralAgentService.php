@@ -4,20 +4,19 @@ namespace App\Services\Ia;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Log;
+use App\Exceptions\MistralException;
 
 class MistralAgentService
 {
-    protected $apiUrl;
-    protected $apiKey;
-    protected $client;
+    protected string $apiUrl;
+    protected string $apiKey;
+    protected Client $client;
 
     public function __construct()
     {
         $this->apiUrl = config('services.mistral.api_url');
         $this->apiKey = config('services.mistral.api_key');
-
-        // \Log::info("apiUrl".$this->apiUrl);
-        // \Log::info("apiUrl 3 premier car".\Str::limit($this->apiKey, 3));
 
         $this->client = new Client([
             'base_uri' => $this->apiUrl,
@@ -29,67 +28,42 @@ class MistralAgentService
         ]);
     }
 
-    public function callAgent(string $agentId, string $messages, array $additionalParams = [])
+    public function callAgent(string $agentId, string $message, array $additionalParams = []): string
     {
+        $payload = array_merge([
+            'agent_id' => $agentId,
+            'messages' => [
+                ['role' => 'user', 'content' => $message]
+            ],
+            'n' => 1,
+        ], $additionalParams);
+
         try {
-            // Assurez-vous que les messages sont sous forme de liste
-            $data = array_merge([
-                'agent_id' => $agentId,
-                "stop" => "string",
-                "n" => 1,
-                'messages' => [
-                    [
-                        "role" =>  "user",
-                        'content' => $messages
-                    ]
-
-                ],
-            ], $additionalParams);
-
-            $response = $this->client->post("/v1/agents/completions", [
-                'json' => $data,
-            ]);
-            \Log::info('MistralAgentService callAgent response', ['response' => $response]);
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            if ($e->hasResponse()) {
-                \Log::error('Guzzle RequestException', ['message' => $e->getMessage()]);
-                $response = $e->getResponse();
-                return json_decode($response->getBody(), true);
-            }
-
-            \Log::error('Guzzle RequestException', ['message' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    public function callChatCompletion(string $model, string $message)
-    {
-        try {
-            $data = [
-                'model' => $model,
-                'messages' => [
-                    [
-                        'role' => 'user',
-                        'content' => $message,
-                    ],
-                ],
-            ];
-
-            $response = $this->client->post("/v1/chat/completions", [
-                'json' => $data,
+            $response = $this->client->post('/v1/agents/completions', [
+                'json' => $payload,
             ]);
 
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            if ($e->hasResponse()) {
-                $response = $e->getResponse();
-                $this->logResponse($response);
-                return json_decode($response->getBody(), true);
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if (!isset($body['choices'][0]['message']['content'])) {
+                throw new MistralException("Contenu manquant dans la réponse de Mistral.");
             }
 
-            \Log::error('Guzzle RequestException', ['message' => $e->getMessage()]);
-            throw $e;
+            return $body['choices'][0]['message']['content'];
+
+        } catch (RequestException $e) {
+            $msg = $e->hasResponse()
+                ? $e->getResponse()->getBody()->getContents()
+                : $e->getMessage();
+
+            Log::error('Erreur Mistral', [
+                'message' => $e->getMessage(),
+                'response' => $msg,
+            ]);
+
+            throw new MistralException('Erreur HTTP Mistral : ' . $msg);
+        } catch (\Throwable $e) {
+            throw new MistralException('Erreur inattendue Mistral : ' . $e->getMessage());
         }
     }
 }

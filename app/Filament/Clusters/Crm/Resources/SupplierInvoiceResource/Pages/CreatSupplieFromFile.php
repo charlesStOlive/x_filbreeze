@@ -6,6 +6,7 @@ use App\Models\Supplier;
 use Filament\Forms\Form;
 use App\Models\SupplierInvoice;
 use Filament\Resources\Pages\Page;
+use App\Exceptions\MistralException;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Wizard;
@@ -22,6 +23,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Spatie\TemporaryDirectory\TemporaryDirectory;
+use App\Services\Models\ExtractSupplierInvoiceData;
 use App\Services\Models\SupplierInvoiceFileAnalyser;
 use Filament\Forms\Components\Actions as FormActions;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -155,129 +157,108 @@ class CreatSupplieFromFile extends Page implements HasForms
 
     protected function handleMultipleFileUploads(array $files, callable $set): void
     {
-        $this->fileAnalyzer = app(SupplierInvoiceFileAnalyser::class);
-        $cacheKey = 'test_invoice_data'; // Clé unique pour le cache
+        $analyzer = app(ExtractSupplierInvoiceData::class);
         $invoiceData = [];
+        $errors = [];
 
-        // Vérifier si les données sont déjà en cache
-        // if (false) {
         foreach ($files as $file) {
-            $data = [];
-            if ($file instanceof TemporaryUploadedFile) {
-                $tempPath = $file->getRealPath();
-                $response = $this->fileAnalyzer->analyzeFile($tempPath);
+            $data = ['file_name' => $file->getClientOriginalName()];
 
-                $data['file_name'] = $file->getClientOriginalName(); // Récupérer le nom du fichier source
+            try {
+                $response = $analyzer->analyze($file);
 
                 if ($response->isSuccess()) {
                     $data = array_merge($data, $response->getDataArray());
                     $data['state'] = 'Succès';
-                    $data['error_comment'] = null; // Pas de commentaire pour le succès
+                    $data['error_comment'] = null;
                 } else {
                     $data['state'] = 'Erreur';
-                    $data['error_comment'] = $response->getMessage(); // Message d'erreur
+                    $data['error_comment'] = $response->getMessage();
+                    $errors[] = "{$data['file_name']}: {$response->getMessage()}";
                 }
+            } catch (MistralException $e) {
+                $data['state'] = 'Erreur';
+                $data['error_comment'] = 'Erreur IA : ' . $e->getMessage();
+                $errors[] = "{$data['file_name']}: " . $e->getMessage();
+            } catch (\Throwable $e) {
+                $data['state'] = 'Erreur';
+                $data['error_comment'] = 'Erreur interne : ' . $e->getMessage();
+                $errors[] = "{$data['file_name']}: Erreur interne";
             }
+
             $invoiceData[] = $data;
         }
 
-        // Associer les données d'invoice
         $set('invoice_data', $invoiceData);
-    }
 
-    public function createSupplierInvoices($get): void
-    {
-        $invoices = $get('invoice_data');
-        $files = $get('file_pdf_image');
-        foreach ($invoices as $data) {
-            if ($data['state'] === 'Erreur') {
-                continue;
-            }
-            $supplierInvoice = SupplierInvoice::create($data);
-
-
-
-            foreach ($files as $file) {
-                if ($file->getClientOriginalName() === $data['file_name']) {
-                    $supplierInvoice->addMedia($file)->toMediaCollection('invoice');
-                }
-                // Ajoutez des conditions pour filtrer le bon fichier si nécessaire
-
-            }
-
-            $this->processedInvoices[] = [
-                'id' => $supplierInvoice->id,
-                'name' => $supplierInvoice->invoice_number,
-            ];
+        if (!empty($errors)) {
+            \Filament\Notifications\Notification::make()
+                ->title('Analyse partielle terminée')
+                ->body(implode("\n", $errors))
+                ->danger()
+                ->send();
         }
-
-        Notification::make()
-            ->title('Factures créées avec succès.')
-            ->success()
-            ->send();
     }
+
 
     public function retryFileAnalysis(array $itemData, callable $set): void
     {
-        // Récupérer le nom du fichier de la ligne
         $fileName = $itemData['file_name'] ?? null;
+
         if (!$fileName) {
             Notification::make()
-                ->title('Erreur : Nom du fichier introuvable.')
+                ->title('Erreur')
+                ->body('Nom du fichier introuvable.')
                 ->danger()
                 ->send();
             return;
         }
 
-        // Rechercher le fichier correspondant
-        $file = collect($this->file_pdf_image)->first(fn($file) => $file->getClientOriginalName() === $fileName);
+        $file = collect($this->file_pdf_image)->first(
+            fn($file) => $file->getClientOriginalName() === $fileName
+        );
 
         if (!$file) {
             Notification::make()
-                ->title('Erreur : Fichier correspondant introuvable.')
+                ->title('Erreur')
+                ->body('Fichier source introuvable.')
                 ->danger()
                 ->send();
             return;
         }
 
-        // Réanalyse du fichier
-        $this->fileAnalyzer = app(SupplierInvoiceFileAnalyser::class);
-        $tempPath = $file->getRealPath();
-        $response = $this->fileAnalyzer->analyzeFile($tempPath);
-
-        // Mise à jour des données de la ligne
+        $analyzer = app(\App\Services\Models\ExtractSupplierInvoiceData::class);
         $updatedData = $itemData;
-        if ($response->isSuccess()) {
-            $updatedData = array_merge($updatedData, $response->getDataArray());
-            $updatedData['state'] = 'Succès';
-            $updatedData['error_comment'] = null; // Pas de commentaire pour le succès
-        } else {
+
+        try {
+            $response = $analyzer->analyze($file);
+
+            if ($response->isSuccess()) {
+                $updatedData = array_merge($updatedData, $response->getDataArray());
+                $updatedData['state'] = 'Succès';
+                $updatedData['error_comment'] = null;
+            } else {
+                $updatedData['state'] = 'Erreur';
+                $updatedData['error_comment'] = $response->getMessage();
+            }
+        } catch (\App\Exceptions\MistralException $e) {
             $updatedData['state'] = 'Erreur';
-            $updatedData['error_comment'] = $response->getMessage();
+            $updatedData['error_comment'] = 'Erreur IA : ' . $e->getMessage();
+        } catch (\Throwable $e) {
+            $updatedData['state'] = 'Erreur';
+            $updatedData['error_comment'] = 'Erreur interne : ' . $e->getMessage();
         }
 
-        // Mettre à jour l'état dans le Repeater
         $invoiceData = collect($this->invoice_data)
             ->map(fn($data) => $data['file_name'] === $fileName ? $updatedData : $data)
             ->toArray();
 
         $set('invoice_data', $invoiceData);
 
-        // Notification
         Notification::make()
-            ->title('Analyse relancée pour le fichier : ' . $fileName)
-            ->success()
+            ->title("Réanalyse de {$fileName}")
+            ->body($updatedData['error_comment'] ?? 'Analyse réussie')
+            ->{$updatedData['state'] === 'Erreur' ? 'danger' : 'success'}()
             ->send();
-    }
-
-
-    public function deleteInvoice(int $invoiceId): void
-    {
-        $invoice = SupplierInvoice::find($invoiceId);
-
-        if ($invoice) {
-            $invoice->delete();
-            $this->processedInvoices = array_filter($this->processedInvoices, fn($invoice) => $invoice['id'] !== $invoiceId);
-        }
     }
 }
