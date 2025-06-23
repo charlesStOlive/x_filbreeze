@@ -261,4 +261,36 @@ class CreatSupplieFromFile extends Page implements HasForms
             ->{$updatedData['state'] === 'Erreur' ? 'danger' : 'success'}()
             ->send();
     }
+
+    public function createSupplierInvoices($get): void
+    {
+        $invoices = $get('invoice_data');
+        $files = $get('file_pdf_image');
+        foreach ($invoices as $data) {
+            if ($data['state'] === 'Erreur') {
+                continue;
+            }
+            $supplierInvoice = SupplierInvoice::create($data);
+
+
+
+            foreach ($files as $file) {
+                if ($file->getClientOriginalName() === $data['file_name']) {
+                    $supplierInvoice->addMedia($file)->toMediaCollection('invoice');
+                }
+                // Ajoutez des conditions pour filtrer le bon fichier si nécessaire
+
+            }
+
+            $this->processedInvoices[] = [
+                'id' => $supplierInvoice->id,
+                'name' => $supplierInvoice->invoice_number,
+            ];
+        }
+
+        Notification::make()
+            ->title('Factures créées avec succès.')
+            ->success()
+            ->send();
+    }
 }

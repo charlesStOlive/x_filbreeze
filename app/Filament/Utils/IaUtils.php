@@ -51,11 +51,18 @@ class IaUtils
     {
         $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
         $agentId = 'ag:3e2c948d:20241213:correction-ortographe:b3c27f0b';
-        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        return $response['choices'][0]['message']['content'] ?? '';
+        try {
+            $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
+            
+            return $response;
+        } catch (\App\Exceptions\MistralException $e) {
+            \Log::error('Erreur MistralException', [
+                'error' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Erreur Throwable', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
-
-    
-
-    
 }
