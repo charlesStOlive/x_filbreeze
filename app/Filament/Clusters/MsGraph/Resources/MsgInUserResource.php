@@ -86,7 +86,7 @@ class MsgInUserResource extends Resource
                     ->label('Refresh')
                     ->icon('heroicon-s-arrow-path')
                     ->color('gray')
-                    ->action(fn(MsgUserIn $record) => $record->refreshSuscription())
+                    ->action(fn(MsgUserIn $record) => $record->refreshSubscription())
                     ->visible(fn(MsgUserIn $record): bool => $record->subscription_id !== null),
             ])
             ->recordUrl(

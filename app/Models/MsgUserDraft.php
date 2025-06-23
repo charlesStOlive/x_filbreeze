@@ -100,7 +100,14 @@ class MsgUserDraft extends Model
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->subscribeToDraftNotifications($this->ms_id, $this->abn_secret);
+        try {
+            $response = $subscriptionService->subscribeToDraftNotifications($this->ms_id, $this->abn_secret);
+        } catch (\Exception $e) {
+            \Log::error("Subscription error: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());    
+            return;
+        }
+        
 
         if ($response['id'] ?? false) {
             $this->subscription_id = $response['id'];

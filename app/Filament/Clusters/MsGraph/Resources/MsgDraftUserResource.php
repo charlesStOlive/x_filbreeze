@@ -88,7 +88,7 @@ class MsgDraftUserResource extends Resource
                     ->label('Refresh')
                     ->icon('heroicon-s-arrow-path')
                     ->color('gray')
-                    ->action(fn(MsgUserDraft $record) => $record->refreshSuscription())
+                    ->action(fn(MsgUserDraft $record) => $record->refreshSubscription())
                     ->visible(fn(MsgUserDraft $record): bool => $record->subscription_id !== null),
             ])
             ->recordUrl(
