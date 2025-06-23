@@ -1,4 +1,6 @@
-<?php namespace App\Services\MsGraph;
+<?php
+
+namespace App\Services\MsGraph;
 
 use Exception;
 use GuzzleHttp\Client;
@@ -55,9 +57,20 @@ class MsGraphAuthService
             ]);
 
             return json_decode($response->getBody()->getContents(), true) ?? [];
-        } catch (Exception $e) {
-            \Log::error($e);
-            throw new Exception("Failed to execute API request: " . $e->getMessage());
+        } catch (RequestException $e) {
+            $message = $e->getMessage();
+
+            // Si la réponse existe, on logue aussi son contenu
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+                $message .= ' | Response: ' . $response->getBody()->getContents();
+            }
+
+            \Log::error('Guzzle RequestException: ' . $message);
+            throw new \Exception("Failed to execute API request: " . $message);
+        } catch (\Exception $e) {
+            \Log::error('General Exception: ' . $e->getMessage());
+            throw new \Exception("Failed to execute API request: " . $e->getMessage());
         }
     }
 
