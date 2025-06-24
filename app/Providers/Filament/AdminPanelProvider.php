@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/logo.png'))
             ->darkModeBrandLogo(asset('images/logo white.png'))
             ->brandLogoHeight('4rem')
+            ->databaseNotifications()
             ->plugins([
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 BreezyCore::make()

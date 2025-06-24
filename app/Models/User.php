@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Althinect\FilamentSpatieRolesPermissions\Concerns\HasSuperAdmin;
 
+
 class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, HasSuperAdmin, HasRoles, HasApiTokens;
@@ -53,5 +54,10 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public static function getSystemUser(): self
+    {
+        return self::where('email', config('notifications.system_user_email'))->firstOrFail();
     }
 }

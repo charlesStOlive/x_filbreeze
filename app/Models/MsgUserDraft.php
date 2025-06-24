@@ -3,15 +3,18 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
-use App\Casts\MsGraph\DynamicEmailServicesCast;
+use Filament\Notifications\Notification;
 use App\Services\MsGraph\MsGraphAuthService;
+use App\Casts\MsGraph\DynamicEmailServicesCast;
 use App\Services\MsGraph\MsGraphSubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\SendsNotifications;
 
 class MsgUserDraft extends Model
 {
-    use HasFactory;
+    use HasFactory, SendsNotifications;
 
     protected $table = 'msg_user_drafts';
     protected $guarded = ['id'];
@@ -95,100 +98,101 @@ class MsgUserDraft extends Model
     public function subscribe()
     {
         $authService = app(MsGraphAuthService::class);
+
         if (!$authService->isConnected()) {
             $authService->connect(false);
         }
 
         $subscriptionService = app(MsGraphSubscriptionService::class);
+
         try {
             $response = $subscriptionService->subscribeToDraftNotifications($this->ms_id, $this->abn_secret);
-        } catch (\Exception $e) {
-            \Log::error("Subscription error: " . $e->getMessage());
-            \Log::error($e->getTraceAsString());    
-            return;
-        }
-        
 
-        if ($response['id'] ?? false) {
-            $this->subscription_id = $response['id'];
-            $this->expire_at = Carbon::parse($response['expirationDateTime']);
-            $this->save();
-        } else {
-            \Log::error($response);
+            if ($response['id'] ?? false) {
+                $this->subscription_id = $response['id'];
+                $this->expire_at = Carbon::parse($response['expirationDateTime']);
+                $this->save();
+            } else {
+                $message = 'Réponse invalide de Microsoft Graph : ' . json_encode($response);
+                $this->notifyError('Réponse invalide de Microsoft Graph', json_encode($response));
+                throw new \Exception($message);
+            }
+        } catch (\Throwable $e) {
+            $this->notifyError('Erreur de connexion MsGraph', $e->getMessage(), 'live');
+
+            // Optionnel : relancer l’exception si tu veux
+            // throw $e;
         }
     }
 
-    /**
-     * Révocation de l'abonnement.
-     */
-    // public function revokeSubscription(string $sucription = null)
-    // {
-    //     if($sucription) {
-    //         $this->subscription_id = $sucription;
-    //     }
-    //     if (!$this->subscription_id) {
-    //         return;
-    //     }
-    //     $authService = app(MsGraphAuthService::class);
-    //     if (!$authService->isConnected()) {
-    //         $authService->connect(false);
-    //     }
-
-    //     $subscriptionService = app(MsGraphSubscriptionService::class);
-    //     $response = $subscriptionService->unsubscribeFromDraftNotifications($this->subscription_id);
-
-    //     if ($response['success'] ?? false) {
-    //         $this->subscription_id = null;
-    //         $this->expire_at = null;
-    //         $this->save();
-    //     } else {
-    //         \Log::error($response);
-    //     }
-    // }
-
-    public function revokeSubscription(string $sucription = null)
+    public function revokeSubscription(?string $sucription = null)
     {
-        if($sucription) {
+        if ($sucription) {
             $this->subscription_id = $sucription;
         }
+
         if (!$this->subscription_id) {
             return;
         }
-        $authService = app(MsGraphAuthService::class);
-        if (!$authService->isConnected()) {
-            $authService->connect(false);
-        }
 
-        $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->revokeAllSubscriptionsForUser($this->ms_id);
+        try {
+            $authService = app(MsGraphAuthService::class);
+            if (!$authService->isConnected()) {
+                $authService->connect(false);
+            }
 
-        if ($response['success'] ?? false) {
-            $this->subscription_id = null;
-            $this->expire_at = null;
-            $this->save();
-        } else {
-            \Log::error($response);
+            $subscriptionService = app(MsGraphSubscriptionService::class);
+            $response = $subscriptionService->revokeAllSubscriptionsForUser($this->ms_id);
+
+            if ($response['success'] ?? false) {
+                $this->subscription_id = null;
+                $this->expire_at = null;
+                $this->save();
+
+                $this->notifySuccess(
+                    'Abonnement révoqué',
+                    "La souscription de {$this->email} a bien été annulée."
+                );
+            } else {
+                \Log::error($response);
+                $this->notifyError('Erreur lors de la révocation', json_encode($response));
+            }
+        } catch (\Throwable $e) {
+            \Log::error("Erreur revokeSubscription : " . $e->getMessage());
+            $this->notifyError('Exception revokeSubscription', $e->getMessage());
         }
     }
+
 
     /**
      * Renouvellement de l'abonnement.
      */
     public function refreshSubscription()
     {
-        $authService = app(MsGraphAuthService::class);
-        if (!$authService->isConnected()) {
-            $authService->connect(false);
-        }
+        try {
+            $authService = app(MsGraphAuthService::class);
+            if (!$authService->isConnected()) {
+                $authService->connect(false);
+            }
 
-        $subscriptionService = app(MsGraphSubscriptionService::class);
-        $response = $subscriptionService->renewDraftNotificationSubscription($this->subscription_id);
+            $subscriptionService = app(MsGraphSubscriptionService::class);
+            $response = $subscriptionService->renewDraftNotificationSubscription($this->subscription_id);
 
-        if ($response['success'] ?? false) {
-            $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
-            $this->save();
-        } else {
-            \Log::error($response);
+            if ($response['success'] ?? false) {
+                $this->expire_at = Carbon::parse($response['response']['expirationDateTime']);
+                $this->save();
+
+                $this->notifySuccess(
+                    'Abonnement renouvelé',
+                    "La souscription de {$this->email} a été prolongée jusqu’au {$this->expire_at->format('d/m/Y H:i')}."
+                );
+            } else {
+                \Log::error($response);
+                $this->notifyError('Erreur lors du renouvellement', json_encode($response));
+            }
+        } catch (\Throwable $e) {
+            \Log::error("Erreur refreshSubscription : " . $e->getMessage());
+            $this->notifyError('Exception refreshSubscription', $e->getMessage());
         }
     }
 }
