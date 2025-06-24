@@ -120,7 +120,7 @@ class DraftEmailProcessor  implements ShouldQueue
         $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
         //\Log::info('MIST>RAL RESPONSE');
         //\Log::info($response);
-        return $response['choices'][0]['message']['content'] ?? '';
+        return $response;
     }
 
     /**

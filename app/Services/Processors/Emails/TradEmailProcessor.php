@@ -125,7 +125,7 @@ class TradEmailProcessor  implements ShouldQueue
         $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
         //\Log::info('MISTRAL RESPONSE');
         //\Log::info($response['choices'][0]['message']['content'] ?? '');
-        return $response['choices'][0]['message']['content'] ?? '';
+        return $response;
     }
 
     /**

@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource\RelationM
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ViewColumn;
-use App\Filament\Tables\Columns\MailResultColumn;
+use App\Filament\Components\Tables\MailResultColumn;
 use App\Filament\Components\Tables\MailServiceColumn;
 use Filament\Tables\Actions\DeleteBulkAction;
 use App\Filament\Components\Tables\DateTimeColumn;
