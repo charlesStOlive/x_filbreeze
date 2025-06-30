@@ -26,6 +26,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\RelationManagers;
+use App\Models\Product;
+use App\Models\Company;
+use App\Enums\ProductType;
+use App\Services\Helpers\ProductFormHelper;
 
 class InvoiceResource extends Resource
 {
@@ -166,67 +170,97 @@ class InvoiceResource extends Resource
                         ->cloneable()
                         ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire))
                         ->blocks([
+                            self::getProductBlock(),
                             self::getOnQuoteBlock(),
-                            self::getForfaitBlock(),
-                            self::getTasksBlock(),
                             self::getTMABlock(),
                             self::getRemiseBlock(),
+                            self::getForfaitBlock(),
+                            self::getTasksBlock(),
                         ])
                         ->columnSpanFull(),
                 ])
         ];
     }
 
-    protected static function getForfaitBlock()
+
+    protected static function getProductBlock()
     {
-        return Builder\Block::make('forfait')
-            ->icon('fas-check-circle')
-            ->label(function (?array $state): string {
-                if ($state === null) {
-                    return 'Forfait';
-                }
-                return sprintf('%s %s (%s €HT)', 'Forfait : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
-            })
+        return Forms\Components\Builder\Block::make('product')
+            ->icon('fas-box')
+            ->label(fn(?array $state) => $state['product_title'] ?? 'Produit')
             ->schema([
-                ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('total')
-                    ->label('Total')
-                    ->numeric()
-                    ->live(onBlur: true)
+                Forms\Components\Select::make('product_id')
+                    ->label('Produit')
+                    ->options(
+                        fn() =>
+                        Product::query()->take(15)->pluck('title', 'id')->toArray()
+                    )
+                    ->preload()
+                    ->searchable()
+                    ->getSearchResultsUsing(
+                        fn(string $search) =>
+                        Product::query()
+                            ->where('title', 'like', "%{$search}%")
+                            ->orWhere('code', 'like', "%{$search}%")
+                            ->limit(15)
+                            ->pluck('title', 'id')
+                    )
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        if (!$state) return;
+
+                        $product = Product::with('companies')->find($state);
+                        if (!$product) return;
+
+                        $companyId = $get('../../../../company_id');
+                        $company = $companyId ? Company::find($companyId) : null;
+
+                        $set('cu', ProductFormHelper::getPriceForCompany($product, $company));
+                        $set('product_title', $product->title);
+                        $set('product_code', $product->code);
+                        $set('type', $product->type->value);
+
+                        if (!$get('title')) {
+                            $set('title', $product->title);
+                        }
+                    }),
+
+                Forms\Components\Hidden::make('product_title')->dehydrated(),
+
+                Forms\Components\TextInput::make('product_code')
+                    ->label('Code produit')
+                    ->disabled()
+                    ->dehydrated()
+                    ->visible(fn(callable $get) => filled($get('product_code'))),
+
+                Forms\Components\TextInput::make('title')
+                    ->label('Titre personnalisé')
+                    ->required()
+                    ->visible(fn(callable $get) => filled($get('product_id')))
+                    ->reactive()
+                    ->afterStateHydrated(function ($state, callable $set, callable $get) {
+                        if (!$state && $get('product_title')) {
+                            $set('title', $get('product_title'));
+                        }
+                    }),
+
+                Forms\Components\Hidden::make('type')->dehydrated(),
+
+                Forms\Components\Fieldset::make('Détails')
+                    ->label(false)
+                    ->schema(
+                        fn(callable $get) =>
+                        $get('type')
+                            ? ProductFormHelper::getDynamicFormFields($get('type'))
+                            : []
+                    )
+                    ->columns(3),
             ])
             ->columns(3);
     }
 
-    protected static function getTasksBlock()
-    {
-        return Builder\Block::make('tasks')
-            ->icon('fas-calculator')
-            ->label(function (?array $state): string {
-                if ($state === null) {
-                    return 'Taches';
-                }
-                return sprintf('%s %s (%s €HT)', 'Taches : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
-            })
-            ->schema([
-                ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('cu')
-                    ->label('Total U')
-                    ->numeric()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('qty')
-                    ->label('Qty')
-                    ->numeric()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('total')
-                    ->label('Total')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(),
-            ])
-            ->columns(3);
-    }
+
+
 
     protected static function getTMABlock()
     {
@@ -320,7 +354,6 @@ class InvoiceResource extends Resource
                     ->label('Total Restant à facturer')
                     ->disabled()
                     ->dehydrated(),
-
                 Forms\Components\TextInput::make('billing_percentage')
                     ->label('%')
                     ->numeric()
@@ -417,6 +450,57 @@ class InvoiceResource extends Resource
             ->columns(2);
     }
 
+    protected static function getForfaitBlock()
+    {
+        return Builder\Block::make('forfait')
+            ->icon('fas-check-circle')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Forfait libre';
+                }
+                return sprintf('%s %s (%s €HT)', 'Forfait : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
+            })
+            ->schema([
+                ...self::getBasicItemsField(),
+                Forms\Components\TextInput::make('total')
+                    ->label('Total')
+                    ->numeric()
+                    ->live(onBlur: true)
+            ])
+            ->columns(3);
+    }
+
+    protected static function getTasksBlock()
+    {
+        return Builder\Block::make('tasks')
+            ->icon('fas-calculator')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Taches libre';
+                }
+                return sprintf('%s %s (%s €HT)', 'Taches : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
+            })
+            ->schema([
+                ...self::getBasicItemsField(),
+                Forms\Components\TextInput::make('cu')
+                    ->label('Total U')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                Forms\Components\TextInput::make('qty')
+                    ->label('Qty')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                Forms\Components\TextInput::make('total')
+                    ->label('Total')
+                    ->numeric()
+                    ->disabled()
+                    ->dehydrated(),
+            ])
+            ->columns(3);
+    }
+
     public static function getDuplicateAction(): Actions\Action
     {
         return Actions\Action::make('duplicate')
@@ -440,6 +524,23 @@ class InvoiceResource extends Resource
                 return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $newRecord]));
             });
     }
+
+    public static function updateProductTotal(callable $set, callable $get, $livewire)
+    {
+        $type = $get('type') ?? null;
+        $cu = $get('cu') ?? 0;
+        $qty = $get('qty') ?? 1;
+
+        $total = match ($type) {
+            'heures', 'jours' => $cu * $qty,
+            'forfait_u' => $cu,
+            default => 0,
+        };
+
+        $set('total', round($total, 2));
+        self::updateItemsTotal($set, $get, $livewire, true);
+    }
+
 
     public static function updateTaskTotal(callable $set, callable $get, $livewire)
     {

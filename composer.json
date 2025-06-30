@@ -29,9 +29,11 @@
         "spatie/laravel-model-states": "^2.9",
         "spatie/laravel-settings": "^3.4",
         "thiagoalessio/tesseract_ocr": "^2.13",
-        "valentin-morice/filament-json-column": "^1.5"
+        "valentin-morice/filament-json-column": "^1.5",
+        "yemenopensource/filament-excel": "^0.1.0"
     },
     "require-dev": {
+        "barryvdh/laravel-debugbar": "^3.15",
         "doctrine/dbal": "^4.1",
         "fakerphp/faker": "^1.23",
         "laravel/pint": "^1.13",

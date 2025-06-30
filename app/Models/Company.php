@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Product;
 use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Company extends Model implements HasMedia
 {
@@ -48,11 +50,17 @@ class Company extends Model implements HasMedia
         return $this->hasMany(Contact::class, 'company_id');
     }
 
+
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'datasets_company_product')
+            ->withPivot('unit_price')
+            ->withTimestamps();
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('logo')
             ->singleFile();
     }
-
-
 }

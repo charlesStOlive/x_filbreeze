@@ -16,6 +16,8 @@ use App\Filament\Components\Tables\DateColumn;
 use App\Filament\Components\Tables\DateTimeColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ProductsRelationManager;
+
 
 
 
@@ -178,7 +180,7 @@ class CompanyResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ProductsRelationManager::class,
         ];
     }
 
