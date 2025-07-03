@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Tables;
+use App\Models\Product;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Select;
@@ -39,10 +40,39 @@ class ProductsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->headerActions([
-                AttachAction::make()->recordTitleAttribute('title')->preloadRecordSelect()->form(fn(AttachAction $action): array => [
-                    $action->getRecordSelect(),
-                    Forms\Components\TextInput::make('unit_price')->required(),
-                ]), // permet d’ajouter un lien produit ↔ société
+                AttachAction::make()
+                    ->recordTitleAttribute('title')
+                    ->preloadRecordSelect(false) // désactivé car on remplace le select
+                    ->form(function (): array {
+                        return [
+                            Select::make('recordId') // nom obligatoire : recordId
+                                ->label('Produit')
+                                ->searchable()
+                                ->options(function () {
+                                    return Product::with('gamme')
+                                        ->get()
+                                        ->groupBy(fn($product) => $product->gamme?->name ?? 'Sans gamme')
+                                        ->mapWithKeys(function ($group, $groupName) {
+                                            return [
+                                                $groupName => $group->mapWithKeys(fn($product) => [
+                                                    $product->id => "{$product->title} ({$product->code})",
+                                                ])->toArray(),
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state && $product = Product::find($state)) {
+                                        $set('unit_price', $product->unit_price);
+                                    }
+                                }),
+
+                            Forms\Components\TextInput::make('unit_price')
+                                ->numeric()
+                                ->required(),
+                        ];
+                    }), // permet d’ajouter un lien produit ↔ société
                 ExportAction::make('exportClientProducts')
                     ->label('Exporter les produits associés')
                     ->exporter(CompanyProductsExporter::class)

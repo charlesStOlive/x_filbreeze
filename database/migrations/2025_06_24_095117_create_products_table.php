@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('title');
             $table->string('type'); // valeurs : jours, heures, forfait_u, forfait_m, etc.
-            $table->string('gamme')->nullable(); // ex: TMA, Développement
+            $table->foreignId('gamme_id')->nullable()->constrained('datasets_gammes')->nullOnDelete();; // ex: TMA, Développement
             $table->decimal('unit_price', 10, 2)->default(0);
             $table->timestamps();
         });

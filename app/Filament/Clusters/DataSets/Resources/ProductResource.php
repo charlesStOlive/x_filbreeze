@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\DataSets\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
+use App\Models\Gamme;
 use App\Models\Product;
 use Filament\Forms\Form;
 use App\Enums\ProductType;
@@ -11,9 +12,11 @@ use Filament\Tables\Table;
 use App\Imports\ProductImporter;
 use Filament\Resources\Resource;
 use App\Filament\Clusters\DataSets;
+use Filament\Tables\Grouping\Group;
 use YOS\FilamentExcel\Actions\Import;
 use App\Services\Exports\ProductExporter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Actions\DeleteBulkAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
 
 class ProductResource extends Resource
@@ -44,11 +47,36 @@ class ProductResource extends Resource
 
                 Forms\Components\Select::make('type')
                     ->required()
-                    ->options(\App\Enums\ProductType::options())
+                    ->options(ProductType::options())
                     ->native(false),
 
-                Forms\Components\TextInput::make('gamme')
-                    ->maxLength(100),
+                Forms\Components\Select::make('gamme_id')
+                    ->label('Gamme')
+                    ->relationship('gamme', 'name')
+                    ->preload()
+                    ->searchable()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nom de la gamme')
+                            ->required()
+                            ->unique(table: 'datasets_gammes', column: 'name')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                $set('slug', str($state)->slug());
+                            }),
+                        Forms\Components\TextInput::make('slug')
+                            ->required()
+                            ->helperText('Généré automatiquement depuis le nom')
+                            ->unique(table: 'datasets_gammes', column: 'slug')
+                    ])
+                    ->createOptionAction(function (Forms\Components\Actions\Action $action) {
+                        return $action
+                            ->modalHeading('Créer une nouvelle gamme')
+                            ->modalSubmitActionLabel('Créer')
+                            ->closeModalByClickingAway(false);
+                    })
+                    ->required()
+                    ->native(false),
 
                 Forms\Components\TextInput::make('unit_price')
                     ->numeric()
@@ -59,10 +87,16 @@ class ProductResource extends Resource
             ->columns(2);
     }
 
-
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
+            ->groups([
+                Group::make('gamme.name')
+                    ->label('Gamme'),
+                Group::make('type')
+                    ->label('Type')
+                    ->getTitleFromRecordUsing(fn($record) => $record->type?->label()),
+            ])
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->searchable()
@@ -75,37 +109,30 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->sortable()
                     ->badge()
-                    ->formatStateUsing(fn(\App\Enums\ProductType $state) => $state->label()),
+                    ->formatStateUsing(fn(ProductType $state) => $state->label()),
 
-                Tables\Columns\TextColumn::make('gamme')
+                Tables\Columns\TextColumn::make('gamme.name')
+                    ->label('Gamme')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('unit_price')
-                    ->money('EUR')
+                Tables\Columns\TextInputColumn::make('unit_price')
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
-                    ->options(\App\Enums\ProductType::options()),
+                SelectFilter::make('type')
+                    ->options(ProductType::options()),
 
-                Tables\Filters\SelectFilter::make('gamme')
-                    ->options(
-                        \App\Models\Product::query()
-                            ->distinct()
-                            ->pluck('gamme', 'gamme')
-                            ->filter()
-                            ->toArray()
-                    ),
+                SelectFilter::make('gamme_id')
+                    ->label('Gamme')
+                    ->relationship('gamme', 'name'),
             ])
             ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make(),
                 Tables\Actions\ExportBulkAction::make()
-                    ->exporter(ProductExporter::class)
+                    ->exporter(ProductExporter::class),
             ])
-
             ->defaultSort('code');
     }
-
-
 
     public static function getPages(): array
     {

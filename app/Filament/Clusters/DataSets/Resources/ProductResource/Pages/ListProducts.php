@@ -27,17 +27,22 @@ class ListProducts extends ListRecords
                         FileUpload::make('file')
                             ->label('Fichier Excel')
                             ->acceptedFileTypes([
-                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-                                'application/vnd.ms-excel', // .xls
-                                'text/csv', // .csv
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'application/vnd.ms-excel',
+                                'text/csv',
                                 '.xlsx',
                                 '.xls',
-                                '.csv', // extensions (fallback visuel)
+                                '.csv',
                             ])
                             ->required(),
+
+                        ...ProductImporter::getForm(), // <- injecté dynamiquement
                     ])
                     ->action(function (array $data) {
-                        $import = new ProductImporter();
+                        $options = $data;
+                        unset($options['file']);
+
+                        $import = new ProductImporter($options);
                         Excel::import($import, $data['file']);
                         $import->finalize();
                     }),

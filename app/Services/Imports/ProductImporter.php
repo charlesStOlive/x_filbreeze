@@ -1,15 +1,16 @@
-<?php 
+<?php
 
 namespace App\Services\Imports;
 
 use App\Models\Product;
+use App\Models\Gamme;
 use App\Enums\ProductType;
 use Illuminate\Support\Collection;
 use App\Traits\SendsNotifications;
-use Maatwebsite\Excel\Row;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
+use Filament\Forms\Components\Checkbox;
 
 class ProductImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
 {
@@ -19,21 +20,63 @@ class ProductImporter implements ToCollection, WithHeadingRow, WithCalculatedFor
     public int $created = 0;
     public int $updated = 0;
 
+    protected array $options = [];
+
+    public function __construct(array $options = [])
+    {
+        $this->options = $options;
+    }
+
+    public static function getForm(): array
+    {
+        return [
+            Checkbox::make('create_missing_gamme')
+                ->label('Créer automatiquement les gammes manquantes')
+                ->live(),
+
+            Checkbox::make('block_if_gamme_missing')
+                ->label('Refuser la création si la gamme est absente')
+                ->default(true)
+        ];
+    }
+
     public function collection(Collection $rows): void
     {
+        \Log::info($this->options);
         foreach ($rows as $index => $r) {
-            $line = $index + 2; // +2 car Excel commence à la ligne 1 avec header
+            $line = $index + 2; // Excel commence à la ligne 1 avec header
 
             $id         = $r['id'] ?? null;
             $code       = $r['code'] ?? null;
             $title      = $r['title'] ?? null;
             $type       = $this->normalizeType($r['type'] ?? null);
-            $gamme      = $r['gamme'] ?? null;
+            $gammeName  = $r['gamme'] ?? null;
             $unitPrice  = $r['unit_price'] ?? 0;
 
             try {
                 if (!$code || !$title) {
                     throw new \Exception("Champs obligatoires manquants (code ou title)");
+                }
+
+                // Gestion de la gamme
+                $gammeId = null;
+                if ($gammeName) {
+                    \Log::info("Traitement de la gamme: $gammeName");
+                    $existing = Gamme::firstWhere('name', $gammeName);
+                    if ($existing) {
+                        $gammeId = $existing->id;
+                    } elseif ($this->options['create_missing_gamme'] ?? false) {
+                        $gamme = Gamme::create([
+                            'name' => $gammeName,
+                            'slug' => str($gammeName)->slug(),
+                        ]);
+                        $gammeId = $gamme->id;
+                        \Log::info("Gamme '$gammeName' créée avec ID: $gammeId");
+                    } elseif ($this->options['block_if_gamme_missing'] ?? false) {
+                        throw new \Exception("Gamme '$gammeName' introuvable. Ligne ignorée.");
+                    }
+                } elseif ($this->options['block_if_gamme_missing'] ?? false) {
+                    throw new \Exception("Gamme absente. Ligne ignorée.");
                 }
 
                 if ($id && $product = Product::find($id)) {
@@ -45,7 +88,7 @@ class ProductImporter implements ToCollection, WithHeadingRow, WithCalculatedFor
                         'code'       => $code,
                         'title'      => $title,
                         'type'       => $type,
-                        'gamme'      => $gamme,
+                        'gamme_id'   => $gammeId,
                         'unit_price' => $unitPrice,
                     ]);
 
@@ -61,7 +104,7 @@ class ProductImporter implements ToCollection, WithHeadingRow, WithCalculatedFor
                     'code'       => $code,
                     'title'      => $title,
                     'type'       => $type,
-                    'gamme'      => $gamme,
+                    'gamme_id'   => $gammeId,
                     'unit_price' => $unitPrice,
                 ]);
 

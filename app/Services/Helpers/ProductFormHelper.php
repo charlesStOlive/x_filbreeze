@@ -2,10 +2,11 @@
 
 namespace App\Services\Helpers;
 
-use App\Enums\ProductType;
 use App\Models\Company;
 use App\Models\Product;
+use App\Enums\ProductType;
 use Filament\Forms\Components\TextInput;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 
 class ProductFormHelper
 {
@@ -23,20 +24,24 @@ class ProductFormHelper
         $typeEnum = ProductType::from($type);
 
         return match ($typeEnum) {
-            ProductType::HEURES => [
+            ProductType::HEURES, ProductType::JOURS => [
                 TextInput::make('qty')
-                    ->label('Nombre d\'heures')
+                    ->label($typeEnum->formQtyLabel())
                     ->numeric()
+                    ->suffix($typeEnum->suffix())
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) =>
-                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateProductTotal($set, $get, $livewire)),
+                    ->afterStateUpdated(function ($set, $get, $livewire) {
+                        InvoiceResource::updateProductTotal($set, $get, $livewire);
+                    }),
 
                 TextInput::make('cu')
-                    ->label('Coût par heure')
+                    ->label($typeEnum->formCuLabel())
                     ->numeric()
+                    ->suffix('€')
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) =>
-                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateProductTotal($set, $get, $livewire)),
+                    ->afterStateUpdated(function ($set, $get, $livewire) {
+                        InvoiceResource::updateProductTotal($set, $get, $livewire);
+                    }),
 
                 TextInput::make('total')
                     ->label('Total')
@@ -45,41 +50,18 @@ class ProductFormHelper
                     ->dehydrated(),
             ],
 
-            ProductType::JOURS => [
-                TextInput::make('qty')
-                    ->label('Nombre de jours')
-                    ->numeric()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) =>
-                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateProductTotal($set, $get, $livewire)),
-
-                TextInput::make('cu')
-                    ->label('Coût par jour')
-                    ->numeric()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) =>
-                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateProductTotal($set, $get, $livewire)),
-
+            ProductType::FORFAIT_U, ProductType::FORFAIT_M, ProductType::FORFAIT_A => [
                 TextInput::make('total')
-                    ->label('Total')
-                    ->disabled()
+                    ->label($typeEnum->formCuLabel())
                     ->numeric()
-                    ->dehydrated(),
-            ],
-
-            ProductType::FORFAIT_U => [
-                TextInput::make('cu')
-                    ->label('Montant forfaitaire')
-                    ->numeric()
+                    ->suffix($typeEnum->suffix() ?? '€')
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) =>
-                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateProductTotal($set, $get, $livewire)),
-
-                TextInput::make('total')
-                    ->label('Total')
-                    ->disabled()
-                    ->numeric()
-                    ->dehydrated(),
+                    ->dehydrated()
+                    ->columnStart(3)
+                    ->afterStateUpdated(function ($set, $get, $component) {
+                        $livewire = $component->getLivewire();
+                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateItemsTotal($set, $get, $livewire);
+                    }),
             ],
 
             default => [],

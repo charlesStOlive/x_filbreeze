@@ -30,12 +30,12 @@ class ProductExporter extends Exporter
                     return is_string($state) ? $state : $state?->value;
                 }),
 
-            ExportColumn::make('gamme')
+            ExportColumn::make('gamme.name')
                 ->label('gamme'),
 
             ExportColumn::make('unit_price')
                 ->label('unit_price')
-                ->formatStateUsing(fn ($state) => (float) $state)
+                ->formatStateUsing(fn ($state) => (float) $state),
         ];
     }
 

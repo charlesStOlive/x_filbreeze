@@ -131,7 +131,8 @@ class InvoiceResource extends Resource
                 ->searchable()
                 ->required()
                 ->reactive()
-                ->disabled(!$companyEditable),
+                ->disabled(!$companyEditable)
+                ->dehydrated(fn ($state) => filled($state)),
 
         ];
     }
@@ -160,7 +161,7 @@ class InvoiceResource extends Resource
     public static function getItemsBuilderComponent(): array
     {
         return [
-            Forms\Components\Fieldset::make('Elements de la facture')
+            Forms\Components\Section::make('Elements de la facture')
                 ->schema([
                     Builder::make('items')
                         ->label(false)
@@ -191,21 +192,45 @@ class InvoiceResource extends Resource
             ->schema([
                 Forms\Components\Select::make('product_id')
                     ->label('Produit')
-                    ->options(
-                        fn() =>
-                        Product::query()->take(15)->pluck('title', 'id')->toArray()
-                    )
                     ->preload()
                     ->searchable()
+                    ->options(function (callable $get) {
+                        $products = Product::with('gamme')->get();
+
+                        // Cas du produit supprimé
+                        $selectedId = $get('product_id');
+                        $selectedProduct = $selectedId ? Product::find($selectedId) : null;
+
+                        $grouped = $products
+                            ->groupBy(fn($product) => $product->gamme?->name ?? 'Autre')
+                            ->mapWithKeys(fn($group) => [
+                                $group->first()->gamme->name ?? 'Autre' => $group->pluck('title', 'id')->toArray()
+                            ])
+                            ->toArray();
+
+                        // Si produit manquant, l'ajouter manuellement avec libellé personnalisé
+                        if ($selectedId && !$selectedProduct) {
+                            $grouped['⚠️ Produits supprimés'] = [
+                                $selectedId => "❌ Produit supprimé (ID $selectedId)"
+                            ];
+                        }
+
+                        return $grouped;
+                    })
                     ->getSearchResultsUsing(
                         fn(string $search) =>
-                        Product::query()
+                        Product::with('gamme')
                             ->where('title', 'like', "%{$search}%")
                             ->orWhere('code', 'like', "%{$search}%")
                             ->limit(15)
-                            ->pluck('title', 'id')
+                            ->get()
+                            ->groupBy(fn($product) => $product->gamme?->name ?? 'Autre')
+                            ->mapWithKeys(fn($group) => [
+                                $group->first()->gamme->name ?? 'Autre' => $group->pluck('title', 'id')->toArray()
+                            ])
+                            ->toArray()
                     )
-                    ->reactive()
+                    ->live()
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                         if (!$state) return;
 
@@ -246,7 +271,15 @@ class InvoiceResource extends Resource
 
                 Forms\Components\Hidden::make('type')->dehydrated(),
 
-                Forms\Components\Fieldset::make('Détails')
+                Forms\Components\MarkdownEditor::make('description')
+                    ->label('Description élement')
+                    ->columnSpanFull()
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                        'table',
+                    ]),
+
+                Forms\Components\Grid::make('Détails')
                     ->label(false)
                     ->schema(
                         fn(callable $get) =>

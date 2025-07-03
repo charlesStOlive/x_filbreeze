@@ -71,13 +71,6 @@ class EditInvoice extends EditRecord
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')
-                    ->label('Titre')
-                    ->required()
-                    ->columnSpan(fn($record) => $record->state == 'draft' ? 1 : 2),
-                Forms\Components\MarkdownEditor::make('description')
-                    ->label('Description de la facture')
-                    ->columnSpanFull(),
                 ...InvoiceResource::getItemsBuilderComponent(),
                 Forms\Components\Hidden::make('total_ht_br'),
                 Forms\Components\Hidden::make('total_ht'),
@@ -105,31 +98,46 @@ class EditInvoice extends EditRecord
                         Infolists\Components\Actions\Action::make('edit')
                             ->fillForm(fn($record): array => [
                                 'company_id' => $record->company_id,
+                                'description' => $record->description,
+                                'title' => $record->title,
                                 'contact_id' => $record->contact_id,
                                 'modalite' => $record->modalite,
                                 'tx_tva' => $record->tx_tva,
+                                'submited_at' => $record->submited_at,
                             ])
                             ->form([
-                                ...InvoiceResource::getContactAndCompanyFields(false),
-                                Forms\Components\DatePicker::make('submited_at')
-                                    ->label('Date de soumission')
-                                    ->required()
-                                    ->visible(fn($record) => $record->state == 'draft' ? false : true),
-                                Forms\Components\TextInput::make('modalite')
-                                    ->label('Modalité')
-                                    ->default('fin de mois')
-                                    ->required(),
-                                Forms\Components\Select::make('tx_tva')
-                                    ->label('TVA')
-                                    ->options([
-                                        0 => '0%',
-                                        0.2 => '20%',
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        ...InvoiceResource::getContactAndCompanyFields(false),
+                                        Forms\Components\TextInput::make('title')
+                                            ->label('Titre')
+                                            ->required()
+                                            ->columnSpan(fn($record) => $record->state == 'draft' ? 1 : 2),
+                                        Forms\Components\MarkdownEditor::make('description')
+                                            ->label('Description de la facture')
+                                            ->columnSpanFull(),
+                                        Forms\Components\DatePicker::make('submited_at')
+                                            ->label('Date de soumission')
+                                            ->required()
+                                            ->visible(fn($record) => $record->state == 'draft' ? false : true)
+                                            ->dehydrated(fn ($state) => filled($state)),
+                                        Forms\Components\TextInput::make('modalite')
+                                            ->label('Modalité')
+                                            ->default('fin de mois')
+                                            ->required(),
+                                        Forms\Components\Select::make('tx_tva')
+                                            ->label('TVA')
+                                            ->options([
+                                                0 => '0%',
+                                                0.2 => '20%',
+                                            ])
+                                            ->default(0.2)
+                                            ->selectablePlaceholder(false)
                                     ])
-                                    ->default(0.2)
-                                    ->selectablePlaceholder(false)
                             ])
-                            ->action(function (array $data): void {
-                                // ...
+                            ->action(function (array $data, $record): void {
+                                \Log::info('Editing invoice', ['data' => $data]);
+                                $record->update($data);
                             })
                             ->slideOver(),
                     ])
@@ -139,7 +147,8 @@ class EditInvoice extends EditRecord
                                 Infolists\Components\TextEntry::make('code')
                                     ->label('Code'),
                                 Infolists\Components\TextEntry::make('state')
-                                    ->label('État'),
+                                    ->label('État')
+                                    ->badge(),
                             ]),
                         Infolists\Components\TextEntry::make('modalite')
                             ->label('modalite'),
@@ -160,6 +169,6 @@ class EditInvoice extends EditRecord
                         Infolists\Components\TextEntry::make('total_ttc')->money('EUR')
                             ->label('Total TTC'),
                     ])
-            ]);
+            ])->columns(3);
     }
 }
