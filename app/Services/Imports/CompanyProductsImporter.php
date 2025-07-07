@@ -1,17 +1,18 @@
-<?php 
+<?php
 
 namespace App\Services\Imports;
 
-use App\Models\Product;
 use App\Models\Company;
+use App\Models\Product;
+use App\Contracts\HasFillForm;
 use Illuminate\Support\Collection;
+use Filament\Forms\Components\Hidden;
+use App\Services\Imports\BaseImporter;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
-use Filament\Forms\Components\Hidden;
-use App\Services\Imports\BaseImporter;
 
-class CompanyProductsImporter extends BaseFilImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
+class CompanyProductsImporter extends BaseFilImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas, HasFillForm
 {
     protected Company $company;
 
@@ -25,12 +26,19 @@ class CompanyProductsImporter extends BaseFilImporter implements ToCollection, W
         }
     }
 
+    public static function getFillForm(mixed $livewire): array
+    {
+        return ['company_id' => $livewire->getOwnerRecord()->id];
+    }
+
     public static function getForm(): array
     {
         return [
             Hidden::make('company_id'),
         ];
     }
+
+    
 
     public function collection(Collection $rows): void
     {

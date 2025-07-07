@@ -30,6 +30,10 @@ trait CanImportMaatExcel
             ], $this->maatImporterClass::getForm());
         });
 
+        if (is_subclass_of($importerClass, \App\Contracts\HasFillForm::class)) {
+            $this->fillForm(fn($livewire) => $importerClass::getFillForm($livewire));
+        }
+
         $this->action(function (array $data): void {
             $options = $data;
             unset($options['file']);

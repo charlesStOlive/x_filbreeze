@@ -82,9 +82,6 @@ class ProductsRelationManager extends RelationManager
                     ->label('Importer les produits')
                     ->icon('heroicon-o-cloud-arrow-up')
                     ->importer(CompanyProductsImporter::class)
-                    ->fillForm(fn($livewire) => [
-                        'company_id' => $livewire->getOwnerRecord()->id, // ✅ compatible RelationManager
-                    ])
                     ->modalHeading('Import produits via Excel')
                     ->modalSubmitActionLabel('Importer')
                     ->modalWidth('md'),
