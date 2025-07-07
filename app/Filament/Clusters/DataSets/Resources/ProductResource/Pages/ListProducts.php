@@ -4,11 +4,13 @@ namespace App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
 
 use Filament\Actions;
 use Filament\Actions\ExportAction;
+use Filament\Actions\ImportAction;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Services\Exports\ProductExporter;
 use App\Services\Imports\ProductImporter;
 use Filament\Forms\Components\FileUpload;
 use Filament\Resources\Pages\ListRecords;
+use App\Filament\Components\Actions\ImportMaatExcelAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource;
 
 class ListProducts extends ListRecords
@@ -20,32 +22,13 @@ class ListProducts extends ListRecords
         return [
             Actions\CreateAction::make(),
             Actions\ActionGroup::make([
-                Actions\Action::make('import')
-                    ->label('Importer')
+                ImportMaatExcelAction::make('importproduct')
+                    ->label('Importer les produits')
                     ->icon('heroicon-o-cloud-arrow-up')
-                    ->form([
-                        FileUpload::make('file')
-                            ->label('Fichier Excel')
-                            ->acceptedFileTypes([
-                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                'application/vnd.ms-excel',
-                                'text/csv',
-                                '.xlsx',
-                                '.xls',
-                                '.csv',
-                            ])
-                            ->required(),
-
-                        ...ProductImporter::getForm(), // <- injecté dynamiquement
-                    ])
-                    ->action(function (array $data) {
-                        $options = $data;
-                        unset($options['file']);
-
-                        $import = new ProductImporter($options);
-                        Excel::import($import, $data['file']);
-                        $import->finalize();
-                    }),
+                    ->importer(ProductImporter::class)
+                    ->modalHeading('Import produits via Excel')
+                    ->modalSubmitActionLabel('Importer')
+                    ->modalWidth('md'),
                 ExportAction::make()
                     ->exporter(ProductExporter::class)
                     ->label('Exporter'),

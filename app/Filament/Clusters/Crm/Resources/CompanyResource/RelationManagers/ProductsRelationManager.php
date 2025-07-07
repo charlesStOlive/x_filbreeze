@@ -15,8 +15,10 @@ use Filament\Tables\Actions\DetachAction;
 use Filament\Tables\Actions\ExportAction;
 use Illuminate\Database\Eloquent\Builder;
 use App\Services\Exports\CompanyProductsExporter;
+use App\Services\Imports\CompanyProductsImporter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Components\Tables\ImportMaatExcelAction;
 
 class ProductsRelationManager extends RelationManager
 {
@@ -75,7 +77,17 @@ class ProductsRelationManager extends RelationManager
                     }), // permet d’ajouter un lien produit ↔ société
                 ExportAction::make('exportClientProducts')
                     ->label('Exporter les produits associés')
-                    ->exporter(CompanyProductsExporter::class)
+                    ->exporter(CompanyProductsExporter::class),
+                ImportMaatExcelAction::make('importproduct')
+                    ->label('Importer les produits')
+                    ->icon('heroicon-o-cloud-arrow-up')
+                    ->importer(CompanyProductsImporter::class)
+                    ->fillForm(fn($livewire) => [
+                        'company_id' => $livewire->getOwnerRecord()->id, // ✅ compatible RelationManager
+                    ])
+                    ->modalHeading('Import produits via Excel')
+                    ->modalSubmitActionLabel('Importer')
+                    ->modalWidth('md'),
             ])
             ->actions([
                 EditAction::make()
