@@ -10,8 +10,11 @@ use App\Services\Exports\ProductExporter;
 use App\Services\Imports\ProductImporter;
 use Filament\Forms\Components\FileUpload;
 use Filament\Resources\Pages\ListRecords;
+use App\Services\Exports\ProductMaatExporter;
+use App\Filament\Components\Actions\ExportMaatExcelAction;
 use App\Filament\Components\Actions\ImportMaatExcelAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource;
+use Filament\Actions\Exports\Enums\ExportFormat;
 
 class ListProducts extends ListRecords
 {
@@ -31,7 +34,13 @@ class ListProducts extends ListRecords
                     ->modalWidth('md'),
                 ExportAction::make()
                     ->exporter(ProductExporter::class)
-                    ->label('Exporter'),
+                    ->label('Exporter')
+                    ->formats([
+                        ExportFormat::Xlsx,
+                    ]),
+                ExportMaatExcelAction::make('exportProduits')
+                    ->label('Exporter les produits')
+                    ->exporter(ProductMaatExporter::class),
                 // Array of actions
             ])
                 ->label('Import/Export')
