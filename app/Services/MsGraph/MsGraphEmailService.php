@@ -1,10 +1,11 @@
-<?php 
+<?php
 
 namespace App\Services\MsGraph;
 
 use Exception;
 use App\Models\MsgEmailIn;
 use App\Models\MsgEmailDraft;
+use App\Dto\MsGraph\EmailMessageDTO;
 use App\Services\MsGraph\MsGraphAuthService;
 
 class MsGraphEmailService
@@ -28,6 +29,19 @@ class MsGraphEmailService
         $path = "users/{$user->ms_id}/messages";
         // Envoyer la requête pour créer le brouillon
         return $this->authService->guzzle('post', $path, $emailData);
+    }
+
+    public function createNewDraftFromScratch($user, EmailMessageDTO $dto): array
+    {
+        $path = "users/{$user->ms_id}/messages";
+
+        // Tu peux filtrer ici les données vraiment nécessaires
+        $data = $dto->getDataForNewEmail();
+
+        // Supprime "from" si tu laisses Graph choisir l’expéditeur (en général inutile ici)
+        unset($data['from']);
+
+        return $this->authService->guzzle('post', $path, $data);
     }
 
     public function updateEmail($user, $email, array $updateData): bool

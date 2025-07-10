@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Dto\MsGraph;
 
@@ -22,9 +22,9 @@ class EmailMessageDTO extends Data
         public string $contentType,
         public string $bodyOriginal,
         public string $bodyBrut,
-        public array $toRecipients = [], 
-        public array $ccRecipients = [], 
-        public array $bccRecipients = [], 
+        public array $toRecipients = [],
+        public array $ccRecipients = [],
+        public array $bccRecipients = [],
         public array $toRecipientsNames = [],
         public array $toRecipientsMails = [],
         public array $ccRecipientsNames = [],
@@ -97,6 +97,52 @@ class EmailMessageDTO extends Data
             regexCode: $regexCode,
             regexCodeOption: $regexCodeOption
         );
+    }
+
+    public static function fromUserInput(array $input): self
+    {
+        return new self(
+            id: uniqid(),
+            createdDateTime: now(),
+            lastModifiedDateTime: now(),
+            receivedDateTime: now(),
+            sentDateTime: now(),
+            hasAttachments: !empty($input['attachments']),
+            internetMessageId: '',
+            subject: $input['subject'] ?? '',
+            importance: $input['importance'] ?? 'normal',
+            contentType: 'HTML', // ou 'Text' selon ton choix
+            bodyOriginal: $input['body'] ?? '',
+            bodyBrut: self::parseTextFromHtml($input['body'] ?? ''),
+            toRecipients: $input['to'] ?? [],
+            ccRecipients: $input['cc'] ?? [],
+            bccRecipients: $input['bcc'] ?? [],
+            toRecipientsNames: [], // à remplir si tu veux extraire les noms
+            toRecipientsMails: array_map(fn($r) => $r['emailAddress']['address'], $input['to'] ?? []),
+            ccRecipientsNames: [],
+            ccRecipientsMails: array_map(fn($r) => $r['emailAddress']['address'], $input['cc'] ?? []),
+            bccRecipientsNames: [],
+            bccRecipientsMails: array_map(fn($r) => $r['emailAddress']['address'], $input['bcc'] ?? []),
+            toRecipentsStringMails: implode(',', array_column($input['to'] ?? [], 'emailAddress.address')),
+            allRecipentsStringMails: '', // calculé si besoin
+            allRecipentsNdd: [],
+            fromName: '',
+            fromEmail: '',
+            fromNdd: '',
+            webLink: '',
+            inferenceClassification: '',
+            hasPJs: !empty($input['attachments']),
+            pjs: $input['attachments'] ?? [],
+            regexCode: '',
+            regexCodeOption: []
+        );
+    }
+
+    public static function formatRecipientsFromEmails(array $emails): array
+    {
+        return array_map(fn($email) => [
+            'emailAddress' => ['address' => $email],
+        ], $emails);
     }
 
     /**
@@ -183,7 +229,7 @@ class EmailMessageDTO extends Data
         }, $attachments);
     }
 
-     public function basicEmailData(): array
+    public function basicEmailData(): array
     {
         return [
             'from' => $this->fromEmail,
