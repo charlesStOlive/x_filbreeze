@@ -52,6 +52,8 @@ class MsgDraftUserResource extends Resource
                 TextColumn::make('ms_id')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('subscription_id')->toggleable(isToggledHiddenByDefault: true),
                 MailServiceColumn::make('services_options')->label('Services')->serviceType('email-draft'),
+                TextColumn::make('user.name')
+                    ->label('Utilisateur lié'),
                 //
             ])
             ->filters([
@@ -90,6 +92,12 @@ class MsgDraftUserResource extends Resource
                     ->color('gray')
                     ->action(fn(MsgUserDraft $record) => $record->refreshSubscription())
                     ->visible(fn(MsgUserDraft $record): bool => $record->subscription_id !== null),
+                Action::make('toggleUserLink')
+                    ->label(fn(MsgUserDraft $record) => $record->user_id ? 'Délier l’utilisateur' : 'Lier à un utilisateur')
+                    ->icon(fn(MsgUserDraft $record) => $record->user_id ? 'heroicon-s-user-minus' : 'heroicon-s-user-plus')
+                    ->color(fn(MsgUserDraft $record) => $record->user_id ? 'danger' : 'gray')
+                    ->requiresConfirmation()
+                    ->action(fn(MsgUserDraft $record) => $record->toggleUserLink())
             ])
             ->recordUrl(
                 fn(MsgUserDraft $record): string => MsgDraftUserResource::getUrl('edit', ['record' => $record])

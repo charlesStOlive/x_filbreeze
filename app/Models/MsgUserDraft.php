@@ -42,6 +42,11 @@ class MsgUserDraft extends Model
         });
     }
 
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
+
     public function msg_email_drafts()
     {
         return $this->hasMany(MsgEmailDraft::class);
@@ -194,5 +199,23 @@ class MsgUserDraft extends Model
             \Log::error("Erreur refreshSubscription : " . $e->getMessage());
             $this->notifyError('Exception refreshSubscription', $e->getMessage());
         }
+    }
+
+    public function toggleUserLink(): void
+    {
+        if ($this->user_id) {
+            $this->user_id = null;
+            $this->save();
+            return;
+        }
+
+        $user = \App\Models\User::where('email', $this->email)->first();
+
+        if (! $user) {
+            throw new \Exception("Aucun utilisateur trouvé avec l'email '{$this->email}'");
+        }
+
+        $this->user_id = $user->id;
+        $this->save();
     }
 }

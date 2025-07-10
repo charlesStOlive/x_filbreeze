@@ -47,6 +47,7 @@ class EditCompany extends EditRecord
                 ->action(function (array $data, $record) {
                     /** @var \App\Models\User $user */
                     $user = Auth::user();
+                    $msUser = $user->msgUserDraft;
 
                     // Destinataires
                     $to = EmailMessageDTO::formatRecipientsFromEmails($data['to']);
@@ -58,7 +59,9 @@ class EditCompany extends EditRecord
                         'to' => $to,
                     ]);
 
-                    app(MsGraphEmailService::class)->createNewDraftFromScratch($user, $dto);
+
+
+                    app(MsGraphEmailService::class)->createNewDraftFromScratch($msUser, $dto);
 
                     Notification::make()
                         ->title('Brouillon créé')
@@ -68,6 +71,7 @@ class EditCompany extends EditRecord
                 ->modalHeading('Nouveau Brouillon Email')
                 ->modalSubmitActionLabel('Créer')
                 ->icon('heroicon-o-envelope')
+                ->disabled(fn() => Auth::user()?->msgUserDraft === null)
         ];
     }
 

@@ -56,6 +56,11 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
+    public function msgUserDraft(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\MsgUserDraft::class);
+    }
+
     public static function getSystemUser(): self
     {
         return self::where('email', config('notifications.system_user_email'))->firstOrFail();
