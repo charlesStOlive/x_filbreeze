@@ -188,7 +188,12 @@ class InvoiceResource extends Resource
     {
         return Forms\Components\Builder\Block::make('product')
             ->icon('fas-box')
-            ->label(fn(?array $state) => $state['product_title'] ?? 'Produit')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Produit';
+                }
+                return sprintf('%s %s (%s €HT)', 'Produit : ', $state['product_title'] ?? 'inc',  $state['total'] ?? 0);
+            })
             ->schema([
                 Forms\Components\Select::make('product_id')
                     ->label('Produit')
