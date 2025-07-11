@@ -1,44 +1,50 @@
-<?php namespace App\Services\MsGraph\EmailDraft;
+<?php
 
-use App\Models\Invoice;
-use App\Models\Company;
+namespace App\Services\MsGraph\EmailDraft;
+
+use Illuminate\Support\Arr;
 use App\Services\MsGraph\EmailDraft\Templates\Contracts\EmailDraftTemplate;
-use App\Services\MsGraph\EmailDraft\Templates\Invoice\DefaultInvoiceTemplate;
-use App\Services\MsGraph\EmailDraft\Templates\Invoice\InvoiceSummaryTemplate;
-use App\Services\MsGraph\EmailDraft\Templates\Company\DefaultCompanyTemplate;
 
 class EmailDraftTemplateRegistry
 {
     public static function getTemplatesFor(string $modelType): array
     {
-        return match ($modelType) {
-            'invoice' => [
-                DefaultInvoiceTemplate::class,
-                InvoiceSummaryTemplate::class,
-            ],
-            'company' => [
-                DefaultCompanyTemplate::class,
-            ],
-            default => [],
-        };
+        return config("email-draft-templates.{$modelType}.templates", []);
+    }
+
+    public static function getDefaultTemplateFor(string $modelType): ?string
+    {
+        return config("email-draft-templates.{$modelType}.default");
     }
 
     public static function getTemplateInstance(string $key, mixed $record): ?EmailDraftTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
-        $allTemplates = collect(self::getTemplatesFor($modelType));
 
-        $class = $allTemplates->first(fn($cls) => $cls::key() === $key);
+        $class = collect(self::getTemplatesFor($modelType))
+            ->first(fn($cls) => $cls::key() === $key);
 
         return $class ? new $class($record) : null;
     }
 
-    protected static function resolveModelTypeFromRecord(mixed $record): string
+    public static function getDefaultTemplateInstance(mixed $record): EmailDraftTemplate
     {
-        return match (get_class($record)) {
-            Invoice::class => 'invoice',
-            Company::class => 'company',
-            default => throw new \InvalidArgumentException('Modèle non supporté'),
-        };
+        $modelType = self::resolveModelTypeFromRecord($record);
+        $class = self::getDefaultTemplateFor($modelType);
+
+        if (! $class || ! class_exists($class)) {
+            throw new \RuntimeException("Aucun template par défaut configuré pour le type '{$modelType}'");
+        }
+
+        return new $class($record);
+    }
+
+    public static function resolveModelTypeFromRecord(mixed $record): string
+    {
+        $types = config('email-draft-templates.types', []);
+        $class = get_class($record);
+
+        return $types[$class]
+            ?? throw new \InvalidArgumentException("Aucun type configuré pour le modèle [{$class}].");
     }
 }

@@ -36,6 +36,7 @@ use App\Services\MsGraph\MsGraphEmailService;
 use App\Services\MsGraph\EmailDraft\EmailDraftRenderer;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
+use App\Filament\Components\Actions\GenerateMsGraphEmailDraft;
 use App\Services\MsGraph\EmailDraft\EmailDraftTemplateRegistry;
 
 class EditInvoice extends EditRecord
@@ -67,125 +68,7 @@ class EditInvoice extends EditRecord
                 ->after(function () {
                     return redirect()->to(InvoiceResource::getUrl('index'));
                 }),
-            Action::make('generateEmailDraft')
-                ->label('Générer un email')
-                ->form(fn($record) => [
-
-                    Select::make('template')
-                        ->label('Modèle d’email')
-                        ->options(
-                            collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
-                                ->mapWithKeys(fn($cls) => [$cls::key() => $cls::label()])
-                        )
-                        ->live()
-                        ->required()
-                        ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
-                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
-                                ->first(fn($cls) => $cls::key() === $state);
-
-                            if (! $templateClass) return;
-
-                            $template = new $templateClass($record);
-                            $options = $templateClass::getDefaultOptions();
-
-                            $rendered = app(EmailDraftRenderer::class)->render($template, $options);
-
-                            $set('subject', $rendered['subject']);
-                            $set('body', $rendered['body']);
-                            $set('template_options', $options);
-                        }),
-                    Select::make('to')
-                        ->label('Destinataires')
-                        ->multiple()
-                        ->options([
-                            $record->contact->email => $record->contact->email,
-                        ]),
-
-                    // Options dynamiques spécifiques au template
-                    Group::make()
-                        ->schema(function (callable $get, $record) {
-                            $key = $get('template');
-
-                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
-                                ->first(fn($cls) => $cls::key() === $key);
-
-                            if (! $templateClass) return [];
-
-                            return $templateClass::getForm($templateClass::getDefaultOptions());
-                        })
-                        ->statePath('template_options')
-                        ->columns(1),
-
-                    TextInput::make('subject')
-                        ->label('Sujet')
-                        ->required(),
-
-                    ViewField::make('body')
-                        ->label('Aperçu HTML')
-                        ->view('components.fields.email-preview')
-                        ->viewData(function (callable $get, $set, $record) {
-                            $templateKey = $get('template');
-                            $options = $get('template_options') ?? [];
-                            //\Log::info('start',$options);
-
-                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
-                                ->first(fn($cls) => $cls::key() === $templateKey);
-
-                            if (! $templateClass) return ['html' => '<p>Template introuvable</p>'];
-
-                            
-
-                            $template = new $templateClass($record);
-                            //\Log::info('avant',$options);
-                            $rendered  = app(EmailDraftRenderer::class)->render($template, $options);
-                            $set('subject', $rendered['subject']);
-
-                            // On peut aussi mettre à jour subject dynamiquement ici si tu veux
-                            return ['html' => $rendered['body']];
-                        })
-                        ->disabled(),
-                ])
-                ->fillForm(function ($record) {
-                    $templateClass = EmailDraftTemplateRegistry::getTemplatesFor('invoice')[0];
-                    $options = $templateClass::getDefaultOptions();
-                    $template = new $templateClass($record);
-                    $rendered = app(EmailDraftRenderer::class)->render($template, $options);
-
-                    return [
-                        'template' => $templateClass::key(),
-                        'to' => [$record->contact->email],
-                        'subject' => $rendered['subject'],
-                        'body' => $rendered['body'],
-                        'template_options' => $options,
-                    ];
-                })
-                ->action(function (array $data, $record) {
-                    $msUser = Auth::user()?->msgUserDraft;
-
-                    if (! $msUser) {
-                        throw new \Exception('Aucun utilisateur Microsoft Graph lié.');
-                    }
-
-                    $template = EmailDraftTemplateRegistry::getTemplateInstance($data['template'], $record);
-
-                    $rendered = app(EmailDraftRenderer::class)->render($template, $data['template_options'] ?? []);
-
-                    $dto = EmailMessageDTO::fromUserInput([
-                        'subject' => $data['subject'],
-                        'body' => $rendered['body'],
-                        'to' => EmailMessageDTO::formatRecipientsFromEmails($data['to']),
-                    ]);
-
-                    //\Log::info($rendered['body']);
-
-                    app(MsGraphEmailService::class)->createNewDraftFromScratch($msUser, $dto);
-
-                    Notification::make()
-                        ->title('Brouillon généré')
-                        ->success()
-                        ->send();
-                })
-
+            GenerateMsGraphEmailDraft::make('generateEmailDraft'),
         ];
     }
 
