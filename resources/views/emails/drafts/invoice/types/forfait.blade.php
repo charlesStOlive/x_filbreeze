@@ -1,11 +1,11 @@
 <tr>
     <td colspan="2">
-        <table width="100%" cellpadding="5" cellspacing="0" border="0" style="border-bottom: 1px solid #ccc;">
+        <table width="100%" cellpadding="10" cellspacing="0" border="0" style="border-bottom: 1px solid #ccc;">
             <tr>
                 <td width="80%">
                     <strong>{{ $item['data']['title'] ?? 'N/A' }}</strong><br>
                     @if (!empty($item['data']['description']))
-                        <small>{{ strip_tags($item['data']['description']) }}</small>
+                        <small>{!! str($item['data']['description']) ? str($item['data']['description'])->markdown() : '' !!}</small>
                     @endif
                 </td>
                 <td width="20%" align="right">
