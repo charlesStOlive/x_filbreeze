@@ -6,35 +6,37 @@ use Filament\Forms;
 use Filament\Actions;
 use Filament\Infolists;
 use Filament\Forms\Form;
-use App\Filament\Utils\IaUtils;
+use Filament\Actions\Action;
 
+use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
 use Filament\Infolists\Infolist;
 use App\Filament\Utils\StateUtils;
+use App\Dto\MsGraph\EmailMessageDTO;
+
 use App\Models\States\Invoice\Draft;
 use App\Models\States\Invoice\Payed;
-
+use Filament\Forms\Components\Group;
+use Illuminate\Support\Facades\Auth;
+use Filament\Forms\Components\Select;
 use App\Models\States\Invoice\Canceled;
 use App\Models\States\Invoice\Submited;
+use Filament\Forms\Components\Textarea;
 use Illuminate\Database\Eloquent\Model;
+
+
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\ModelStates\StateAction;
 use Guava\FilamentClusters\Forms\Cluster;
 use Filament\Infolists\Components\TextEntry;
+use App\Services\MsGraph\MsGraphEmailService;
+use App\Services\MsGraph\EmailDraft\EmailDraftRenderer;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
-
-
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 use App\Services\MsGraph\EmailDraft\EmailDraftTemplateRegistry;
-use App\Services\MsGraph\EmailDraft\EmailDraftRenderer;
-use App\Services\MsGraph\MsGraphEmailService;
-use App\Dto\MsGraph\EmailMessageDTO;
 
 class EditInvoice extends EditRecord
 {
@@ -67,8 +69,8 @@ class EditInvoice extends EditRecord
                 }),
             Action::make('generateEmailDraft')
                 ->label('Générer un email')
-                ->icon('heroicon-o-envelope')
                 ->form(fn($record) => [
+
                     Select::make('template')
                         ->label('Modèle d’email')
                         ->options(
@@ -77,44 +79,84 @@ class EditInvoice extends EditRecord
                         )
                         ->live()
                         ->required()
-                        ->afterStateUpdated(function ($state, callable $set) use ($record) {
-                            $template = EmailDraftTemplateRegistry::getTemplateInstance($state, $record);
-                            $rendered = app(EmailDraftRenderer::class)->render($template);
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
+                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
+                                ->first(fn($cls) => $cls::key() === $state);
+
+                            if (! $templateClass) return;
+
+                            $template = new $templateClass($record);
+                            $options = $templateClass::getDefaultOptions();
+
+                            $rendered = app(EmailDraftRenderer::class)->render($template, $options);
 
                             $set('subject', $rendered['subject']);
                             $set('body', $rendered['body']);
+                            $set('template_options', $options);
                         }),
-
                     Select::make('to')
                         ->label('Destinataires')
                         ->multiple()
                         ->options([
                             $record->contact->email => $record->contact->email,
-                        ])
-                        ->required(),
+                        ]),
+
+                    // Options dynamiques spécifiques au template
+                    Group::make()
+                        ->schema(function (callable $get, $record) {
+                            $key = $get('template');
+
+                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
+                                ->first(fn($cls) => $cls::key() === $key);
+
+                            if (! $templateClass) return [];
+
+                            return $templateClass::getForm($templateClass::getDefaultOptions());
+                        })
+                        ->statePath('template_options')
+                        ->columns(1),
 
                     TextInput::make('subject')
                         ->label('Sujet')
                         ->required(),
 
-                    Forms\Components\ViewField::make('body')
+                    ViewField::make('body')
                         ->label('Aperçu HTML')
                         ->view('components.fields.email-preview')
-                        ->viewData(fn($state) => [
-                            'html' => $state,
-                        ])
+                        ->viewData(function (callable $get, $set, $record) {
+                            $templateKey = $get('template');
+                            $options = $get('template_options') ?? [];
+                            //\Log::info('start',$options);
+
+                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor('invoice'))
+                                ->first(fn($cls) => $cls::key() === $templateKey);
+
+                            if (! $templateClass) return ['html' => '<p>Template introuvable</p>'];
+
+                            
+
+                            $template = new $templateClass($record);
+                            //\Log::info('avant',$options);
+                            $rendered  = app(EmailDraftRenderer::class)->render($template, $options);
+                            $set('subject', $rendered['subject']);
+
+                            // On peut aussi mettre à jour subject dynamiquement ici si tu veux
+                            return ['html' => $rendered['body']];
+                        })
                         ->disabled(),
                 ])
                 ->fillForm(function ($record) {
-                    $defaultTemplate = EmailDraftTemplateRegistry::getTemplatesFor('invoice')[0];
-                    $template = new $defaultTemplate($record);
-                    $rendered = app(EmailDraftRenderer::class)->render($template);
+                    $templateClass = EmailDraftTemplateRegistry::getTemplatesFor('invoice')[0];
+                    $options = $templateClass::getDefaultOptions();
+                    $template = new $templateClass($record);
+                    $rendered = app(EmailDraftRenderer::class)->render($template, $options);
 
                     return [
-                        'template' => $defaultTemplate::key(),
+                        'template' => $templateClass::key(),
                         'to' => [$record->contact->email],
                         'subject' => $rendered['subject'],
-                        'body' => strip_tags($rendered['body']),
+                        'body' => $rendered['body'],
+                        'template_options' => $options,
                     ];
                 })
                 ->action(function (array $data, $record) {
@@ -125,7 +167,8 @@ class EditInvoice extends EditRecord
                     }
 
                     $template = EmailDraftTemplateRegistry::getTemplateInstance($data['template'], $record);
-                    $rendered = app(EmailDraftRenderer::class)->render($template);
+
+                    $rendered = app(EmailDraftRenderer::class)->render($template, $data['template_options'] ?? []);
 
                     $dto = EmailMessageDTO::fromUserInput([
                         'subject' => $data['subject'],
@@ -133,15 +176,15 @@ class EditInvoice extends EditRecord
                         'to' => EmailMessageDTO::formatRecipientsFromEmails($data['to']),
                     ]);
 
+                    //\Log::info($rendered['body']);
+
                     app(MsGraphEmailService::class)->createNewDraftFromScratch($msUser, $dto);
 
                     Notification::make()
-                        ->title('Brouillon email généré')
+                        ->title('Brouillon généré')
                         ->success()
                         ->send();
                 })
-                ->modalHeading('Créer un email depuis un template')
-                ->modalSubmitActionLabel('Créer le brouillon')
 
         ];
     }
@@ -225,7 +268,7 @@ class EditInvoice extends EditRecord
                                     ])
                             ])
                             ->action(function (array $data, $record): void {
-                                \Log::info('Editing invoice', ['data' => $data]);
+                                //\Log::info('Editing invoice', ['data' => $data]);
                                 $record->update($data);
                             })
                             ->slideOver(),

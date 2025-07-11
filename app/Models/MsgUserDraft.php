@@ -159,7 +159,7 @@ class MsgUserDraft extends Model
                     "La souscription de {$this->email} a bien été annulée."
                 );
             } else {
-                \Log::error($response);
+                //\Log::error($response);
                 $this->notifyError('Erreur lors de la révocation', json_encode($response));
             }
         } catch (\Throwable $e) {

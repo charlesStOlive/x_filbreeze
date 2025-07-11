@@ -5,7 +5,7 @@
                 <td width="80%">
                     <strong>{{ $item['data']['title'] ?? 'N/A' }}</strong><br>
                     @if (!empty($item['data']['description']))
-                        <small>{{ strip_tags($item['data']['description']) }}</small>
+                        <small>{!! str($item['data']['description']) ? str($item['data']['description'])->markdown() : '' !!}</small>
                     @endif
                 </td>
                 <td width="20%" align="right">

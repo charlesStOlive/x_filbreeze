@@ -147,7 +147,7 @@ class EditQuoteNew extends EditRecord
                             Infolists\Components\Actions\Action::make('create_v')
                                 ->label('Nouvelle version')
                                 ->action(function ($record, $component) {
-                                    \Log::info($this->form->getState());
+                                    //\Log::info($this->form->getState());
                                     $data = $this->form->getState();
                                     $newRecord = $record->createNewVersion($data);
                                     return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
