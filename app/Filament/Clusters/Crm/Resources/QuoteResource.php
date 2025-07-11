@@ -231,12 +231,12 @@ class QuoteResource extends Resource
     public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false)
     {
         // Récupère tous les éléments du parent
-        \Log::info('updateItemsTotal parent ? '.$parent);
+        //\Log::info('updateItemsTotal parent ? '.$parent);
         $items = $get('items') ?? [];
         if($parent) {
             $items = $get('../../..') ?? [];
         }
-        \Log::info($items);
+        //\Log::info($items);
         // Séparer les éléments par type
         $totals = collect($items)
             ->partition(fn($item) => $item['type'] === 'remise');

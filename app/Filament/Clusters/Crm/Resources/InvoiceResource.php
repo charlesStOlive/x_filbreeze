@@ -360,7 +360,7 @@ class InvoiceResource extends Resource
                     ->label('Select Quote')
                     ->options(function (callable $get) {
                         $companyId = $get('../../../company_id');
-                        \Log::info('company_id : ' . $companyId);
+                        //\Log::info('company_id : ' . $companyId);
                         return \App\Models\Quote::where('state', 'validated')
                             ->where('company_id', $companyId)
                             ->withRemainingAmount()
@@ -375,8 +375,8 @@ class InvoiceResource extends Resource
                         }
                     })
                     ->afterStateUpdated(function ($state, callable $set, $record) {
-                        \Log::info('state');
-                        \Log::info($state);
+                        //\Log::info('state');
+                        //\Log::info($state);
                         if ($state) {
                             $quote = self::getQuote($state);
                             self::updateQuoteFields($quote, $set, $record);
@@ -435,8 +435,8 @@ class InvoiceResource extends Resource
                             $quoteId = $get('quote_id');
                             if ($quoteId) {
                                 $quote = self::getQuote($quoteId);
-                                \Log::info($quote->toArray());
-                                \Log::info($quote->code);
+                                //\Log::info($quote->toArray());
+                                //\Log::info($quote->code);
                                 if ($quote) {
                                     $facturation = [
                                         'total_quote' =>  $get('total_quote'),

@@ -109,7 +109,7 @@ class Invoice extends Model
                 $quotesData = collect($invoice->items)
                     ->filter(fn($item) => $item['type'] === 'onQuote') // Vérifie le type d'item
                     ->mapWithKeys(function ($item) {
-                        \Log::info('item!!!', $item);
+                        //\Log::info('item!!!', $item);
                         return [
                             $item['data']['quote_id'] => [
                                 'total_quote' => $item['data']['total_quote'],
@@ -131,7 +131,7 @@ class Invoice extends Model
      * Attributs
      */
     public static function syncLinkedQuoteAmountLeft($invoice, $quotesData) {
-        \Log::info('quotesData!!!', $quotesData);
+        //\Log::info('quotesData!!!', $quotesData);
         foreach ($quotesData as $quoteId => $pivotData) {
                     $quote = \App\Models\Quote::find($quoteId);
                     if ($quote) {
