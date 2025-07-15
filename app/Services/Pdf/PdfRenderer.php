@@ -1,0 +1,23 @@
+<?php 
+
+namespace App\Services\Pdf;
+
+use App\Services\Helpers\ViteHelper;
+use Illuminate\Support\Facades\View;
+use App\Services\Pdf\Templates\Contracts\PdfTemplate;
+
+class PdfRenderer
+{
+    public function render(PdfTemplate $template, array $options = [], bool $hotReload = false): string
+    {
+        \Log::info('Rendering PDF with template: ' . get_class($template).'and preview '.$hotReload);
+        return View::make($template->getView(), array_merge(
+            $template->getData($options),
+            [
+                'hotReload' => $hotReload,
+                'cssPath' => ViteHelper::viteAsset('resources/css/pdf/theme.css'),
+            ]
+        ))->render();
+    }
+}
+

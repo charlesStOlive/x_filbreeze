@@ -35,6 +35,7 @@ use Filament\Infolists\Components\TextEntry;
 use App\Services\MsGraph\MsGraphEmailService;
 use App\Services\MsGraph\EmailDraft\EmailDraftRenderer;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
+use App\Filament\Components\Actions\GeneratePdfDownload;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Filament\Components\Actions\GenerateMsGraphEmailDraft;
 use App\Services\MsGraph\EmailDraft\EmailDraftTemplateRegistry;
@@ -69,6 +70,7 @@ class EditInvoice extends EditRecord
                     return redirect()->to(InvoiceResource::getUrl('index'));
                 }),
             GenerateMsGraphEmailDraft::make('generateEmailDraft'),
+            GeneratePdfDownload::make('downloadPdf')
         ];
     }
 
