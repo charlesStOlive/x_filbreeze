@@ -28,21 +28,23 @@ class InvoiceSummaryTemplate implements EmailDraftTemplate
     public static function getDefaultOptions(): array
     {
         return [
-            'show_details' => true,
-            'show_tva' => false,
+            'show_intro' => true,
+            'show_tva' => true,
         ];
     }
 
     public static function getForm(array $defaults = []): array
     {
         return [
-            Forms\Components\Toggle::make('show_details')
-                ->label('Afficher les détails des postes')
-                ->default($defaults['show_details'] ?? true),
+            Forms\Components\Toggle::make('show_intro')
+                ->label('Afficher intro et description')
+                ->default($defaults['show_intro'] ?? true)
+                ->live(),
 
             Forms\Components\Toggle::make('show_tva')
                 ->label('Afficher la TVA')
-                ->default($defaults['show_tva'] ?? false),
+                ->default($defaults['show_tva'] ?? false)
+                ->live(),
         ];
     }
 

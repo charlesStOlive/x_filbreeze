@@ -1,23 +1,23 @@
-<?php
+<?php 
 
-namespace App\Services\MsGraph\EmailDraft;
+namespace App\Services\Pdf;
 
 use Illuminate\Support\Arr;
-use App\Services\MsGraph\EmailDraft\Templates\Contracts\EmailDraftTemplate;
+use App\Services\Pdf\Templates\Contracts\PdfTemplate;
 
-class EmailDraftTemplateRegistry
+class PdfTemplateRegistry
 {
     public static function getTemplatesFor(string $modelType): array
     {
-        return config("email-draft-templates.{$modelType}.templates", []);
+        return config("pdf-templates.{$modelType}.templates", []);
     }
 
     public static function getDefaultTemplateFor(string $modelType): ?string
     {
-        return config("email-draft-templates.{$modelType}.default");
+        return config("pdf-templates.{$modelType}.default");
     }
 
-    public static function getTemplateInstance(string $key, mixed $record): ?EmailDraftTemplate
+    public static function getTemplateInstance(string $key, mixed $record): ?PdfTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
 
@@ -27,13 +27,13 @@ class EmailDraftTemplateRegistry
         return $class ? new $class($record) : null;
     }
 
-    public static function getDefaultTemplateInstance(mixed $record): EmailDraftTemplate
+    public static function getDefaultTemplateInstance(mixed $record): PdfTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
         $class = self::getDefaultTemplateFor($modelType);
 
         if (! $class || ! class_exists($class)) {
-            throw new \RuntimeException("Aucun template par défaut configuré pour le type '{$modelType}'");
+            throw new \RuntimeException("Aucun template PDF par défaut configuré pour le type '{$modelType}'");
         }
 
         return new $class($record);
@@ -41,7 +41,7 @@ class EmailDraftTemplateRegistry
 
     public static function resolveModelTypeFromRecord(mixed $record): string
     {
-        $types = config('email-draft-templates.types', []);
+        $types = config('pdf-templates.types', []);
         $class = get_class($record);
 
         return $types[$class]
