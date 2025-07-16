@@ -4,10 +4,13 @@ namespace App\Services\MsGraph\EmailDraft\Templates\Invoice;
 
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
+use App\Services\Pdf\Templates\Invoice\InvoiceComplete;
+use App\Services\MsGraph\EmailDraft\Templates\Contracts\HasPj;
+use App\Services\Pdf\Templates\Invoice\InvoiceSummaryPdfTemplate;
 use Filament\Forms; // Important pour l'autocompletion des champs
-use App\Services\MsGraph\EmailDraft\Templates\Contracts\EmailDraftTemplate;
+use App\Services\MsGraph\EmailDraft\Templates\Base\BaseDraftEmailTemplate;
 
-class InvoiceSummaryTemplate implements EmailDraftTemplate
+class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
 {
     public static function key(): string
     {
@@ -16,6 +19,11 @@ class InvoiceSummaryTemplate implements EmailDraftTemplate
     public static function label(): string
     {
         return 'Résumé facture (contact + montant)';
+    }
+
+    protected function getRecord(): mixed
+    {
+        return $this->invoice;
     }
 
     public function __construct(protected Invoice $invoice) {}
@@ -30,6 +38,14 @@ class InvoiceSummaryTemplate implements EmailDraftTemplate
         return [
             'show_intro' => true,
             'show_tva' => true,
+        ];
+    }
+
+    public static function getAvailableAttachments(): array
+    {
+        return [
+            InvoiceSummaryPdfTemplate::class => false,
+            InvoiceComplete::class => true,  // pré-coché
         ];
     }
 
@@ -61,7 +77,7 @@ class InvoiceSummaryTemplate implements EmailDraftTemplate
         ];
     }
 
-    public function getSubject(): string
+    public function getSubject(array $options = []): string
     {
         return "Résumé facture #{$this->invoice->invoice_number}";
     }

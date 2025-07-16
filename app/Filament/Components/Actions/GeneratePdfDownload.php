@@ -4,12 +4,13 @@
 
 namespace App\Filament\Components\Actions;
 
-use Filament\Actions\Action;
 use Filament\Forms;
 use Illuminate\Support\Str;
+use Filament\Actions\Action;
 use App\Services\Pdf\PdfRenderer;
-use App\Services\Pdf\PdfTemplateRegistry;
 use Spatie\Browsershot\Browsershot;
+use App\Services\Pdf\PdfTemplateRegistry;
+use App\Services\Pdf\Templates\Base\BasePdfTemplate;
 
 class GeneratePdfDownload extends Action
 {
@@ -19,7 +20,6 @@ class GeneratePdfDownload extends Action
 
         $this
             ->label('Créer PDF')
-            ->requiresConfirmation()
             ->modalWidth('7xl') // maximise la modal
             ->fillForm(function ($record) {
                 $template = PdfTemplateRegistry::getDefaultTemplateInstance($record);
@@ -64,47 +64,14 @@ class GeneratePdfDownload extends Action
                             Forms\Components\ViewField::make('body')
                                 ->label('Aperçu HTML')
                                 ->view('components.fields.pdf-preview')
-                                ->viewData(function (callable $get, $record) {
-                                    $templateKey = $get('template');
-                                    $options = $get('template_options') ?? [];
-                                    $templateClass = collect(PdfTemplateRegistry::getTemplatesFor(
-                                        PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->first(fn($cls) => $cls::key() === $templateKey);
-
-                                    if (! $templateClass) return ['html' => '<p>Template introuvable</p>'];
-
-                                    $template = new $templateClass($record);
-                                    $html = app(PdfRenderer::class)->render($template, $options);
-
-                                    return ['html' => $html];
-                                })
+                                ->viewData(fn($get, $record) => BasePdfTemplate::getPreviewData($get, $record))
                                 ->disabled(),
                         ])->columnSpan(3),
                     ]),
             ])
             ->action(function (array $data, $record) {
                 $template = PdfTemplateRegistry::getTemplateInstance($data['template'], $record);
-                $options = $data['template_options'] ?? [];
-                $html = app(PdfRenderer::class)->render($template, $data['template_options'] ?? []);
-
-                $filename = $template->getFileName($options);
-                if (empty($filename)) {
-                    $filename = 'pdf_' . now()->format('Ymd_His') . '_' . Str::random(6);
-                }
-                $filename .= '.pdf';
-
-                $path = storage_path('app/public/' . $filename);
-                $path = storage_path('app/public/' . $filename);
-
-                Browsershot::html($html)
-                    ->format('A4')
-                    ->scale(0.75)
-                    ->margins(25, 25, 25, 25, 'px')
-                    ->emulateMedia('screen')
-                    ->showBackground()
-                    ->savePdf($path);
-
-                return response()->download($path)->deleteFileAfterSend(true);
+                return $template->download($data['template_options'] ?? []);
             });
     }
 }

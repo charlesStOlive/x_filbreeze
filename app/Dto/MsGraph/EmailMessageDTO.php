@@ -43,8 +43,9 @@ class EmailMessageDTO extends Data
         #[Rule('boolean')]
         public bool $hasPJs,
         public array $pjs = [],
-        public string $regexCode = '', // Nouveau champ
-        public array $regexCodeOption = [] // Nouveau champ
+        public string $regexCode = '', 
+        public array $regexCodeOption = [], 
+        public array $attachments = []
     ) {}
 
     /**

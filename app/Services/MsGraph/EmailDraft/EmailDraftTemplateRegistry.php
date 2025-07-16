@@ -3,7 +3,8 @@
 namespace App\Services\MsGraph\EmailDraft;
 
 use Illuminate\Support\Arr;
-use App\Services\MsGraph\EmailDraft\Templates\Contracts\EmailDraftTemplate;
+use App\Services\MsGraph\EmailDraft\Templates\Base\BaseDraftEmailTemplate;
+
 
 class EmailDraftTemplateRegistry
 {
@@ -17,7 +18,7 @@ class EmailDraftTemplateRegistry
         return config("email-draft-templates.{$modelType}.default");
     }
 
-    public static function getTemplateInstance(string $key, mixed $record): ?EmailDraftTemplate
+    public static function getTemplateInstance(string $key, mixed $record): ?BaseDraftEmailTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
 
@@ -27,7 +28,7 @@ class EmailDraftTemplateRegistry
         return $class ? new $class($record) : null;
     }
 
-    public static function getDefaultTemplateInstance(mixed $record): EmailDraftTemplate
+    public static function getDefaultTemplateInstance(mixed $record): BaseDraftEmailTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
         $class = self::getDefaultTemplateFor($modelType);
