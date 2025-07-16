@@ -31,39 +31,43 @@ class MsGraphEmailService
         return $this->authService->guzzle('post', $path, $emailData);
     }
 
-    public function createNewDraftFromScratch($user, EmailMessageDTO $dto): array
+    public function createNewDraftAndUploadAttachments($user, array $emailData, array $attachments = []): array
     {
         $path = "users/{$user->ms_id}/messages";
 
-        // Tu peux filtrer ici les données vraiment nécessaires
-        $data = $dto->getDataForNewEmail();
-        unset($data['from']);
+        // Ne pas inclure attachments dans le body du draft
+        unset($emailData['attachments']);
 
-        $draft = $this->authService->guzzle('post', $path, $data);
+        $draft = $this->authService->guzzle('post', $path, $emailData);
+
         $emailId = $draft['id'] ?? null;
 
-        if ($emailId && !empty($dto->attachments)) {
-            $this->uploadAttachments($user, $emailId, $dto->attachments);
+        if ($emailId && ! empty($attachments)) {
+            $this->uploadAttachments($user, $emailId, $attachments);
         }
 
         return $draft;
     }
 
     public function uploadAttachments($user, string $emailId, array $attachments): void
-{
-    foreach ($attachments as $attachment) {
-        $contentBytes = base64_encode(file_get_contents($attachment['path']));
+    {
+        foreach ($attachments as $attachment) {
+            if (empty($attachment['path']) || !file_exists($attachment['path'])) {
+                continue;
+            }
 
-        $payload = [
-            '@odata.type' => '#microsoft.graph.fileAttachment',
-            'name' => $attachment['name'],
-            'contentType' => $attachment['mime'],
-            'contentBytes' => $contentBytes,
-        ];
+            $contentBytes = base64_encode(file_get_contents($attachment['path']));
 
-        $this->authService->guzzle('post', "users/{$user->ms_id}/messages/{$emailId}/attachments", $payload);
+            $payload = [
+                '@odata.type' => '#microsoft.graph.fileAttachment',
+                'name' => $attachment['name'],
+                'contentType' => $attachment['mime'],
+                'contentBytes' => $contentBytes,
+            ];
+
+            $this->authService->guzzle('post', "users/{$user->ms_id}/messages/{$emailId}/attachments", $payload);
+        }
     }
-}
 
     public function updateEmail($user, $email, array $updateData): bool
     {

@@ -46,7 +46,7 @@ abstract class BasePdfTemplate implements PdfTemplate
     public function generateFile(array $options = []): array
     {
         $fileName = $this->getFileName($options) . '.pdf';
-        $path = storage_path('app/tmp/' . $fileName);
+        $path = storage_path('app/public/' . $fileName);
 
         $this->saveTo($path, $options);
 

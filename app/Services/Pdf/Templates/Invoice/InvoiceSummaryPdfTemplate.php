@@ -30,7 +30,8 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        return $this->invoice->code ?? 'facture';
+        $code = $this->invoice->code ?? 'facture';
+        return $code.'_s';
     }
 
     public function getData(array $options = []): array

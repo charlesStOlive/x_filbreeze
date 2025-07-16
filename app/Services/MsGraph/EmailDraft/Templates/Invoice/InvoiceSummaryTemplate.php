@@ -44,8 +44,8 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
     public static function getAvailableAttachments(): array
     {
         return [
-            InvoiceSummaryPdfTemplate::class => false,
-            InvoiceComplete::class => true,  // pré-coché
+            InvoiceSummaryPdfTemplate::class => true,
+            InvoiceComplete::class => false,  // pré-coché
         ];
     }
 

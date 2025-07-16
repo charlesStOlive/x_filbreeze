@@ -137,13 +137,21 @@ class GenerateMsGraphEmailDraft extends Action
                 $template = EmailDraftTemplateRegistry::getTemplateInstance($data['template'], $record);
                 $rendered = app(EmailDraftRenderer::class)->render($template, $data['template_options'] ?? []);
 
-                $dto = EmailMessageDTO::fromUserInput([
-                    'subject' => $data['subject'],
-                    'body' => $rendered['body'],
-                    'to' => EmailMessageDTO::formatRecipientsFromEmails($data['to']),
-                ]);
+                $attachments = $template->generateAttachments(
+                    $data['template_options'] ?? [],
+                    $data['attachments'] ?? []
+                );
 
-                app(MsGraphEmailService::class)->createNewDraftFromScratch($msUser, $dto);
+                \Log::info('Attachments: ', $attachments);
+                $to = $data['to'] ?? [];
+
+                $data = [
+                    'subject' => $rendered['subject'],
+                    'body' => [ 'contentType' => 'HTML', 'content' => $rendered['body'] ],
+                    'toRecipients' => EmailMessageDTO::formatRecipientsFromEmails($to),
+                ];
+
+                app(MsGraphEmailService::class)->createNewDraftAndUploadAttachments($msUser, $data, $attachments);
 
                 Notification::make()
                     ->title('Brouillon généré')
