@@ -8,18 +8,18 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\Pdf\Templates\Base\BasePdfTemplate;
 
 
-class InvoiceSummaryPdfTemplate extends BasePdfTemplate
+class InvoiceComplete extends BasePdfTemplate
 {
     public function __construct(protected Invoice $invoice) {}
 
 
     public static function key(): string
     {
-        return 'invoice_summary_pdf';
+        return 'invoice_complete_pdf';
     }
     public static function label(): string
     {
-        return 'Facture PDF (simple)';
+        return 'Facture PDF (complète)';
     }
 
     
@@ -47,7 +47,7 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
     public static function getDefaultOptions(): array
     {
         return [
-            'avoid_full_break' => false,
+            'avoid_full_break' => true,
             'avoid_amount_break' => true,
         ];
     }

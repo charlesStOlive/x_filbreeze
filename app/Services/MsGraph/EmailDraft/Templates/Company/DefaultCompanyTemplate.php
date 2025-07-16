@@ -13,11 +13,27 @@ class DefaultCompanyTemplate implements EmailDraftTemplate
 
     public function getView(): string { return 'emails.drafts.company.default'; }
 
-    public function getData(): array {
+    public static function getDefaultOptions(): array
+    {
+        return [];
+    }
+
+    public static function getForm(array $defaults = []): array
+    {
+        return [];
+    }
+
+
+
+    public function getData(array $options = []): array
+    {
+        $options = array_merge(static::getDefaultOptions(), $options);
+
         return [
             'company' => $this->company,
             'contacts' => $this->company->contacts,
             'user' => Auth::user(),
+            'options' => $options,
         ];
     }
 

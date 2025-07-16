@@ -25,6 +25,7 @@ class GenerateMsGraphEmailDraft extends Action
                 $templateClass = get_class($template);
                 $options = $templateClass::getDefaultOptions();
                 $rendered = app(EmailDraftRenderer::class)->render($template, $options);
+                \Log::info($templateClass::getDefaultAttachments());
 
                 return [
                     'template' => $templateClass::key(),
@@ -32,6 +33,7 @@ class GenerateMsGraphEmailDraft extends Action
                     'subject' => $rendered['subject'],
                     'body' => $rendered['body'],
                     'template_options' => $options,
+                    'attachments' => $templateClass::getDefaultAttachments(),
                 ];
             })
             ->form(fn($record) => [
@@ -86,6 +88,22 @@ class GenerateMsGraphEmailDraft extends Action
                         Forms\Components\TextInput::make('subject')
                             ->label('Sujet')
                             ->required(),
+
+                        Forms\Components\Group::make()
+                            ->schema(function (callable $get, $record) {
+                                $key = $get('template');
+                                $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor(
+                                    EmailDraftTemplateRegistry::resolveModelTypeFromRecord($record)
+                                ))->first(fn($cls) => $cls::key() === $key);
+
+                                if (! $templateClass) return [];
+
+                                $template = new $templateClass($record);
+
+                                return $template->hasPj()
+                                    ? [$template->getAttachmentForm()]
+                                    : [];
+                            })
                     ]),
 
                     Forms\Components\ViewField::make('body')

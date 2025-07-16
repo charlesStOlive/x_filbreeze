@@ -37,12 +37,33 @@ class MsGraphEmailService
 
         // Tu peux filtrer ici les données vraiment nécessaires
         $data = $dto->getDataForNewEmail();
-
-        // Supprime "from" si tu laisses Graph choisir l’expéditeur (en général inutile ici)
         unset($data['from']);
 
-        return $this->authService->guzzle('post', $path, $data);
+        $draft = $this->authService->guzzle('post', $path, $data);
+        $emailId = $draft['id'] ?? null;
+
+        if ($emailId && !empty($dto->attachments)) {
+            $this->uploadAttachments($user, $emailId, $dto->attachments);
+        }
+
+        return $draft;
     }
+
+    public function uploadAttachments($user, string $emailId, array $attachments): void
+{
+    foreach ($attachments as $attachment) {
+        $contentBytes = base64_encode(file_get_contents($attachment['path']));
+
+        $payload = [
+            '@odata.type' => '#microsoft.graph.fileAttachment',
+            'name' => $attachment['name'],
+            'contentType' => $attachment['mime'],
+            'contentBytes' => $contentBytes,
+        ];
+
+        $this->authService->guzzle('post', "users/{$user->ms_id}/messages/{$emailId}/attachments", $payload);
+    }
+}
 
     public function updateEmail($user, $email, array $updateData): bool
     {
