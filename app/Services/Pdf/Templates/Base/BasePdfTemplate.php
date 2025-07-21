@@ -8,19 +8,36 @@ use App\Services\Helpers\ViteHelper;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Storage;
 use App\Services\Pdf\PdfTemplateRegistry;
+use App\Services\Document\Dto\GeneratedDocumentDTO;
+use App\Services\Document\Contracts\DocumentProducer;
 use App\Services\Pdf\Templates\Contracts\PdfTemplate;
+use App\Services\Document\Concerns\InteractsWithDocumentProducer;
 
-abstract class BasePdfTemplate implements PdfTemplate
+abstract class BasePdfTemplate implements PdfTemplate, DocumentProducer
 {
+    use InteractsWithDocumentProducer;
+
     abstract public function getView(): string;
 
     abstract public function getData(array $options = []): array;
 
     abstract public function getFileName(array $options = []): string;
 
-    public function saveTo(string $path, array $options = []): string
+    public static function key(): string
+    {
+        return 'pdf_' . str(class_basename(static::class))->kebab();
+    }
+
+    public static function label(): string
+    {
+        return 'PDF - ' . str(class_basename(static::class))->headline();
+    }
+
+    public function createDocument(array $options = []): string
     {
         $html = app(PdfRenderer::class)->render($this, $options, false);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'pdf_');
 
         Browsershot::html($html)
             ->format('A4')
@@ -28,33 +45,37 @@ abstract class BasePdfTemplate implements PdfTemplate
             ->margins(25, 25, 25, 25, 'px')
             ->emulateMedia('screen')
             ->showBackground()
-            ->savePdf($path);
+            ->savePdf($tempPath);
 
-        return $path;
+        return $tempPath;
+    }
+
+
+
+    public function generateFile(array $options = []): GeneratedDocumentDTO
+    {
+        $fileName = $this->getFileName($options) . '.pdf';
+        $relativePath = static::getExportDirectory() . '/' . $fileName;
+        $publicPath = \Storage::disk('public')->path($relativePath);
+
+        $tempPath = $this->createDocument($options);
+
+        \Storage::disk('public')->put($relativePath, file_get_contents($tempPath));
+        @unlink($tempPath);
+
+        return new GeneratedDocumentDTO(
+            path: $publicPath,
+            name: $fileName,
+            mime: 'application/pdf',
+        );
     }
 
     public function download(array $options = [])
     {
-        $fileName = $this->getFileName($options) . '.pdf';
-        $path = storage_path('app/public/' . $fileName);
+        $generated = $this->generateFile($options);
 
-        $this->saveTo($path, $options);
-
-        return response()->download($path, $fileName)->deleteFileAfterSend(true);
-    }
-
-    public function generateFile(array $options = []): array
-    {
-        $fileName = $this->getFileName($options) . '.pdf';
-        $path = storage_path('app/public/' . $fileName);
-
-        $this->saveTo($path, $options);
-
-        return [
-            'name' => $fileName,
-            'path' => $path,
-            'mime' => 'application/pdf',
-        ];
+        return response()->download($generated->path, $generated->name)
+            ->deleteFileAfterSend(true);
     }
 
     public static function getPreviewData(callable $get, $record): array

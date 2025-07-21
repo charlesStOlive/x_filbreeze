@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\MsGraph\EmailDraft\Templates\Base;
+namespace App\Services\MsGraph\EmailDraft\Base;
 
 use Filament\Forms\Components\Group;
 
 use Filament\Forms\Components\CheckboxList;
-use App\Services\MsGraph\EmailDraft\Templates\Contracts\HasPj;
+use App\Services\MsGraph\EmailDraft\Base\HasPj;
 
 abstract class BaseDraftEmailTemplate
 {
@@ -25,7 +25,7 @@ abstract class BaseDraftEmailTemplate
     public static function hasPjStatic(): bool
     {
         return in_array(
-            \App\Services\MsGraph\EmailDraft\Templates\Contracts\HasPj::class,
+            \App\Services\MsGraph\EmailDraft\Base\HasPj::class,
             class_implements(static::class)
         );
     }

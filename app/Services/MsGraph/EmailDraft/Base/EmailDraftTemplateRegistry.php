@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Services\MsGraph\EmailDraft;
+namespace App\Services\MsGraph\EmailDraft\Base;
 
 use Illuminate\Support\Arr;
-use App\Services\MsGraph\EmailDraft\Templates\Base\BaseDraftEmailTemplate;
+use App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate;
+
 
 
 class EmailDraftTemplateRegistry

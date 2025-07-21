@@ -2,34 +2,32 @@
 
 namespace App\Services\Exports;
 
+use App\Models\Company;
 use App\Models\Product;
 use App\Enums\ProductType;
-use App\Models\Company;
+use Illuminate\Support\Collection;
+use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Toggle;
 use Filament\Actions\Exports\Exporter;
-use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Models\Export;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Actions\Exports\ExportColumn;
+use App\Services\Exports\BaseExcelTemplate;
+use Filament\Actions\Exports\Models\Export;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use App\Services\Document\Contracts\DocumentProducer;
 
-class CompanyProductsExporter extends Exporter
+class CompanyProductsExporter extends BaseExcelTemplate implements DocumentProducer
 {
     protected static ?string $model = Product::class;
 
-    public static function getColumns(): array
+    public function __construct(protected ?Company $record = null) {}
+
+    public function getColumns(): array
     {
         return [
-            ExportColumn::make('id')->label('id')->enabledByDefault(false),
-            ExportColumn::make('code')->label('code')->enabledByDefault(true),
-            ExportColumn::make('title')->label('title')->enabledByDefault(false),
-            ExportColumn::make('type')->label('type')->enabledByDefault(false)
-                ->formatStateUsing(
-                    fn($state) =>
-                    is_string($state) ? $state : $state?->value
-                ),
-            ExportColumn::make('gamme')->label('gamme')->enabledByDefault(false),
-            // Prix personnalisé dans la table pivot (datasets_company_product.unit_price)
-            // Automatiquement exposé sous la forme "pivot_unit_price" par Filament
-            ExportColumn::make('pivot_unit_price')
-                ->label('unit_price')->enabledByDefault(true),
+            'code' => 'Code',
+            'title' => 'Titre',
+            'unit_price' => 'Prix Unitaire',
         ];
     }
 
@@ -44,11 +42,76 @@ class CompanyProductsExporter extends Exporter
         return $body;
     }
 
-    public static function getQuery(): Builder
+    public static function getDefaultOptions(): array
     {
-        $companyId = request()->route('record'); // utilisé depuis l’action dans CompanyResource
-        $company = Company::findOrFail($companyId);
+        return [
+            'show_only_company_product' => false,
+            'set_euro_column' => true,
+        ];
+    }
 
-        return $company->products()->getQuery(); // BelongsToMany query (avec pivot)
+    public static function getForm(array $defaultOptions = []): array
+    {
+        return [
+            Group::make([
+                Toggle::make('show_only_company_product')
+                    ->label('Afficher uniquement les produits liés à la société')
+                    ->default($defaultOptions['show_only_company_product'] ?? false),
+                Toggle::make('set_euro_column')
+                    ->label('Activer format €')
+                    ->default($defaultOptions['set_euro_column'] ?? true),
+            ]),
+        ];
+    }
+
+    public function getFileName(array $options = []): string
+    {
+        return 'produits.xlsx';
+    }
+
+    public function getData(array $options = []): Collection
+    {
+        $columns = $this->getColumns();
+
+        $showOnlyCompany = $options['show_only_company_product'] ?? false;
+
+        $company = $this->record;
+
+        $companyProducts = $company->products()
+            ->withPivot(['unit_price'])
+            ->get()
+            ->keyBy('id');
+
+        if ($showOnlyCompany) {
+            // ✅ Cas : uniquement les produits du pivot (spécifiques à la company)
+            return $companyProducts->map(function ($product) {
+                return [
+                    'code' => $product->code,
+                    'title' => $product->title,
+                    'unit_price' => $product->pivot->unit_price ?? $product->unit_price,
+                ];
+            })->values();
+        }
+
+        // ✅ Cas : tous les produits, mais avec override si pivot existe
+        $products = \App\Models\Product::all()->keyBy('id');
+
+        return $products->map(function ($product) use ($companyProducts) {
+            $pivot = $companyProducts->get($product->id);
+
+            return [
+                'code' => $product->code,
+                'title' => $product->title,
+                'unit_price' => $pivot?->pivot->unit_price ?: $product->unit_price,
+            ];
+        })->values();
+    }
+
+    public function getColumnFormats(array $options = []): array
+    {
+        \Log::info('getColumnFormats called with options: ',  $options);
+        return  $options['set_euro_column'] ?? true
+            ? ['C' => NumberFormat::FORMAT_CURRENCY_EUR]
+            : [];
     }
 }

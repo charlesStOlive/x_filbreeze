@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Components\Actions;
+namespace App\Services\MsGraph\EmailDraft\Filament\Actions;
 
-use Filament\Actions\Action;
 use Filament\Forms;
-use Illuminate\Support\Facades\Auth;
+use Filament\Actions\Action;
 use App\Dto\MsGraph\EmailMessageDTO;
-use App\Services\MsGraph\EmailDraft\EmailDraftRenderer;
-use App\Services\MsGraph\EmailDraft\EmailDraftTemplateRegistry;
-use App\Services\MsGraph\MsGraphEmailService;
+use Illuminate\Support\Facades\Auth;
 use Filament\Notifications\Notification;
+use App\Services\MsGraph\MsGraphEmailService;
+use App\Services\MsGraph\EmailDraft\Base\EmailDraftRenderer;
+use App\Services\MsGraph\EmailDraft\Base\EmailDraftTemplateRegistry;
 
 class GenerateMsGraphEmailDraft extends Action
 {
@@ -19,6 +19,7 @@ class GenerateMsGraphEmailDraft extends Action
 
         $this
             ->label('Générer brouillon Email')
+            ->icon('fas-envelope-open-text')
             ->modalWidth('7xl')
             ->fillForm(function ($record) {
                 $template = EmailDraftTemplateRegistry::getDefaultTemplateInstance($record);

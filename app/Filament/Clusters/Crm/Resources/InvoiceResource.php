@@ -544,6 +544,7 @@ class InvoiceResource extends Resource
         return Actions\Action::make('duplicate')
             ->label('Dupliquer')
             ->icon('heroicon-s-document-duplicate')
+            ->color('gray')
             ->modalHeading('Dupliquer la facture')
             ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> une facture <br> l'état sera réinitialisé "))
             ->fillForm(fn($record): array => [

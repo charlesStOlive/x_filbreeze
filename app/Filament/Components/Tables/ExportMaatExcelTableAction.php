@@ -16,6 +16,6 @@ class ExportMaatExcelTableAction extends Action
         $this
             ->label('Exporter')
             ->icon('heroicon-o-arrow-down-tray')
-            ->color('success');
+            ->color('gray');
     }
 }

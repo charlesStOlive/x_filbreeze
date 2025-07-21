@@ -44,6 +44,7 @@ class IaUtils
                 return redirect()->to($resource::getUrl('edit', ['record' => $record]));
             })
             ->hidden($hidden)
+            ->color('gray')
             ->modalWidth('7xl');
     }
 

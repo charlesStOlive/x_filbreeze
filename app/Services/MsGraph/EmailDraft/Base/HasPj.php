@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Services\MsGraph\EmailDraft\Templates\Contracts;
+namespace App\Services\MsGraph\EmailDraft\Base;
 
 interface HasPj
 {

@@ -20,6 +20,7 @@ class GeneratePdfDownload extends Action
 
         $this
             ->label('Créer PDF')
+            ->icon('fas-file-pdf')
             ->modalWidth('7xl') // maximise la modal
             ->fillForm(function ($record) {
                 $template = PdfTemplateRegistry::getDefaultTemplateInstance($record);

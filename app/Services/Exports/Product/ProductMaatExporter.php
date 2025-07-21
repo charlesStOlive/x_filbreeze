@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Services\Exports;
+namespace App\Services\Exports\Product;
 
-use App\Contracts\HasExportData;
 use App\Models\Product;
+use App\Contracts\HasExportData;
 use Illuminate\Support\Collection;
+use App\Services\Exports\BaseExcelTemplate;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use App\Services\Document\Contracts\DocumentProducer;
 
 
-class ProductMaatExporter implements HasExportData
+class ProductMaatExporter extends BaseExcelTemplate implements DocumentProducer
 {
-    public static function getColumns(): array
+    public function getColumns(): array
     {
         return [
             'code' => 'Code',
@@ -19,17 +21,17 @@ class ProductMaatExporter implements HasExportData
         ];
     }
 
-    public static function getFileName(): string
+    public function getFileName(array $options = []): string
     {
         return 'produits.xlsx';
     }
 
-    public static function getData(array $options = []): Collection
+    public function getData(array $options = []): Collection
     {
         return Product::select(array_keys(self::getColumns()))->get();
     }
 
-    public static function getColumnFormats(): array
+    public function getColumnFormats(): array
     {
         return [
             'C' => NumberFormat::FORMAT_CURRENCY_EUR,

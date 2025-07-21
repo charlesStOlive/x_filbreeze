@@ -52,16 +52,16 @@ class MsGraphEmailService
     public function uploadAttachments($user, string $emailId, array $attachments): void
     {
         foreach ($attachments as $attachment) {
-            if (empty($attachment['path']) || !file_exists($attachment['path'])) {
+            if (empty($attachment->path) || !file_exists($attachment->path)) {
                 continue;
             }
 
-            $contentBytes = base64_encode(file_get_contents($attachment['path']));
+            $contentBytes = base64_encode(file_get_contents($attachment->path));
 
             $payload = [
                 '@odata.type' => '#microsoft.graph.fileAttachment',
-                'name' => $attachment['name'],
-                'contentType' => $attachment['mime'],
+                'name' => $attachment->name,
+                'contentType' => $attachment->mime,
                 'contentBytes' => $contentBytes,
             ];
 

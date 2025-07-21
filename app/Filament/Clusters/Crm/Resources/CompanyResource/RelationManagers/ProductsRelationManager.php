@@ -19,6 +19,8 @@ use App\Services\Imports\CompanyProductsImporter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Resources\RelationManagers\RelationManager;
 use App\Filament\Components\Tables\ImportMaatExcelAction;
+use App\Filament\Components\Tables\ExportMaatExcelTableAction;
+
 
 class ProductsRelationManager extends RelationManager
 {
@@ -75,9 +77,10 @@ class ProductsRelationManager extends RelationManager
                                 ->required(),
                         ];
                     }), // permet d’ajouter un lien produit ↔ société
-                ExportAction::make('exportClientProducts')
-                    ->label('Exporter les produits associés')
-                    ->exporter(CompanyProductsExporter::class),
+                ExportMaatExcelTableAction::make('exportProduits')
+                    ->label('Exporter les produits')
+                    ->exporter(CompanyProductsExporter::class)
+                    ->withRecord($this->getOwnerRecord()),    
                 ImportMaatExcelAction::make('importproduct')
                     ->label('Importer les produits')
                     ->icon('heroicon-o-cloud-arrow-up')

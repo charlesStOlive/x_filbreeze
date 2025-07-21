@@ -9,6 +9,7 @@ use App\Policies\RolePolicy;
 use Filament\Support\Assets\Js;
 use Filament\Support\Assets\Css;
 use App\Policies\PermissionPolicy;
+use Filament\Support\Colors\Color;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Event;
@@ -17,6 +18,7 @@ use Spatie\Permission\Models\Permission;
 use Filament\Support\Facades\FilamentView;
 use App\Listeners\SupplierInvoiceFileAdded;
 use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\Facades\FilamentColor;
 use Filament\Forms\Components\DateTimePicker;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
@@ -51,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
         );
         Table::configureUsing(function (Table $table): void {
             $table
-                ->paginationPageOptions([15, 25, 50,100])
+                ->paginationPageOptions([15, 25, 50, 100])
                 ->defaultPaginationPageOption(25)
                 ->defaultSort('updated_at', 'desc');
         });
@@ -59,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
             Js::make('diff-js', 'https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js'),
             Js::make('diff2html-js', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js'),
             Css::make('diff2html-css', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css'),
+        ]);
+        FilamentColor::register([
+            'indigo' => Color::Fuchsia,
         ]);
     }
 }

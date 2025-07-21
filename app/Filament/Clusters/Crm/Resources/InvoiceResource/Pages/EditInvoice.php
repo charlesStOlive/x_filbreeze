@@ -9,36 +9,18 @@ use Filament\Forms\Form;
 use Filament\Actions\Action;
 
 use App\Filament\Utils\IaUtils;
-use App\Filament\Utils\PdfUtils;
 use Filament\Infolists\Infolist;
+use Filament\Actions\ActionGroup;
 use App\Filament\Utils\StateUtils;
-use App\Dto\MsGraph\EmailMessageDTO;
-
-use App\Models\States\Invoice\Draft;
 use App\Models\States\Invoice\Payed;
-use Filament\Forms\Components\Group;
-use Illuminate\Support\Facades\Auth;
-use Filament\Forms\Components\Select;
 use App\Models\States\Invoice\Canceled;
 use App\Models\States\Invoice\Submited;
-use Filament\Forms\Components\Textarea;
-use Illuminate\Database\Eloquent\Model;
-
-
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\ViewField;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\ModelStates\StateAction;
-use Guava\FilamentClusters\Forms\Cluster;
-use Filament\Infolists\Components\TextEntry;
-use App\Services\MsGraph\MsGraphEmailService;
-use App\Services\MsGraph\EmailDraft\EmailDraftRenderer;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use App\Filament\Components\Actions\GeneratePdfDownload;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
-use App\Filament\Components\Actions\GenerateMsGraphEmailDraft;
-use App\Services\MsGraph\EmailDraft\EmailDraftTemplateRegistry;
+use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 
 class EditInvoice extends EditRecord
 {
@@ -53,24 +35,35 @@ class EditInvoice extends EditRecord
     {
         return [
             StateUtils::getStateSaveButton(),
+            ActionGroup::make([
+                StateAction::make('state_submited')
+                    ->transitionTo(Submited::class)
+                    ->after(function ($record) {
+                        return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
+                    }),
+                StateAction::make('state_payed')
+                    ->transitionTo(Payed::class)
+                    ->after(function () {
+                        return redirect()->to(InvoiceResource::getUrl('index'));
+                    }),
+                StateAction::make('state_canceled')
+                    ->transitionTo(Canceled::class)
+                    ->after(function () {
+                        return redirect()->to(InvoiceResource::getUrl('index'));
+                    }),
+            ])->label('Etats')
+                ->icon('fas-code-branch')
+                ->button()
+                ->color('primary'),
             InvoiceResource::getDuplicateAction(),
-            StateAction::make('state_submited')
-                ->transitionTo(Submited::class)
-                ->after(function ($record) {
-                    return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
-                }),
-            StateAction::make('state_payed')
-                ->transitionTo(Payed::class)
-                ->after(function () {
-                    return redirect()->to(InvoiceResource::getUrl('index'));
-                }),
-            StateAction::make('state_canceled')
-                ->transitionTo(Canceled::class)
-                ->after(function () {
-                    return redirect()->to(InvoiceResource::getUrl('index'));
-                }),
-            GenerateMsGraphEmailDraft::make('generateEmailDraft'),
-            GeneratePdfDownload::make('downloadPdf')
+            ActionGroup::make([
+                GenerateMsGraphEmailDraft::make('generateEmailDraft'),
+                GeneratePdfDownload::make('downloadPdf')
+            ])->label('Produire')
+                ->icon('fas-file-export')
+                ->button()
+                ->color('gray'),
+
         ];
     }
 
@@ -78,8 +71,33 @@ class EditInvoice extends EditRecord
     {
         return [
             StateUtils::getStateSaveButton(),
-            PdfUtils::CreateActionPdf('facture', 'pdf.invoice.main'),
             IaUtils::MisrtalCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
+            ActionGroup::make([
+                StateAction::make('state_submited')
+                    ->transitionTo(Submited::class)
+                    ->after(function ($record) {
+                        return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
+                    }),
+                StateAction::make('state_payed')
+                    ->transitionTo(Payed::class)
+                    ->after(function () {
+                        return redirect()->to(InvoiceResource::getUrl('index'));
+                    }),
+                StateAction::make('state_canceled')
+                    ->transitionTo(Canceled::class)
+                    ->after(function () {
+                        return redirect()->to(InvoiceResource::getUrl('index'));
+                    }),
+            ])->label('Etats')->icon('fas-code-branch')
+                ->button()
+                ->color('primary'),
+            ActionGroup::make([
+                GenerateMsGraphEmailDraft::make('generateEmailDraft'),
+                GeneratePdfDownload::make('downloadPdf')
+            ])->label('Produire')
+                ->icon('fas-file-export')
+                ->button()
+                ->color('gray'),
             $this->getCancelFormAction(),
         ];
     }

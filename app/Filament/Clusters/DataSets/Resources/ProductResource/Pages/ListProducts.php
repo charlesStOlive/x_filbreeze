@@ -10,7 +10,7 @@ use App\Services\Exports\ProductExporter;
 use App\Services\Imports\ProductImporter;
 use Filament\Forms\Components\FileUpload;
 use Filament\Resources\Pages\ListRecords;
-use App\Services\Exports\ProductMaatExporter;
+use App\Services\Exports\Product\ProductMaatExporter;
 use App\Filament\Components\Actions\ExportMaatExcelAction;
 use App\Filament\Components\Actions\ImportMaatExcelAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource;

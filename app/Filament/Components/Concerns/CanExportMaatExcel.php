@@ -13,37 +13,39 @@ use Filament\Notifications\Notification as FilamentNotification;
 trait CanExportMaatExcel
 {
     protected ?string $maatExporterClass = null;
+    protected mixed $maatExporterRecord = null;
 
     public function exporter(string $exporterClass): static
     {
         $this->maatExporterClass = $exporterClass;
 
-         $this->action(function (array $data) use ($exporterClass) {
-            $filename = now()->format('Ymd_His') . '_' . Str::random(8) . '.xlsx';
-            $path = 'exports/' . $filename;
-
-            $columns = $exporterClass::getColumns();
-            $columnFormats = method_exists($exporterClass, 'getColumnFormats')
-                ? $exporterClass::getColumnFormats()
+        // Auto-fill form with default options if available
+        $this->fillForm(function () use ($exporterClass) {
+            return method_exists($exporterClass, 'getDefaultOptions')
+                ? $exporterClass::getDefaultOptions()
                 : [];
+        });
 
-            $rows = $exporterClass::getData($data)->map(fn($item) => collect($columns)->keys()->map(
-                fn($key) => data_get($item, $key)
-            ));
+        // Dynamically build form schema if getForm() exists
+        $this->form(function () use ($exporterClass) {
+            return method_exists($exporterClass, 'hasForm') && $exporterClass::hasForm()
+                ? $exporterClass::getForm($exporterClass::getDefaultOptions())
+                : [];
+        });
 
-            Excel::store(new FromCollectionExport(
-                $rows,
-                array_values($columns),
-                $columnFormats,
-            ), $path, 'local');
+        $this->action(function (array $data) use ($exporterClass) {
+            $exporter = app()->make($exporterClass, [
+                'record' => $this->maatExporterRecord,
+                'options' => $data,
+            ]);
+
+            $generated = $exporter->generateFile($data);
 
             $this->cleanOldExports();
 
-            // Génère le lien signé avec nom "affiché"
-            $url = URL::temporarySignedRoute('exports.download', now()->addHour(), [
-                'filename' => $filename,
-                'display' => $exporterClass::getFileName(),
-            ]);
+            $url = Storage::disk('public')->url('exports/' . basename($generated->path));
+
+            \Log::info('Export completed: ' . $url);
 
             FilamentNotification::make()
                 ->title('Export terminé')
@@ -62,13 +64,19 @@ trait CanExportMaatExcel
         return $this;
     }
 
+    public function withRecord(mixed $record): static
+    {
+        $this->maatExporterRecord = $record;
+        return $this;
+    }
+
     protected function cleanOldExports(): void
     {
-        $files = Storage::disk('local')->files('exports');
+        $files = Storage::disk('public')->files('exports');
 
         foreach ($files as $file) {
-            if (Storage::disk('local')->lastModified($file) < now()->subHour()->timestamp) {
-                Storage::disk('local')->delete($file);
+            if (Storage::disk('public')->lastModified($file) < now()->subHour()->timestamp) {
+                Storage::disk('public')->delete($file);
             }
         }
     }

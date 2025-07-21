@@ -4,11 +4,10 @@ namespace App\Services\MsGraph\EmailDraft\Templates\Invoice;
 
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
-use App\Services\Pdf\Templates\Invoice\InvoiceComplete;
-use App\Services\MsGraph\EmailDraft\Templates\Contracts\HasPj;
-use App\Services\Pdf\Templates\Invoice\InvoiceSummaryPdfTemplate;
+use App\Services\MsGraph\EmailDraft\Base\HasPj;
+use App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate;
+use App\Services\Pdf\Templates\Invoice as InvoicePdfTemplate;
 use Filament\Forms; // Important pour l'autocompletion des champs
-use App\Services\MsGraph\EmailDraft\Templates\Base\BaseDraftEmailTemplate;
 
 class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
 {
@@ -44,8 +43,8 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
     public static function getAvailableAttachments(): array
     {
         return [
-            InvoiceSummaryPdfTemplate::class => true,
-            InvoiceComplete::class => false,  // pré-coché
+            InvoicePdfTemplate\InvoiceSummaryPdfTemplate::class => true,
+            InvoicePdfTemplate\InvoiceComplete::class => false,  // pré-coché
         ];
     }
 
