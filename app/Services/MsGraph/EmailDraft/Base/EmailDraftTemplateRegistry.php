@@ -11,12 +11,12 @@ class EmailDraftTemplateRegistry
 {
     public static function getTemplatesFor(string $modelType): array
     {
-        return config("email-draft-templates.{$modelType}.templates", []);
+        return config("templates-email-draft.{$modelType}.templates", []);
     }
 
     public static function getDefaultTemplateFor(string $modelType): ?string
     {
-        return config("email-draft-templates.{$modelType}.default");
+        return config("templates-email-draft.{$modelType}.default");
     }
 
     public static function getTemplateInstance(string $key, mixed $record): ?BaseDraftEmailTemplate
@@ -43,7 +43,7 @@ class EmailDraftTemplateRegistry
 
     public static function resolveModelTypeFromRecord(mixed $record): string
     {
-        $types = config('email-draft-templates.types', []);
+        $types = config('templates-email-draft.types', []);
         $class = get_class($record);
 
         return $types[$class]

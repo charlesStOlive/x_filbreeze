@@ -4,19 +4,18 @@ namespace App\Services\Pdf\Base;
 
 use Illuminate\Support\Arr;
 use App\Services\Pdf\Base\BasePdfTemplate;
-
-
+use Filament\Pages\BasePage;
 
 class PdfTemplateRegistry
 {
     public static function getTemplatesFor(string $modelType): array
     {
-        return config("pdf-templates.{$modelType}.templates", []);
+        return config("templates-pdf.{$modelType}.templates", []);
     }
 
     public static function getDefaultTemplateFor(string $modelType): ?string
     {
-        return config("pdf-templates.{$modelType}.default");
+        return config("templates-pdf.{$modelType}.default");
     }
 
     public static function getTemplateInstance(string $key, mixed $record): ?BasePdfTemplate
@@ -29,7 +28,7 @@ class PdfTemplateRegistry
         return $class ? new $class($record) : null;
     }
 
-    public static function getDefaultTemplateInstance(mixed $record): PdfTemplate
+    public static function getDefaultTemplateInstance(mixed $record): BasePdfTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
         $class = self::getDefaultTemplateFor($modelType);
@@ -43,7 +42,7 @@ class PdfTemplateRegistry
 
     public static function resolveModelTypeFromRecord(mixed $record): string
     {
-        $types = config('pdf-templates.types', []);
+        $types = config('templates-pdf.types', []);
         $class = get_class($record);
 
         return $types[$class]

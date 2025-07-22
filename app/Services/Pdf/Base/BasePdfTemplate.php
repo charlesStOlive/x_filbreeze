@@ -16,7 +16,7 @@ use App\Services\Document\Dto\GeneratedDocumentDTO;
 use App\Services\Document\Contracts\DocumentProducer;
 use App\Services\Document\Concerns\InteractsWithDocumentProducer;
 
-abstract class BasePdfTemplate implements PdfTemplate, DocumentProducer
+abstract class BasePdfTemplate implements DocumentProducer
 {
     use InteractsWithDocumentProducer;
 
