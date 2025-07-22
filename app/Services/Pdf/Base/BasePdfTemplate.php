@@ -1,16 +1,19 @@
 <?php
 
-namespace App\Services\Pdf\Templates\Base;
+namespace App\Services\Pdf\Base;
 
-use App\Services\Pdf\PdfRenderer;
+
+
 use Spatie\Browsershot\Browsershot;
 use App\Services\Helpers\ViteHelper;
 use Illuminate\Support\Facades\View;
+use App\Services\Pdf\Base\PdfRenderer;
+use App\Services\Pdf\Base\PdfTemplate;
 use Illuminate\Support\Facades\Storage;
-use App\Services\Pdf\PdfTemplateRegistry;
+
+use App\Services\Pdf\Base\PdfTemplateRegistry;
 use App\Services\Document\Dto\GeneratedDocumentDTO;
 use App\Services\Document\Contracts\DocumentProducer;
-use App\Services\Pdf\Templates\Contracts\PdfTemplate;
 use App\Services\Document\Concerns\InteractsWithDocumentProducer;
 
 abstract class BasePdfTemplate implements PdfTemplate, DocumentProducer

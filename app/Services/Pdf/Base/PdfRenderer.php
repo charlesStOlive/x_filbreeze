@@ -1,10 +1,11 @@
 <?php 
 
-namespace App\Services\Pdf;
+namespace App\Services\Pdf\Base;
 
 use App\Services\Helpers\ViteHelper;
 use Illuminate\Support\Facades\View;
-use App\Services\Pdf\Templates\Contracts\PdfTemplate;
+use App\Services\Pdf\Base\PdfTemplate;
+
 
 class PdfRenderer
 {

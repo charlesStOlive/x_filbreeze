@@ -1,9 +1,11 @@
 <?php 
 
-namespace App\Services\Pdf;
+namespace App\Services\Pdf\Base;
 
 use Illuminate\Support\Arr;
-use App\Services\Pdf\Templates\Contracts\PdfTemplate;
+use App\Services\Pdf\Base\BasePdfTemplate;
+
+
 
 class PdfTemplateRegistry
 {
@@ -17,7 +19,7 @@ class PdfTemplateRegistry
         return config("pdf-templates.{$modelType}.default");
     }
 
-    public static function getTemplateInstance(string $key, mixed $record): ?PdfTemplate
+    public static function getTemplateInstance(string $key, mixed $record): ?BasePdfTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
 

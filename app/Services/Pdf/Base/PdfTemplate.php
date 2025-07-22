@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Services\Pdf\Templates\Contracts;
+namespace App\Services\Pdf\Base;
 
 interface PdfTemplate
 {

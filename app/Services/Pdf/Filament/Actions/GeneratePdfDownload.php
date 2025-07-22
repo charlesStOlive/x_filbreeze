@@ -2,15 +2,13 @@
 
 // Exemple adapté pour layout avec 1/4 form et 3/4 preview
 
-namespace App\Filament\Components\Actions;
+namespace App\Services\Pdf\Filament\Actions;
 
 use Filament\Forms;
-use Illuminate\Support\Str;
 use Filament\Actions\Action;
-use App\Services\Pdf\PdfRenderer;
-use Spatie\Browsershot\Browsershot;
-use App\Services\Pdf\PdfTemplateRegistry;
-use App\Services\Pdf\Templates\Base\BasePdfTemplate;
+
+use App\Services\Pdf\Base\BasePdfTemplate;
+use App\Services\Pdf\Base\PdfTemplateRegistry;
 
 class GeneratePdfDownload extends Action
 {

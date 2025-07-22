@@ -18,8 +18,10 @@ use App\Models\States\Invoice\Submited;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\ModelStates\StateAction;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
-use App\Filament\Components\Actions\GeneratePdfDownload;
+
+
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
+use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
 use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 
 class EditInvoice extends EditRecord

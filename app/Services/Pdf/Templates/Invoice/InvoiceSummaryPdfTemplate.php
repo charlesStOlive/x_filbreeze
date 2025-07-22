@@ -5,7 +5,8 @@ namespace App\Services\Pdf\Templates\Invoice;
 use Filament\Forms;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
-use App\Services\Pdf\Templates\Base\BasePdfTemplate;
+use App\Services\Pdf\Base\BasePdfTemplate;
+
 
 
 class InvoiceSummaryPdfTemplate extends BasePdfTemplate
