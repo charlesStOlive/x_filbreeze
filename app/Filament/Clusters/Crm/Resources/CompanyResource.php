@@ -12,15 +12,14 @@ use Illuminate\Support\Str;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
 use App\Filament\Utils\ImageUtils;
+use Filament\Forms\Components\FileUpload;
 use App\Filament\Components\Tables\DateColumn;
 use App\Filament\Components\Tables\DateTimeColumn;
+use App\Filament\Components\Forms\CloudinaryFileUpload;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ProductsRelationManager;
-
-
-
-
 
 class CompanyResource extends Resource
 {
@@ -113,6 +112,10 @@ class CompanyResource extends Resource
                             SpatieMediaLibraryFileUpload::make('logo')
                                 ->collection('logo')
                                 ->label('Logo'),
+                            CloudinaryFileUpload::make('logo_cloudinary')
+                                ->label('Logo Cloudinary')
+                                ->relation('logo_cloudinary')
+                                ->dehydrated(false), // on ne stocke pas dans la colonne du modèle
                             Forms\Components\ColorPicker::make('primary_color')
                                 ->label('Couleur primaire')
                                 ->suffixAction(ImageUtils::getPalettesFromImage('logo', 'primary_color')),
@@ -136,7 +139,7 @@ class CompanyResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
-                    ->description(fn ($record): string => \Str::limit($record->slug, 35))
+                    ->description(fn($record): string => \Str::limit($record->slug, 35))
                     ->searchable(['slug', 'title']),
                 Tables\Columns\TextColumn::make('sector.title')
                     ->sortable()->searchable(),

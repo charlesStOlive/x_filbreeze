@@ -63,4 +63,9 @@ class Company extends Model implements HasMedia
         $this->addMediaCollection('logo')
             ->singleFile();
     }
+
+    public function logo_cloudinary()
+    {
+        return $this->morphOne(ImageCloudinary::class, 'model');
+    }
 }
