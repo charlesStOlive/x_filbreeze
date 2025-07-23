@@ -1,0 +1,33 @@
+@extends('pdf.layouts.main')
+
+@section('title', 'Document #{{ ${{ var }}->name }}')
+
+@section('content')
+    <div class="overflow-hidden font-arial ">
+        <div class="pt-4 pb-8 -ml-2">
+            <img class="object-cover h-16" src="{{ asset('images/logo.png') }}" />
+        </div>
+
+        <div class="text-zinc-600 font-light">
+            <div class="h-10 ">
+                <div class="text-xl">
+                    <span class="uppercase"> TITRE : </span>{{ ${{ var }}->name }}
+                </div>
+            </div>
+            <div>
+                <div class="pb-4 grid grid-cols-6 px-2 w-full border-y bg-black py-4 text-white uppercase text-right rounded-md">
+                    <div class="col-span-4 text-left text-xl">XXX</div>
+                    <div></div>
+                    <div class="text-xl">XXX</div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Lignes dynamiques --}}
+        @for ($i = 0; $i < ($options['nb_rows'] ?? 0); $i++)
+            <div class="h-10 w-full border-b border-zinc-300">Ligne {{ $i + 1 }} H-10 = 2.5rem = 40 px</div>
+        @endfor
+
+        <div>FIN DU PDF</div>
+    </div>
+@endsection

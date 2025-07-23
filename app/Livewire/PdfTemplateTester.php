@@ -2,13 +2,14 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\Invoice;
 use App\Models\Company;
-use App\Services\MsGraph\EmailDraft\Base\EmailDraftTemplateRegistry;
-use App\Services\MsGraph\EmailDraft\Base\EmailDraftRenderer;
+use App\Models\Invoice;
+use Livewire\Component;
+use App\Services\Pdf\Base\PdfRenderer;
+use App\Services\Pdf\Base\PdfTemplateRegistry;
 
-class EmailTemplateTester extends Component
+
+class PdfTemplateTester extends Component
 {
     public string $key;
     public string $modelId;
@@ -21,13 +22,13 @@ class EmailTemplateTester extends Component
 
         $model = $this->resolveModelInstance($key, $modelId);
 
-        $template = EmailDraftTemplateRegistry::getTemplateInstance($key, $model);
-        $this->renderedHtml = app(EmailDraftRenderer::class)->render($template)['body'];
+        $template = PdfTemplateRegistry::getTemplateInstance($key, $model);
+        $this->renderedHtml = app(PdfRenderer::class)->render($template);
     }
 
     public function render()
     {
-        return view('livewire.email-template-tester');
+        return view('livewire.pdf-template-tester');
     }
 
     protected function resolveModelInstance(string $key, string $modelId): \Illuminate\Database\Eloquent\Model

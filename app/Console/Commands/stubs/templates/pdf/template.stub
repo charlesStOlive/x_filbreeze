@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Services\Pdf\Templates\{{ model }};
+
+use Filament\Forms;
+use App\Models\{{ model }};
+use Illuminate\Support\Facades\Auth;
+use App\Services\Pdf\Base\BasePdfTemplate;
+
+class {{ className }} extends BasePdfTemplate
+{
+    public function __construct(protected {{ model }} ${{ var }}) {}
+
+    public static function key(): string
+    {
+        return '{{ key }}';
+    }
+
+    public static function label(): string
+    {
+        return '{{ label }}';
+    }
+
+    public function getView(): string
+    {
+        return '{{ view }}';
+    }
+
+    public function getFileName(array $options = []): string
+    {
+        return $this->{{ var }}->title ?? '{{ model }}';
+    }
+
+    public function getData(array $options = []): array
+    {
+        $options = array_merge(static::getDefaultOptions(), $options);
+
+        return [
+            '{{ var }}' => $this->{{ var }},
+            'user' => Auth::user(),
+            'options' => $options,
+        ];
+    }
+
+    public static function getDefaultOptions(): array
+    {
+        return [
+            'avoid_break' => true,
+            'nb_rows' => 20,
+        ];
+    }
+
+    public static function getForm(array $defaults = []): array
+    {
+        return [
+            Forms\Components\Checkbox::make('avoid_break')
+                ->label('Empêcher les sauts de page dans une cellule')
+                ->default(true)
+                ->live(),
+
+            Forms\Components\TextInput::make('nb_rows')
+                ->label('Nombre de lignes de tests')
+                ->default(20)
+                ->integer()
+                ->live(),
+        ];
+    }
+}

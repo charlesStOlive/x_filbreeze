@@ -1,6 +1,7 @@
 <?php
 
 
+use App\Livewire\PdfTemplateTester;
 use App\Livewire\EmailTemplateTester;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -21,5 +22,8 @@ Route::get('/download-export/{filename}', function (string $filename) {
     return response()->download($path, request('display') ?? $filename)->deleteFileAfterSend(false);
 })->middleware('signed')->name('exports.download');
 
-Route::get('/test-template/{key}/{modelId}', EmailTemplateTester::class)
-    ->name('test-template');
+Route::get('/tt/email/{key}/{modelId}', EmailTemplateTester::class)
+    ->name('template_test_email');
+
+Route::get('/tt/pdf/{key}/{modelId}', PdfTemplateTester::class)
+    ->name('template_test_email');

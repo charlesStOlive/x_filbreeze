@@ -5,7 +5,9 @@
         "dev": "vite",
         "build": "vite build",
         "dev:pdf": "vite --config vite.pdf.config.js",
-        "build:pdf": "vite build --config vite.pdf.config.js"
+        "build:pdf": "vite build --config vite.pdf.config.js",
+        "dev:all": "npm run dev & npm run dev:pdf",
+        "build:all": "npm run build & npm run build:pdf"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.9",

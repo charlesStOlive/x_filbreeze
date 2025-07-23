@@ -42,7 +42,17 @@ class GeneratePdfDownload extends Action
                                     ))->mapWithKeys(fn($cls) => [$cls::key() => $cls::label()])
                                 )
                                 ->live()
-                                ->required(),
+                                ->required()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) use ($record) {
+                                    // Retrouve la classe du nouveau template
+                                    $templateClass = collect(PdfTemplateRegistry::getTemplatesFor(
+                                        PdfTemplateRegistry::resolveModelTypeFromRecord($record)
+                                    ))->first(fn($cls) => $cls::key() === $state);
+
+                                    if ($templateClass && method_exists($templateClass, 'getDefaultOptions')) {
+                                        $set('template_options', $templateClass::getDefaultOptions());
+                                    }
+                                }),
 
                             Forms\Components\Group::make()
                                 ->schema(function (callable $get, $record) {
