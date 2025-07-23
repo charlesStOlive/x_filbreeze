@@ -7,6 +7,7 @@ use Filament\Tables;
 use App\Models\Sector;
 use App\Models\Company;
 use Filament\Forms\Form;
+use App\Enums\CompanyType;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use App\Filament\Clusters\Crm;
@@ -56,6 +57,16 @@ class CompanyResource extends Resource
                                 Forms\Components\TextInput::make('slug')
                                     ->required()
                                     ->maxLength(255),
+                                Forms\Components\Select::make('type')
+                                    ->label('Type de structure')
+                                    ->options(
+                                        collect(CompanyType::cases())
+                                            ->groupBy(fn($case) => $case->category())
+                                            ->map(fn($group) => $group->mapWithKeys(fn($case) => [$case->name => $case->label()]))
+                                            ->toArray()
+                                    )
+                                    ->searchable()
+                                    ->required(),
                                 Forms\Components\Select::make('sector_id')
                                     ->relationship(name: 'sector', titleAttribute: 'title')->options(Sector::selectArrayNested()),
                                 Forms\Components\TextInput::make('nb_collab')
@@ -65,6 +76,8 @@ class CompanyResource extends Resource
                                     ->maxLength(255),
                                 Forms\Components\TextInput::make('email')
                                     ->email()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('siret')
                                     ->maxLength(255),
                             ])
                             ->columns([
@@ -95,10 +108,9 @@ class CompanyResource extends Resource
                             ]),
                         Forms\Components\Fieldset::make('Paramètres et autres')
                             ->schema([
-                                Forms\Components\TextInput::make('siret')
-                                    ->maxLength(255),
-                                Forms\Components\TextInput::make('others')
-                                    ->maxLength(255),
+                                
+                                // Forms\Components\TextInput::make('others')
+                                //     ->maxLength(255),
                                 Forms\Components\Textarea::make('memo')
                                     ->columnSpanFull(),
                             ])

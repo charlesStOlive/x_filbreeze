@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Product;
+use App\Enums\CompanyType;
 use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -31,7 +32,8 @@ class Company extends Model implements HasMedia
 
 
     protected $casts = [
-        'others' => 'json'
+        'others' => 'json',
+        'type' => CompanyType::class,
     ];
 
     /**
