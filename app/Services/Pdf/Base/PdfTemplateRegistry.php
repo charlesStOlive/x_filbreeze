@@ -3,8 +3,6 @@
 namespace App\Services\Pdf\Base;
 
 use Illuminate\Support\Arr;
-use App\Services\Pdf\Base\BasePdfTemplate;
-use Filament\Pages\BasePage;
 
 class PdfTemplateRegistry
 {
@@ -18,20 +16,17 @@ class PdfTemplateRegistry
         return config("templates-pdf.{$modelType}.default");
     }
 
-    public static function getTemplateInstance(string $key, mixed $record): ?BasePdfTemplate
+    public static function getTemplateInstance(string $key, mixed $record, ?array $options = null): ?BasePdfTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
-
-        \Log::info("Recherche du template PDF pour le type '{$modelType}' avec la clé '{$key}'");
-        \Log::info(self::getDefaultTemplateFor($modelType));
 
         $class = collect(self::getTemplatesFor($modelType))
             ->first(fn($cls) => $cls::key() === $key);
 
-        return $class ? new $class($record) : null;
+        return $class ? new $class($record, $options) : null;
     }
 
-    public static function getDefaultTemplateInstance(mixed $record): BasePdfTemplate
+    public static function getDefaultTemplateInstance(mixed $record, ?array $options = null): BasePdfTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
         $class = self::getDefaultTemplateFor($modelType);
@@ -40,7 +35,7 @@ class PdfTemplateRegistry
             throw new \RuntimeException("Aucun template PDF par défaut configuré pour le type '{$modelType}'");
         }
 
-        return new $class($record);
+        return new $class($record, $options);
     }
 
     public static function resolveModelTypeFromRecord(mixed $record): string

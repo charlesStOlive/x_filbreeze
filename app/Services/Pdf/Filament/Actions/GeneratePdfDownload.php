@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Services\Pdf\Filament\Actions;
 
@@ -23,10 +23,10 @@ class GeneratePdfDownload extends Action
 
                 return [
                     'template' => $templateClass::key(),
-                    'template_options' => [], // on laisse vide, ce sera géré par le form
+                    'template_options' => $templateClass::getDefaultOptions(), // ✅ injecte les valeurs par défaut
                 ];
             })
-            ->form(fn ($record) => [
+            ->form(fn($record) => [
                 Forms\Components\Grid::make(4)
                     ->schema([
                         Forms\Components\Group::make([
@@ -35,31 +35,28 @@ class GeneratePdfDownload extends Action
                                 ->options(
                                     collect(PdfTemplateRegistry::getTemplatesFor(
                                         PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->mapWithKeys(fn ($cls) => [$cls::key() => $cls::label()])
+                                    ))->mapWithKeys(fn($cls) => [$cls::key() => $cls::label()])
                                 )
                                 ->live()
                                 ->required()
-                                ->afterStateUpdated(function ($state, callable $set, $get) use ($record) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) use ($record) {
                                     $templateClass = collect(PdfTemplateRegistry::getTemplatesFor(
                                         PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->first(fn ($cls) => $cls::key() === $state);
+                                    ))->first(fn($cls) => $cls::key() === $state);
 
                                     if ($templateClass) {
-                                        // Remettre les options à zéro pour forcer le rechargement du formulaire
-                                        $set('template_options', []);
+                                        $set('template_options', $templateClass::getDefaultOptions());
                                     }
                                 }),
 
                             Forms\Components\Group::make()
                                 ->schema(function (callable $get) use ($record) {
                                     $key = $get('template');
-                                    $templateClass = collect(PdfTemplateRegistry::getTemplatesFor(
-                                        PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->first(fn ($cls) => $cls::key() === $key);
+                                    $options = $get('template_options') ?? [];
 
-                                    return $templateClass
-                                        ? (new $templateClass($record))->getForm()
-                                        : [];
+                                    $template = PdfTemplateRegistry::getTemplateInstance($key, $record, $options);
+
+                                    return $template?->getForm() ?? [];
                                 })
                                 ->statePath('template_options')
                                 ->columns(1),
@@ -69,14 +66,19 @@ class GeneratePdfDownload extends Action
                             Forms\Components\ViewField::make('body')
                                 ->label('Aperçu HTML')
                                 ->view('components.fields.pdf-preview')
-                                ->viewData(fn ($get) => BasePdfTemplate::getPreviewData($get, $this->getRecord()))
+                                ->viewData(fn($get) => BasePdfTemplate::getPreviewData($get, $this->getRecord()))
                                 ->disabled(),
                         ])->columnSpan(3),
                     ]),
             ])
             ->action(function (array $data, $record) {
-                $template = PdfTemplateRegistry::getTemplateInstance($data['template'], $record);
-                return $template->download($data['template_options'] ?? []);
+                $template = PdfTemplateRegistry::getTemplateInstance(
+                    $data['template'],
+                    $record,
+                    $data['template_options'] ?? []
+                );
+
+                return $template->download();
             });
     }
 }

@@ -28,7 +28,7 @@ class QuoteBasePdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        return $this->quote->title ?? 'Quote';
+        return $this->quote->code ?? 'Quote#?';
     }
 
     public function getData(array $options = []): array

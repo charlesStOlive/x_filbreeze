@@ -6,7 +6,7 @@
             @if (!empty($item['data']['product_code']))
                 <span class="text-sm text-zinc-500 ml-2">({{ $item['data']['product_code'] }})</span>
             @endif
-            @if ($item['data']['is_option'])
+            @if ($item['data']['is_option'] ?? false)
                 <span class="bg-green-500 rounded text-white mr-2 p-1">OPTION</span>
             @endif
         </div>
