@@ -26,7 +26,7 @@
             dont le siège social est situé {{ $company->address ?? 'INC' }},
             {{ $company->cp ?? '' }}
             {{ $company->city ?? '' }}.
-            Représentée par [Nom du représentant].<br>
+            Représentée par {{ $contact->full_name ?? '.............................................' }}.<br>
             <em>Ci-après désignée “le Client”</em>
         </p>
 
