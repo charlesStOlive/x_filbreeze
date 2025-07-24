@@ -132,8 +132,8 @@ class EditQuote extends EditRecord
                                     ->default(now()->addMonth())
                                     ->required(),
                             ])
-                            ->action(function (array $data): void {
-                                // ...
+                            ->action(function (array $data, Quote $record): void {
+                                $record->fill($data)->save();
                             })
                             ->slideOver(),
                     ])
