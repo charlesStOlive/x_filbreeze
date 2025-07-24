@@ -28,10 +28,6 @@ class ProductsRelationManager extends RelationManager
     protected static ?string $title = 'Grilles produits';
     protected bool $allowsDuplicates = false;
 
-
-
-
-
     public function table(Table $table): Table
     {
         return $table

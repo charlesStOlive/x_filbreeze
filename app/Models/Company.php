@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Country;
 use App\Models\Product;
 use App\Enums\CompanyType;
 use Spatie\MediaLibrary\HasMedia;
@@ -34,6 +35,7 @@ class Company extends Model implements HasMedia
     protected $casts = [
         'others' => 'json',
         'type' => CompanyType::class,
+        'country' => Country::class, 
     ];
 
     /**
@@ -69,5 +71,13 @@ class Company extends Model implements HasMedia
     public function logo_cloudinary()
     {
         return $this->morphOne(ImageCloudinary::class, 'model');
+    }
+
+    /**
+     * GETTERS
+     */
+    public function countryName(): Attribute
+    {
+        return Attribute::get(fn () => $this->country?->label());
     }
 }

@@ -20,6 +20,7 @@ use App\Filament\Components\Forms\CloudinaryFileUpload;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ContactsRelationManager;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ProductsRelationManager;
 
 class CompanyResource extends Resource
@@ -99,8 +100,9 @@ class CompanyResource extends Resource
                                     ->numeric(),
                                 Forms\Components\TextInput::make('distance')
                                     ->numeric(),
-                                Forms\Components\TextInput::make('country_id')
-                                    ->numeric(),
+                                Forms\Components\Select::make('country')
+                                    ->label('Pays')
+                                    ->options(\App\Enums\Country::options()),
                             ])
                             ->columns([
                                 'sm' => 1,
@@ -108,7 +110,7 @@ class CompanyResource extends Resource
                             ]),
                         Forms\Components\Fieldset::make('Paramètres et autres')
                             ->schema([
-                                
+
                                 // Forms\Components\TextInput::make('others')
                                 //     ->maxLength(255),
                                 Forms\Components\Textarea::make('memo')
@@ -196,6 +198,7 @@ class CompanyResource extends Resource
     {
         return [
             ProductsRelationManager::class,
+            ContactsRelationManager::class,
         ];
     }
 
