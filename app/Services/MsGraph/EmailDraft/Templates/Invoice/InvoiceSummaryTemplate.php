@@ -11,6 +11,11 @@ use Filament\Forms; // Important pour l'autocompletion des champs
 
 class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
 {
+    public function __construct(protected Invoice $invoice, ?array $options = null)
+    {
+        parent::__construct($options); // ajoute cette ligne
+    }
+
     public static function key(): string
     {
         return 'invoice_summary';
@@ -24,8 +29,6 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
     {
         return $this->invoice;
     }
-
-    public function __construct(protected Invoice $invoice) {}
 
     public function getView(): string
     {
@@ -65,19 +68,29 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
 
     public function getData(array $options = []): array
     {
-        $options = array_merge(static::getDefaultOptions(), $options);
+        $merged = array_merge(
+            static::getDefaultOptions(),
+            $this->options ?? [],
+            $options
+        );
 
         return [
             'invoice' => $this->invoice,
             'client' => $this->invoice->client,
             'contact' => $this->invoice->contact,
             'user' => Auth::user(),
-            'options' => $options,
+            'options' => $merged,
         ];
     }
 
     public function getSubject(array $options = []): string
     {
+        $merged = array_merge(
+            static::getDefaultOptions(),
+            $this->options ?? [],
+            $options
+        );
+
         return "Résumé facture #{$this->invoice->invoice_number}";
     }
 }

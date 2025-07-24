@@ -3,19 +3,54 @@
 namespace App\Services\MsGraph\EmailDraft\Base;
 
 use Filament\Forms\Components\Group;
-
 use Filament\Forms\Components\CheckboxList;
-use App\Services\MsGraph\EmailDraft\Base\HasPj;
 
 abstract class BaseDraftEmailTemplate
 {
-    abstract public function getView(): string;
+    protected ?array $options = null;
 
-    abstract public function getData(array $options = []): array;
+    public function __construct(?array $options = null)
+    {
+        $this->options = $options !== null
+            ? array_merge(static::getDefaultOptions(), $options)
+            : null;
+    }
+
+    abstract public static function key(): string;
+
+    abstract public static function label(): string;
+
+    abstract public function getView(): string;
 
     abstract public function getSubject(array $options = []): string;
 
     abstract protected function getRecord(): mixed;
+
+    abstract public function getData(array $options = []): array;
+
+    public static function getDefaultOptions(): array
+    {
+        return [];
+    }
+
+    public function getMergedOptions(array $runtimeOptions = []): array
+    {
+        return array_merge(
+            static::getDefaultOptions(),
+            $this->options ?? [],
+            $runtimeOptions
+        );
+    }
+
+    public function getOption(string $key, mixed $default = null): mixed
+    {
+        return $this->options[$key] ?? static::getDefaultOptions()[$key] ?? $default;
+    }
+
+    public function hasOption(string $key): bool
+    {
+        return isset($this->options[$key]);
+    }
 
     public function hasPj(): bool
     {
@@ -24,10 +59,7 @@ abstract class BaseDraftEmailTemplate
 
     public static function hasPjStatic(): bool
     {
-        return in_array(
-            \App\Services\MsGraph\EmailDraft\Base\HasPj::class,
-            class_implements(static::class)
-        );
+        return in_array(HasPj::class, class_implements(static::class));
     }
 
     public function getAttachmentForm(): ?Group
@@ -47,28 +79,20 @@ abstract class BaseDraftEmailTemplate
     {
         if (! static::hasPjStatic()) return [];
 
-        $pjs = collect(static::getAvailableAttachments())
+        return collect(static::getAvailableAttachments())
             ->mapWithKeys(fn($default, $cls) => [$cls::key() => $cls::label()])
             ->toArray();
-
-        \Log::info('available attachments', $pjs);
-
-        return $pjs;
     }
 
     public static function getDefaultAttachments(): array
     {
         if (! static::hasPjStatic()) return [];
 
-        $default = collect(static::getAvailableAttachments())
+        return collect(static::getAvailableAttachments())
             ->filter(fn($default) => $default === true)
             ->keys()
             ->map(fn($cls) => $cls::key())
             ->toArray();
-
-        \Log::info('default attachments', $default);
-
-        return $default;
     }
 
     public function generateAttachments(array $options = [], array $selected = []): array
@@ -79,8 +103,11 @@ abstract class BaseDraftEmailTemplate
 
         return collect(static::getAvailableAttachments())
             ->filter(fn($default, $cls) => in_array($cls::key(), $selected))
-            ->map(fn($default, $cls) => (new $cls($record))->generateFile($options))
+            ->map(fn($default, $cls) => (new $cls($record))->generateFile(
+                $this->getMergedOptions($options)
+            ))
             ->values()
             ->all();
     }
 }
+

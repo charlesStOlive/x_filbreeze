@@ -19,26 +19,26 @@ class EmailDraftTemplateRegistry
         return config("templates-email-draft.{$modelType}.default");
     }
 
-    public static function getTemplateInstance(string $key, mixed $record): ?BaseDraftEmailTemplate
+    public static function getTemplateInstance(string $key, mixed $record, ?array $options = null): ?BaseDraftEmailTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
 
         $class = collect(self::getTemplatesFor($modelType))
             ->first(fn($cls) => $cls::key() === $key);
 
-        return $class ? new $class($record) : null;
+        return $class ? new $class($record, $options) : null;
     }
 
-    public static function getDefaultTemplateInstance(mixed $record): BaseDraftEmailTemplate
+    public static function getDefaultTemplateInstance(mixed $record, ?array $options = null): BaseDraftEmailTemplate
     {
         $modelType = self::resolveModelTypeFromRecord($record);
         $class = self::getDefaultTemplateFor($modelType);
 
         if (! $class || ! class_exists($class)) {
-            throw new \RuntimeException("Aucun template par défaut configuré pour le type '{$modelType}'");
+            throw new \RuntimeException("Aucun template email par défaut configuré pour le type '{$modelType}'");
         }
 
-        return new $class($record);
+        return new $class($record, $options);
     }
 
     public static function resolveModelTypeFromRecord(mixed $record): string
@@ -50,3 +50,4 @@ class EmailDraftTemplateRegistry
             ?? throw new \InvalidArgumentException("Aucun type configuré pour le modèle [{$class}].");
     }
 }
+

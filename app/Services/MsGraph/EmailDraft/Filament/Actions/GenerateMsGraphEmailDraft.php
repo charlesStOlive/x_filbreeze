@@ -25,8 +25,8 @@ class GenerateMsGraphEmailDraft extends Action
                 $template = EmailDraftTemplateRegistry::getDefaultTemplateInstance($record);
                 $templateClass = get_class($template);
                 $options = $templateClass::getDefaultOptions();
+
                 $rendered = app(EmailDraftRenderer::class)->render($template, $options);
-                \Log::info($templateClass::getDefaultAttachments());
 
                 return [
                     'template' => $templateClass::key(),
@@ -37,7 +37,7 @@ class GenerateMsGraphEmailDraft extends Action
                     'attachments' => $templateClass::getDefaultAttachments(),
                 ];
             })
-            ->form(fn($record) => [
+            ->form(fn ($record) => [
                 Forms\Components\Split::make([
                     Forms\Components\Group::make([
                         Forms\Components\Select::make('template')
@@ -49,20 +49,18 @@ class GenerateMsGraphEmailDraft extends Action
                             )
                             ->live()
                             ->required()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
-                                $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor(
-                                    EmailDraftTemplateRegistry::resolveModelTypeFromRecord($record)
-                                ))->first(fn($cls) => $cls::key() === $state);
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) use ($record) {
+                                $template = EmailDraftTemplateRegistry::getTemplateInstance($state, $record);
 
-                                if (! $templateClass) return;
+                                if (! $template) return;
 
-                                $template = new $templateClass($record);
-                                $options = $templateClass::getDefaultOptions();
+                                $options = $template::getDefaultOptions();
                                 $rendered = app(EmailDraftRenderer::class)->render($template, $options);
 
+                                $set('template_options', $options);
                                 $set('subject', $rendered['subject']);
                                 $set('body', $rendered['body']);
-                                $set('template_options', $options);
+                                $set('attachments', $template::getDefaultAttachments());
                             }),
 
                         Forms\Components\Select::make('to')
@@ -75,13 +73,10 @@ class GenerateMsGraphEmailDraft extends Action
                         Forms\Components\Group::make()
                             ->schema(function (callable $get, $record) {
                                 $key = $get('template');
-                                $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor(
-                                    EmailDraftTemplateRegistry::resolveModelTypeFromRecord($record)
-                                ))->first(fn($cls) => $cls::key() === $key);
+                                $options = $get('template_options') ?? [];
 
-                                return $templateClass
-                                    ? $templateClass::getForm($templateClass::getDefaultOptions())
-                                    : [];
+                                $template = EmailDraftTemplateRegistry::getTemplateInstance($key, $record, $options);
+                                return $template?->getForm() ?? [];
                             })
                             ->statePath('template_options')
                             ->columns(1),
@@ -93,18 +88,13 @@ class GenerateMsGraphEmailDraft extends Action
                         Forms\Components\Group::make()
                             ->schema(function (callable $get, $record) {
                                 $key = $get('template');
-                                $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor(
-                                    EmailDraftTemplateRegistry::resolveModelTypeFromRecord($record)
-                                ))->first(fn($cls) => $cls::key() === $key);
+                                $options = $get('template_options') ?? [];
 
-                                if (! $templateClass) return [];
-
-                                $template = new $templateClass($record);
-
-                                return $template->hasPj()
+                                $template = EmailDraftTemplateRegistry::getTemplateInstance($key, $record, $options);
+                                return $template && $template->hasPj()
                                     ? [$template->getAttachmentForm()]
                                     : [];
-                            })
+                            }),
                     ]),
 
                     Forms\Components\ViewField::make('body')
@@ -113,15 +103,13 @@ class GenerateMsGraphEmailDraft extends Action
                         ->viewData(function (callable $get, $record) {
                             $templateKey = $get('template');
                             $options = $get('template_options') ?? [];
-                            $templateClass = collect(EmailDraftTemplateRegistry::getTemplatesFor(
-                                EmailDraftTemplateRegistry::resolveModelTypeFromRecord($record)
-                            ))->first(fn($cls) => $cls::key() === $templateKey);
 
-                            if (! $templateClass) return ['html' => '<p>Template introuvable</p>'];
+                            $template = EmailDraftTemplateRegistry::getTemplateInstance($templateKey, $record, $options);
+                            if (! $template) {
+                                return ['html' => '<p>Template introuvable</p>'];
+                            }
 
-                            $template = new $templateClass($record);
                             $rendered = app(EmailDraftRenderer::class)->render($template, $options);
-
                             return ['html' => $rendered['body']];
                         })
                         ->disabled()
@@ -135,7 +123,12 @@ class GenerateMsGraphEmailDraft extends Action
                     throw new \Exception('Aucun utilisateur Microsoft Graph lié.');
                 }
 
-                $template = EmailDraftTemplateRegistry::getTemplateInstance($data['template'], $record);
+                $template = EmailDraftTemplateRegistry::getTemplateInstance(
+                    $data['template'],
+                    $record,
+                    $data['template_options'] ?? []
+                );
+
                 $rendered = app(EmailDraftRenderer::class)->render($template, $data['template_options'] ?? []);
 
                 $attachments = $template->generateAttachments(
@@ -143,16 +136,16 @@ class GenerateMsGraphEmailDraft extends Action
                     $data['attachments'] ?? []
                 );
 
-                \Log::info('Attachments: ', $attachments);
-                $to = $data['to'] ?? [];
-
-                $data = [
+                $payload = [
                     'subject' => $rendered['subject'],
-                    'body' => [ 'contentType' => 'HTML', 'content' => $rendered['body'] ],
-                    'toRecipients' => EmailMessageDTO::formatRecipientsFromEmails($to),
+                    'body' => [
+                        'contentType' => 'HTML',
+                        'content' => $rendered['body'],
+                    ],
+                    'toRecipients' => EmailMessageDTO::formatRecipientsFromEmails($data['to'] ?? []),
                 ];
 
-                app(MsGraphEmailService::class)->createNewDraftAndUploadAttachments($msUser, $data, $attachments);
+                app(MsGraphEmailService::class)->createNewDraftAndUploadAttachments($msUser, $payload, $attachments);
 
                 Notification::make()
                     ->title('Brouillon généré')
@@ -161,3 +154,4 @@ class GenerateMsGraphEmailDraft extends Action
             });
     }
 }
+

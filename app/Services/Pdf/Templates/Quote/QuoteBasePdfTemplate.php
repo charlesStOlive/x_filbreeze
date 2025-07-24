@@ -9,7 +9,10 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class QuoteBasePdfTemplate extends BasePdfTemplate
 {
-    public function __construct(protected Quote $quote) {}
+    public function __construct(protected Quote $quote, ?array $options = null)
+    {
+        parent::__construct($options); // Important
+    }
 
     public static function key(): string
     {
@@ -33,12 +36,16 @@ class QuoteBasePdfTemplate extends BasePdfTemplate
 
     public function getData(array $options = []): array
     {
-        $options = array_merge(static::getDefaultOptions(), $options);
+        $merged = array_merge(
+            static::getDefaultOptions(),
+            $this->options ?? [],
+            $options
+        );
 
         return [
             'quote' => $this->quote,
             'user' => Auth::user(),
-            'options' => $options,
+            'options' => $merged,
         ];
     }
 
@@ -53,15 +60,14 @@ class QuoteBasePdfTemplate extends BasePdfTemplate
     public function getForm(): array
     {
         return [
-
-            
             Forms\Components\Checkbox::make('avoid_break')
                 ->label('Empêcher les sauts de page dans une cellule')
-                ->default(true)
+                ->default($this->getOption('avoid_break', true))
                 ->live(),
+
             Forms\Components\Checkbox::make('avoid_amount_break')
                 ->label('Empêcher les sauts de page dans une cellule')
-                ->default(true)
+                ->default($this->getOption('avoid_amount_break', true))
                 ->live(),
         ];
     }
