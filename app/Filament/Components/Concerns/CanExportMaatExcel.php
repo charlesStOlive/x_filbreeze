@@ -21,16 +21,18 @@ trait CanExportMaatExcel
 
         // Auto-fill form with default options if available
         $this->fillForm(function () use ($exporterClass) {
-            return method_exists($exporterClass, 'getDefaultOptions')
-                ? $exporterClass::getDefaultOptions()
-                : [];
+            return [];
         });
+
 
         // Dynamically build form schema if getForm() exists
         $this->form(function () use ($exporterClass) {
-            return method_exists($exporterClass, 'hasForm') && $exporterClass::hasForm()
-                ? $exporterClass::getForm($exporterClass::getDefaultOptions())
-                : [];
+            $exporter = app()->make($exporterClass, [
+                'record' => $this->maatExporterRecord,
+                'options' => [], // on laisse les defaults être gérés par le constructeur
+            ]);
+
+            return method_exists($exporter, 'getForm') ? $exporter->getForm() : [];
         });
 
         $this->action(function (array $data) use ($exporterClass) {
@@ -44,8 +46,6 @@ trait CanExportMaatExcel
             $this->cleanOldExports();
 
             $url = Storage::disk('public')->url('exports/' . basename($generated->path));
-
-            \Log::info('Export completed: ' . $url);
 
             FilamentNotification::make()
                 ->title('Export terminé')

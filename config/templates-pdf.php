@@ -4,6 +4,7 @@ return [
     'types' => [
         \App\Models\Invoice::class => 'invoice',
         \App\Models\Company::class => 'company',
+        \App\Models\Quote::class => 'quote',
     ],
 
     'invoice' => [
@@ -20,6 +21,13 @@ return [
         'default' => \App\Services\Pdf\Templates\Company\CompanyNdaPdfTemplate::class,
         'templates' => [
             \App\Services\Pdf\Templates\Company\CompanyNdaPdfTemplate::class,
+        ],
+    ],
+
+    'quote' => [
+        'default' => \App\Services\Pdf\Templates\Quote\QuoteBasePdfTemplate::class,
+        'templates' => [
+            \App\Services\Pdf\Templates\Quote\QuoteBasePdfTemplate::class,
         ],
     ],
 ];

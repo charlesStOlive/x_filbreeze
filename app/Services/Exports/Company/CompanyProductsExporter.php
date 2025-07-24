@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Exports;
+namespace App\Services\Exports\Company;
 
 use App\Models\Company;
 use App\Models\Product;
@@ -20,7 +20,7 @@ class CompanyProductsExporter extends BaseExcelTemplate implements DocumentProdu
 {
     protected static ?string $model = Product::class;
 
-    public function __construct(protected ?Company $record = null) {}
+    public function __construct(protected mixed $record = null) {}
 
     public function getColumns(): array
     {
@@ -50,16 +50,16 @@ class CompanyProductsExporter extends BaseExcelTemplate implements DocumentProdu
         ];
     }
 
-    public static function getForm(array $defaultOptions = []): array
+    public function getForm(): array
     {
         return [
             Group::make([
                 Toggle::make('show_only_company_product')
                     ->label('Afficher uniquement les produits liés à la société')
-                    ->default($defaultOptions['show_only_company_product'] ?? false),
+                    ->default($this->options['show_only_company_product'] ?? false),
                 Toggle::make('set_euro_column')
                     ->label('Activer format €')
-                    ->default($defaultOptions['set_euro_column'] ?? true),
+                    ->default($this->options['set_euro_column'] ?? true),
             ]),
         ];
     }

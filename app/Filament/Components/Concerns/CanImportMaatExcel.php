@@ -14,6 +14,7 @@ trait CanImportMaatExcel
         $this->maatImporterClass = $importerClass;
 
         $this->form(function (): array {
+            $importer = new $this->maatImporterClass(); // instance SANS options pour afficher getForm()
             return array_merge([
                 Forms\Components\FileUpload::make('file')
                     ->label('Fichier Excel')
@@ -27,12 +28,8 @@ trait CanImportMaatExcel
                     ])
                     ->required()
                     ->storeFiles(false),
-            ], $this->maatImporterClass::getForm());
+            ], method_exists($importer, 'getForm') ? $importer->getForm() : []);
         });
-
-        if (is_subclass_of($importerClass, \App\Contracts\HasFillForm::class)) {
-            $this->fillForm(fn($livewire) => $importerClass::getFillForm($livewire));
-        }
 
         $this->action(function (array $data): void {
             $options = $data;
@@ -46,3 +43,4 @@ trait CanImportMaatExcel
         return $this;
     }
 }
+

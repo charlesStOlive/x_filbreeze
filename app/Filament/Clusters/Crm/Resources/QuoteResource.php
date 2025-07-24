@@ -7,6 +7,7 @@ use Filament\Tables;
 use App\Models\Quote;
 use Filament\Actions;
 use App\Models\Contact;
+use App\Models\Product;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
@@ -15,6 +16,7 @@ use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Builder;
 use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
+use App\Services\Helpers\ProductFormHelper;
 use App\Filament\Components\Tables\DateColumn;
 use App\Filament\ModelStates\StateSelectFilter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -80,6 +82,14 @@ class QuoteResource extends Resource
     public static function getContactAndCompanyFields($companyEditable = true): array
     {
         return [
+            Forms\Components\Select::make('company_id')
+                ->label('Client')
+                ->relationship('company', 'title')
+                ->searchable()
+                ->required()
+                ->live(onBlur:true)
+                ->disabled(!$companyEditable),
+
             Forms\Components\Select::make('contact_id')
                 ->label('Contact')
                 ->relationship(
@@ -89,7 +99,7 @@ class QuoteResource extends Resource
                 )
                 ->searchable(fn($get) => $get('company_id') ? false : true)
                 ->required()
-                ->reactive()
+                ->live(onBlur:true)
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
                         $contact = Contact::find($state);
@@ -98,13 +108,7 @@ class QuoteResource extends Resource
                         }
                     }
                 }),
-            Forms\Components\Select::make('company_id')
-                ->label('Client')
-                ->relationship('company', 'title')
-                ->searchable()
-                ->required()
-                ->reactive()
-                ->disabled(!$companyEditable),
+            
 
         ];
     }
@@ -122,6 +126,7 @@ class QuoteResource extends Resource
                         ->cloneable()
                         ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire))
                         ->blocks([
+                            self::getProductBlock(),
                             self::getForfaitBlock(),
                             self::getTasksBlock(),
                             self::getRemiseBlock(),
@@ -129,6 +134,125 @@ class QuoteResource extends Resource
                         ->columnSpanFull(),
                 ])
         ];
+    }
+
+    protected static function getProductBlock()
+    {
+        return Forms\Components\Builder\Block::make('product')
+            ->icon('fas-box')
+            ->label(function (?array $state): string {
+                if ($state === null) {
+                    return 'Produit';
+                }
+                return sprintf('%s %s (%s €HT)', 'Produit : ', $state['product_title'] ?? 'inc',  $state['total'] ?? 0);
+            })
+            ->schema([
+                Forms\Components\Select::make('product_id')
+                    ->label('Produit')
+                    ->preload()
+                    ->searchable()
+                    ->options(function (callable $get) {
+                        $products = Product::with('gamme')->get();
+
+                        // Cas du produit supprimé
+                        $selectedId = $get('product_id');
+                        $selectedProduct = $selectedId ? Product::find($selectedId) : null;
+
+                        $grouped = $products
+                            ->groupBy(fn($product) => $product->gamme?->name ?? 'Autre')
+                            ->mapWithKeys(fn($group) => [
+                                $group->first()->gamme->name ?? 'Autre' => $group->pluck('title', 'id')->toArray()
+                            ])
+                            ->toArray();
+
+                        // Si produit manquant, l'ajouter manuellement avec libellé personnalisé
+                        if ($selectedId && !$selectedProduct) {
+                            $grouped['⚠️ Produits supprimés'] = [
+                                $selectedId => "❌ Produit supprimé (ID $selectedId)"
+                            ];
+                        }
+
+                        return $grouped;
+                    })
+                    ->getSearchResultsUsing(
+                        fn(string $search) =>
+                        Product::with('gamme')
+                            ->where('title', 'like', "%{$search}%")
+                            ->orWhere('code', 'like', "%{$search}%")
+                            ->limit(15)
+                            ->get()
+                            ->groupBy(fn($product) => $product->gamme?->name ?? 'Autre')
+                            ->mapWithKeys(fn($group) => [
+                                $group->first()->gamme->name ?? 'Autre' => $group->pluck('title', 'id')->toArray()
+                            ])
+                            ->toArray()
+                    )
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        if (!$state) return;
+
+                        $product = Product::with('companies')->find($state);
+                        if (!$product) return;
+
+                        $companyId = $get('../../../../company_id');
+                        $company = $companyId ? Company::find($companyId) : null;
+
+                        $set('cu', ProductFormHelper::getPriceForCompany($product, $company));
+                        $set('product_title', $product->title);
+                        $set('product_code', $product->code);
+                        $set('type', $product->type->value);
+
+                        if (!$get('title')) {
+                            $set('title', $product->title);
+                        }
+                    }),
+
+                Forms\Components\Hidden::make('product_title')->dehydrated(),
+
+                Forms\Components\TextInput::make('product_code')
+                    ->label('Code produit')
+                    ->disabled()
+                    ->dehydrated()
+                    ->visible(fn(callable $get) => filled($get('product_code'))),
+
+                Forms\Components\TextInput::make('title')
+                    ->label('Titre personnalisé')
+                    ->required()
+                    ->visible(fn(callable $get) => filled($get('product_id')))
+                    ->live(onBlur:true)
+                    ->afterStateHydrated(function ($state, callable $set, callable $get) {
+                        if (!$state && $get('product_title')) {
+                            $set('title', $get('product_title'));
+                        }
+                    }),
+
+                Forms\Components\Toggle::make('is_option')
+                    ->label('Ligne en option')
+                    ->default(false)
+                    ->columnSpanFull()
+                    ->live(onBlur:true),
+
+                Forms\Components\Hidden::make('type')->dehydrated(),
+
+                Forms\Components\MarkdownEditor::make('description')
+                    ->label('Description élement')
+                    ->columnSpanFull()
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                        'table',
+                    ]),
+
+                Forms\Components\Grid::make('Détails')
+                    ->label(false)
+                    ->schema(
+                        fn(callable $get) =>
+                        $get('type')
+                            ? ProductFormHelper::getDynamicFormFields($get('type'))
+                            : []
+                    )
+                    ->columns(3),
+            ])
+            ->columns(3);
     }
 
     protected static function getForfaitBlock()
@@ -202,64 +326,76 @@ class QuoteResource extends Resource
             ->columns(2);
     }
 
-    public static function getDuplicateAction() {
+    public static function getDuplicateAction()
+    {
         return Actions\Action::make('duplicate')
-                ->label('Dupliquer')
-                ->icon('heroicon-s-document-duplicate')
-                ->modalHeading('Dupliquer')
-                ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> un devis <br> pour créer une nouvelle version cliquez sur nouvelle vesion dans la page d'édition "))
-                ->fillForm(fn($record): array => [
-                    'client_id' => $record->client_id,
-                    'contact_id' => $record->contact_id,
-                ])
-                ->form([
-                    ...self::getContactAndCompanyFields(),
-                    Forms\Components\TextInput::make('title')
-                        ->label('Titre')
-                        ->required(),
-                    Forms\Components\DatePicker::make('end_at')
-                        ->label('Fin')
-                        ->default(now()->addMonth())
-                        ->required()
-                ])
-                ->action(function ($record, $data) {
-                    $newRecord = $record->createNewReplication($data);
-                    return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
-                });
+            ->label('Dupliquer')
+            ->icon('heroicon-s-document-duplicate')
+            ->modalHeading('Dupliquer')
+            ->modalDescription(new HtmlString("Attention cette action permet de <b>dupliquer</b> un devis <br> pour créer une nouvelle version cliquez sur nouvelle vesion dans la page d'édition "))
+            ->fillForm(fn($record): array => [
+                'client_id' => $record->client_id,
+                'contact_id' => $record->contact_id,
+            ])
+            ->form([
+                ...self::getContactAndCompanyFields(),
+                Forms\Components\TextInput::make('title')
+                    ->label('Titre')
+                    ->required(),
+                Forms\Components\DatePicker::make('end_at')
+                    ->label('Fin')
+                    ->default(now()->addMonth())
+                    ->required()
+            ])
+            ->action(function ($record, $data) {
+                $newRecord = $record->createNewReplication($data);
+                return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
+            });
     }
 
     public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false)
     {
-        // Récupère tous les éléments du parent
-        //\Log::info('updateItemsTotal parent ? '.$parent);
         $items = $get('items') ?? [];
-        if($parent) {
+        if ($parent) {
             $items = $get('../../..') ?? [];
         }
-        //\Log::info($items);
-        // Séparer les éléments par type
+
         $totals = collect($items)
             ->partition(fn($item) => $item['type'] === 'remise');
 
-        // Calcule la somme des totaux des remises
         $totalRemise = $totals[0]
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
 
-        // Calcule la somme des totaux des autres éléments
         $totalHtBr = $totals[1]
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
 
-        // Mettre à jour total_ht_br
+        // Ajout : total sans les lignes en option
+        $totalAvOption = $totals[1]
+            ->filter(fn($item) => empty($item['data']['is_option'])) // lignes non optionnelles
+            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->sum();
+
+        $totalOptions = $totals[1]
+            ->filter(fn($item) => !empty($item['data']['is_option'])) // lignes optionnelles
+            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->sum();
+
         $totalHt = $totalHtBr - $totalRemise;
-        if($parent) {
+
+        if ($parent) {
             $set('../../../total_ht_br', $totalHtBr);
             $set('../../../total_ht', $totalHt);
+            $set('../../../total_avant_options', $totalAvOption);
+            $set('../../../total_options', $totalOptions);
         } else {
             $set('total_ht_br', $totalHtBr);
             $set('total_ht', $totalHt);
+            $set('total_avant_options', $totalAvOption);
+            $set('total_options', $totalOptions);
         }
+
         $livewire->dispatch('totalsUpdated');
     }
 
@@ -267,7 +403,7 @@ class QuoteResource extends Resource
     public static function updateTaskTotal(callable $set, callable $get, $livewire)
     {
         // Récupérer les valeurs de cu et qty
-        
+
         $cu = $get('cu') ?? 0;
         $qty = $get('qty') ?? 0;
         // Calculer le total pour ce bloc
@@ -285,7 +421,7 @@ class QuoteResource extends Resource
             Forms\Components\TextInput::make('title')
                 ->label('Titre élement')
                 ->required()
-                ->reactive()
+                ->live(onBlur:true)
                 ->columnSpanFull(),
             Forms\Components\MarkdownEditor::make('description')
                 ->label('Description élement')
@@ -323,7 +459,7 @@ class QuoteResource extends Resource
     {
         return [
             'index' => Pages\ListQuotes::route('/'),
-            'edit' => Pages\EditQuoteNew::route('/{record}/edit'),
+            'edit' => Pages\EditQuote::route('/{record}/edit'),
             'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }

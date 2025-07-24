@@ -9,17 +9,20 @@ use App\Services\Exports\FromCollectionExport;
 use App\Services\Document\Dto\GeneratedDocumentDTO;
 use App\Services\Document\Contracts\DocumentProducer;
 use App\Services\Document\Concerns\InteractsWithDocumentProducer;
-
 abstract class BaseExcelTemplate implements DocumentProducer
 {
-
     use InteractsWithDocumentProducer;
 
     protected array $options = [];
 
-    public function __construct(array $options = [])
+    public function __construct(protected mixed $record = null, array $options = [])
     {
-        $this->options = $options;
+        $this->options = array_merge(static::getDefaultOptions(), $options);
+    }
+
+    public function getOptions(): array
+    {
+        return $this->options;
     }
 
     abstract public function getColumns(): array;
@@ -28,7 +31,7 @@ abstract class BaseExcelTemplate implements DocumentProducer
 
     abstract public function getData(array $options = []): Collection;
 
-    public function getColumnFormats(): array
+    public function getColumnFormats(array $options = []): array
     {
         return [];
     }
@@ -48,11 +51,10 @@ abstract class BaseExcelTemplate implements DocumentProducer
         return [];
     }
 
-    public static function getForm(array $defaultOptions = []): array
+    public function getForm(): array
     {
         return [];
     }
-
 
     public function createDocument(array $options = []): string
     {
@@ -66,8 +68,8 @@ abstract class BaseExcelTemplate implements DocumentProducer
         $fileName = uniqid('excel_', true) . '.xlsx';
         $relativePath = 'tmp/' . $fileName;
 
-        \Maatwebsite\Excel\Facades\Excel::store(
-            new \App\Services\Exports\FromCollectionExport(
+        Excel::store(
+            new FromCollectionExport(
                 rows: $rows,
                 headings: array_values($this->getColumns()),
                 columnFormats: $this->getColumnFormats($options),
@@ -76,21 +78,21 @@ abstract class BaseExcelTemplate implements DocumentProducer
             'local'
         );
 
-        return \Storage::disk('local')->path($relativePath);
+        return Storage::disk('local')->path($relativePath);
     }
 
-    public function generateFile(array $options = []): \App\Services\Document\Dto\GeneratedDocumentDTO
+    public function generateFile(array $options = []): GeneratedDocumentDTO
     {
         $fileName = $this->getFileName($options) . '.xlsx';
         $relativePath = static::getExportDirectory() . '/' . $fileName;
-        $publicPath = \Storage::disk('public')->path($relativePath);
+        $publicPath = Storage::disk('public')->path($relativePath);
 
         $tempPath = $this->createDocument($options);
 
-        \Storage::disk('public')->put($relativePath, file_get_contents($tempPath));
+        Storage::disk('public')->put($relativePath, file_get_contents($tempPath));
         @unlink($tempPath);
 
-        return new \App\Services\Document\Dto\GeneratedDocumentDTO(
+        return new GeneratedDocumentDTO(
             path: $publicPath,
             name: $fileName,
             mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -99,6 +101,6 @@ abstract class BaseExcelTemplate implements DocumentProducer
 
     public static function hasForm(): bool
     {
-        return method_exists(static::class, 'getForm') && !empty(static::getForm(static::getDefaultOptions()));
+        return true; // car on appelle désormais getForm() sur l'instance
     }
 }

@@ -14,11 +14,12 @@ use Filament\Tables\Actions\AttachAction;
 use Filament\Tables\Actions\DetachAction;
 use Filament\Tables\Actions\ExportAction;
 use Illuminate\Database\Eloquent\Builder;
-use App\Services\Exports\CompanyProductsExporter;
+
 use App\Services\Imports\CompanyProductsImporter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Resources\RelationManagers\RelationManager;
 use App\Filament\Components\Tables\ImportMaatExcelAction;
+use App\Services\Exports\Company\CompanyProductsExporter;
 use App\Filament\Components\Tables\ExportMaatExcelTableAction;
 
 

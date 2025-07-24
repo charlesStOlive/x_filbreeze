@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Services\Imports;
 
@@ -12,11 +12,28 @@ abstract class BaseFilImporter implements HasImportForm
     public array $errors = [];
     public int $created = 0;
     public int $updated = 0;
+
     protected array $options = [];
 
     public function __construct(array $options = [])
     {
-        $this->options = $options;
+        // Fusionne les options avec celles par défaut définies par l'importeur
+        $this->options = array_merge(static::getDefaultOptions(), $options);
+    }
+
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+    public static function getDefaultOptions(): array
+    {
+        return [];
+    }
+
+    public function getForm(): array
+    {
+        return [];
     }
 
     public function finalize(): void

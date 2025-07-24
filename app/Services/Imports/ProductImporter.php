@@ -13,16 +13,18 @@ use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 
 class ProductImporter extends BaseFilImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
 {
-    public static function getForm(): array
+    public function getForm(): array
     {
         return [
             Checkbox::make('create_missing_gamme')
                 ->label('Créer automatiquement les gammes manquantes')
-                ->live(),
+                ->live()
+                ->default($this->options['create_missing_gamme'] ?? false),
 
             Checkbox::make('block_if_gamme_missing')
                 ->label('Refuser la création si la gamme est absente')
-                ->default(true),
+                ->default($this->options['block_if_gamme_missing'] ?? true)
+                ->live(),
         ];
     }
 

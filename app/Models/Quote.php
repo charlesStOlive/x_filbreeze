@@ -38,6 +38,8 @@ class Quote extends Model
         'remise',
         'total_ht_br',
         'total_ht',
+        'total_avant_options',
+        'total_options',
         'has_tva',
         'tx_tva',
         'tva',

@@ -1,29 +1,9 @@
-<!DOCTYPE html>
-<html lang="fr">
+@extends('pdf.layouts.main')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Devis - {{ $quote->title }}</title>
-    @if ($preview ?? false)
-        @vite('resources/css/pdf/theme.css') {{-- Vite pour la prévisualisation (avec rechargement à chaud) --}}
-    @else
-        <link href="{{ $cssPath }}" rel="stylesheet"> {{-- CSS statique pour production --}}
-    @endif
-    <style>
-        :root {
-            --font-family: 'Inter';
-        }
-    </style>
-    <!-- Inclure les styles CSS principaux -->
-</head>
+@section('title', 'Document #{{ $quote->name }}')
 
-<body>
-    
-</body>
-
-</html>
-<div class="overflow-hidden font-arial">
+@section('content')
+    <div class="overflow-hidden font-arial">
         <div class="pt-4 pb-8 -ml-2">
             <img class="object-cover h-16" src="{{ asset('images/logo.png') }}" />
         </div>
@@ -59,13 +39,12 @@
                 <div><span class="text-zinc-600 uppercase font-light text-xl"> TITRE : </span>{{ $quote->title }}</div>
                 @if (!empty($quote->description))
                     <div class=" font-light text-xl text-zinc-600 uppercase pb-2">Description</div>
-                    <div
-                        class="prose prose-li:m-0 prose-p:my-0 prose-ul:mt-0 max-w-none  bg-slate-200 p-2 rounded-md">
+                    <div class="prose prose-li:m-0 prose-p:my-0 prose-ul:mt-0 max-w-none  bg-slate-200 p-2 rounded-md">
                         {!! str($quote->description)->markdown() !!}
                     </div>
                 @endif
             </div>
-            <div class="{{ $options['avoid_full_break'] ? 'avoid-page-break' : '' }}">
+            <div class="{{ $options['avoid_break'] ? 'avoid-page-break' : '' }}">
                 <div
                     class="pb-4 grid grid-cols-6 px-2 w-full border-y bg-primary-base py-4  text-white uppercase text-right rounded-md">
                     <div class="col-span-4 text-left text-xl">Postes</div>
@@ -79,10 +58,10 @@
             <div @if ($options['avoid_amount_break']) style="page-break-inside: avoid;" @endif>
                 @if ($quote->total_ht_br != $quote->total_ht)
                     <div class=" pt-4 w-full grid grid-cols-6 text-lg text-zinc-600 text-right">
-                        <div class="col-span-4">
+                        <div class="col-span-3">
                             &nbsp;
                         </div>
-                        <div class="col-span-1">
+                        <div class="col-span-2">
                             Total avant remise
                         </div>
                         <div class="col-span-1">
@@ -90,17 +69,53 @@
                         </div>
                     </div>
                 @endif
-                <div class="pt-4 w-full grid grid-cols-6  text-lg text-right">
-                    <div class="col-span-4">
+                @if ($quote->total_options > 0)
+                    <div class=" pt-4 w-full grid grid-cols-6 text-lg text-zinc-600 text-right">
+                        <div class="col-span-3">
+                            &nbsp;
+                        </div>
+                        <div class="col-span-2">
+                            Total options
+                        </div>
+                        <div class="col-span-1">
+                            {{ number_format($quote->total_options ?? 0, 2, ',', ' ') }} €
+                        </div>
+                    </div>
+                    <div class="pt-4 w-full grid grid-cols-6  text-lg text-right">
+                        <div class="col-span-3">
+                            &nbsp;
+                        </div>
+                        <div class="col-span-2">
+                            Total HT (ss options)
+                        </div>
+                        <div class="col-span-1 ">
+                            {{ number_format($quote->total_avant_options ?? 0, 2, ',', ' ') }} €
+                        </div>
+                    </div>
+                    <div class="pt-1 w-full grid grid-cols-6  text-lm text-right">
+                        <div class="col-span-3">
+                            &nbsp;
+                        </div>
+                        <div class="col-span-2">
+                            Total HT (av options)
+                        </div>
+                        <div class="col-span-1 ">
+                            {{ number_format($quote->total_ht ?? 0, 2, ',', ' ') }} €
+                        </div>
+                    </div>
+                @else
+                <div class="pt-2 text-sm w-full grid grid-cols-6 text-right">
+                    <div class="col-span-3">
                         &nbsp;
                     </div>
-                    <div class="col-span-1">
+                    <div class="col-span-2">
                         Total HT
                     </div>
                     <div class="col-span-1">
                         {{ number_format($quote->total_ht ?? 0, 2, ',', ' ') }} €
                     </div>
                 </div>
+                @endif
             </div>
         </div>
         <div class="pt-8">
@@ -109,3 +124,4 @@
             </div>
         </div>
     </div>
+@endsection
