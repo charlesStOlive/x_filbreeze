@@ -70,7 +70,7 @@
                     </div>
                 @endif
                 @if ($quote->total_options > 0)
-                    <div class=" pt-4 w-full grid grid-cols-6 text-lg text-zinc-600 text-right">
+                    <div class=" pt-4 w-full grid grid-cols-6  text-zinc-600 text-right">
                         <div class="col-span-3">
                             &nbsp;
                         </div>
@@ -78,7 +78,7 @@
                             Total options
                         </div>
                         <div class="col-span-1">
-                            {{ number_format($quote->total_options ?? 0, 2, ',', ' ') }} €
+                           <span class="bg-green-500 rounded text-white p-1">{{ number_format($quote->total_options ?? 0, 2, ',', ' ') }} €</span> 
                         </div>
                     </div>
                     <div class="pt-4 w-full grid grid-cols-6  text-lg text-right">

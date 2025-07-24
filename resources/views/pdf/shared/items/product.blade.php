@@ -1,9 +1,13 @@
 <div class="grid grid-cols-6 my-2 p-2 w-full border-b border-zinc-300 text-right">
     <div class="col-span-4 text-left">
         <div>
+            
             <span class="font-semibold text-lg">{{ $item['data']['title'] ?? 'Produit' }}</span>
             @if (!empty($item['data']['product_code']))
                 <span class="text-sm text-zinc-500 ml-2">({{ $item['data']['product_code'] }})</span>
+            @endif
+            @if ($item['data']['is_option'])
+                <span class="bg-green-500 rounded text-white mr-2 p-1">OPTION</span>
             @endif
         </div>
 
