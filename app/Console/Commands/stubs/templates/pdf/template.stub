@@ -50,7 +50,7 @@ class {{ className }} extends BasePdfTemplate
         ];
     }
 
-    public static function getForm(array $defaults = []): array
+    public function getForm(): array
     {
         return [
             Forms\Components\Checkbox::make('avoid_break')

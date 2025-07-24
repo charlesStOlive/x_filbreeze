@@ -1,29 +1,42 @@
-<?php 
+<?php
 
 namespace App\Livewire;
 
-use App\Models\Company;
-use App\Models\Invoice;
 use Livewire\Component;
+use Illuminate\Support\Str;
 use App\Services\Pdf\Base\PdfRenderer;
 use App\Services\Pdf\Base\PdfTemplateRegistry;
-
+use Illuminate\Database\Eloquent\Model;
 
 class PdfTemplateTester extends Component
 {
-    public string $key;
-    public string $modelId;
+    public string $modelclass;   // ex: "invoice_supplier"
+    public string $key;          // ex: "base"
+    public string $modelId;      // ex: "12"
     public string $renderedHtml = '';
 
-    public function mount(string $key, string $modelId): void
+    public function mount(string $modelclass, string $templateKey, int $modelId): void
     {
-        $this->key = $key;
+        $this->modelclass = $modelclass;
+        $this->key = $templateKey;
         $this->modelId = $modelId;
 
-        $model = $this->resolveModelInstance($key, $modelId);
+        $modelInstance = $this->resolveModelInstance($modelclass, $modelId);
+        $modelType = PdfTemplateRegistry::resolveModelTypeFromRecord($modelInstance); // ex: "invoice_supplier"
 
-        $template = PdfTemplateRegistry::getTemplateInstance($key, $model);
-        $this->renderedHtml = app(PdfRenderer::class)->render($template);
+        // Cherche le template dans les templates enregistrés pour ce type
+        $templateClass = collect(PdfTemplateRegistry::getTemplatesFor($modelType))
+            ->first(fn($cls) => $cls::key() === $templateKey);
+
+        \Log::info(PdfTemplateRegistry::getTemplatesFor($modelType));
+        \Log::info($templateClass);
+
+        if (! $templateClass) {
+            abort(500, "Template PDF [{$templateKey}] introuvable pour le modèle [{$modelType}].");
+        }
+
+        $templateInstance = new $templateClass($modelInstance);
+        $this->renderedHtml = app(PdfRenderer::class)->render($templateInstance);
     }
 
     public function render()
@@ -31,10 +44,29 @@ class PdfTemplateTester extends Component
         return view('livewire.pdf-template-tester');
     }
 
-    protected function resolveModelInstance(string $key, string $modelId): \Illuminate\Database\Eloquent\Model
+    protected function resolveModelInstance(string $modelclass, string $modelId): Model
     {
-        return str_contains($key, 'invoice')
-            ? Invoice::findOrFail($modelId)
-            : Company::with('contacts')->findOrFail($modelId);
+        $class = $this->getModelClass($modelclass);
+
+        if (!class_exists($class)) {
+            abort(404, "Le modèle [{$modelclass}] est introuvable (classe {$class} absente).");
+        }
+
+        if (!is_subclass_of($class, Model::class)) {
+            abort(500, "La classe [{$class}] n'est pas un modèle Eloquent valide.");
+        }
+
+        $model = $class::find($modelId);
+
+        if (! $model) {
+            abort(404, "Aucun enregistrement [ID {$modelId}] trouvé pour le modèle [{$modelclass}].");
+        }
+
+        return $model;
+    }
+
+    protected function getModelClass(string $modelclass): string
+    {
+        return 'App\\Models\\' . Str::studly($modelclass);
     }
 }

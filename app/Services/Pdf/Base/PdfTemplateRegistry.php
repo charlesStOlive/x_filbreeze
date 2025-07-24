@@ -22,6 +22,9 @@ class PdfTemplateRegistry
     {
         $modelType = self::resolveModelTypeFromRecord($record);
 
+        \Log::info("Recherche du template PDF pour le type '{$modelType}' avec la clé '{$key}'");
+        \Log::info(self::getDefaultTemplateFor($modelType));
+
         $class = collect(self::getTemplatesFor($modelType))
             ->first(fn($cls) => $cls::key() === $key);
 

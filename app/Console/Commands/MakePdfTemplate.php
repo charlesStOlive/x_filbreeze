@@ -14,6 +14,12 @@ class MakePdfTemplate extends Command
     public function handle()
     {
         $model = Str::studly($this->argument('model'));        // Invoice
+
+        if (!class_exists("App\\Models\\{$model}")) {
+            $this->error("❌ Le modèle App\\Models\\{$model} n'existe pas.");
+            return Command::FAILURE;
+        }
+
         $name = Str::lower($this->argument('name'));           // base
         $baseStudly = Str::studly($name);                      // Base
         $baseSnake = Str::snake($name);                        // base

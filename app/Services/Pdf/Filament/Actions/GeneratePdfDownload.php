@@ -1,12 +1,9 @@
-<?php
-
-// Exemple adapté pour layout avec 1/4 form et 3/4 preview
+<?php 
 
 namespace App\Services\Pdf\Filament\Actions;
 
 use Filament\Forms;
 use Filament\Actions\Action;
-
 use App\Services\Pdf\Base\BasePdfTemplate;
 use App\Services\Pdf\Base\PdfTemplateRegistry;
 
@@ -19,18 +16,17 @@ class GeneratePdfDownload extends Action
         $this
             ->label('Créer PDF')
             ->icon('fas-file-pdf')
-            ->modalWidth('7xl') // maximise la modal
+            ->modalWidth('7xl')
             ->fillForm(function ($record) {
                 $template = PdfTemplateRegistry::getDefaultTemplateInstance($record);
                 $templateClass = get_class($template);
-                $options = $templateClass::getDefaultOptions();
 
                 return [
                     'template' => $templateClass::key(),
-                    'template_options' => $options,
+                    'template_options' => [], // on laisse vide, ce sera géré par le form
                 ];
             })
-            ->form(fn($record) => [
+            ->form(fn ($record) => [
                 Forms\Components\Grid::make(4)
                     ->schema([
                         Forms\Components\Group::make([
@@ -39,30 +35,30 @@ class GeneratePdfDownload extends Action
                                 ->options(
                                     collect(PdfTemplateRegistry::getTemplatesFor(
                                         PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->mapWithKeys(fn($cls) => [$cls::key() => $cls::label()])
+                                    ))->mapWithKeys(fn ($cls) => [$cls::key() => $cls::label()])
                                 )
                                 ->live()
                                 ->required()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) use ($record) {
-                                    // Retrouve la classe du nouveau template
+                                ->afterStateUpdated(function ($state, callable $set, $get) use ($record) {
                                     $templateClass = collect(PdfTemplateRegistry::getTemplatesFor(
                                         PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->first(fn($cls) => $cls::key() === $state);
+                                    ))->first(fn ($cls) => $cls::key() === $state);
 
-                                    if ($templateClass && method_exists($templateClass, 'getDefaultOptions')) {
-                                        $set('template_options', $templateClass::getDefaultOptions());
+                                    if ($templateClass) {
+                                        // Remettre les options à zéro pour forcer le rechargement du formulaire
+                                        $set('template_options', []);
                                     }
                                 }),
 
                             Forms\Components\Group::make()
-                                ->schema(function (callable $get, $record) {
+                                ->schema(function (callable $get) use ($record) {
                                     $key = $get('template');
                                     $templateClass = collect(PdfTemplateRegistry::getTemplatesFor(
                                         PdfTemplateRegistry::resolveModelTypeFromRecord($record)
-                                    ))->first(fn($cls) => $cls::key() === $key);
+                                    ))->first(fn ($cls) => $cls::key() === $key);
 
                                     return $templateClass
-                                        ? $templateClass::getForm($templateClass::getDefaultOptions())
+                                        ? (new $templateClass($record))->getForm()
                                         : [];
                                 })
                                 ->statePath('template_options')
@@ -73,7 +69,7 @@ class GeneratePdfDownload extends Action
                             Forms\Components\ViewField::make('body')
                                 ->label('Aperçu HTML')
                                 ->view('components.fields.pdf-preview')
-                                ->viewData(fn($get, $record) => BasePdfTemplate::getPreviewData($get, $record))
+                                ->viewData(fn ($get) => BasePdfTemplate::getPreviewData($get, $this->getRecord()))
                                 ->disabled(),
                         ])->columnSpan(3),
                     ]),

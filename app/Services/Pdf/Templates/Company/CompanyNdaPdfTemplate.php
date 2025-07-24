@@ -4,6 +4,7 @@ namespace App\Services\Pdf\Templates\Company;
 
 use Filament\Forms;
 use App\Models\Company;
+use App\Models\Contact;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Pdf\Base\BasePdfTemplate;
 
@@ -18,7 +19,7 @@ class CompanyNdaPdfTemplate extends BasePdfTemplate
 
     public static function label(): string
     {
-         return 'Accord de confidentialité';
+        return 'Accord de confidentialité';
     }
 
     public function getView(): string
@@ -28,41 +29,46 @@ class CompanyNdaPdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        return $this->company->title ?? 'Company';
+        $client = $this->company->slug;
+        return 'accord_confidentialite_' . $client;
+
     }
 
     public function getData(array $options = []): array
     {
         $options = array_merge(static::getDefaultOptions(), $options);
 
+        if(!isset($options['contact_id'])) {
+            $options['contact_id'] = $this->company->contacts()->first()?->id;
+        }
+
         return [
             'company' => $this->company,
             'user' => Auth::user(),
             'options' => $options,
+            'contact' => Contact::find($options['contact_id'] ?? null),
         ];
     }
 
     public static function getDefaultOptions(): array
     {
         return [
-            'avoid_break' => true,
-            'nb_rows' => 20,
+            'contact_id' => null,
         ];
     }
 
-    public static function getForm(array $defaults = []): array
+    public function getForm(): array
     {
         return [
-            Forms\Components\Checkbox::make('avoid_break')
-                ->label('Empêcher les sauts de page dans une cellule')
-                ->default(true)
-                ->live(),
-
-            Forms\Components\TextInput::make('nb_rows')
-                ->label('Nombre de lignes de tests')
-                ->default(20)
-                ->integer()
-                ->live(),
+            Forms\Components\Select::make('contact_id')
+                ->label('Contact de référence')
+                ->options(
+                    $this->company->contacts()?->pluck('full_name', 'id')->toArray() ?? []
+                )
+                ->searchable()
+                ->preload()
+                ->default($this->company->contacts()->first()?->id)
+                ->live()
         ];
     }
 }
