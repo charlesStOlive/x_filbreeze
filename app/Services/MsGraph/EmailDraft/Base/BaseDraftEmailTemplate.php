@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Services\MsGraph\EmailDraft\Base;
 
@@ -7,13 +7,20 @@ use Filament\Forms\Components\CheckboxList;
 
 abstract class BaseDraftEmailTemplate
 {
+    protected mixed $record;
     protected ?array $options = null;
 
-    public function __construct(?array $options = null)
+    public function __construct(mixed $record, ?array $options = null)
     {
+        $this->record = $record;
         $this->options = $options !== null
             ? array_merge(static::getDefaultOptions(), $options)
             : null;
+    }
+
+    public function getRecord(): mixed
+    {
+        return $this->record;
     }
 
     abstract public static function key(): string;
@@ -22,11 +29,11 @@ abstract class BaseDraftEmailTemplate
 
     abstract public function getView(): string;
 
+    abstract public function getToOptions(): array;
+
+    abstract public function getDefaultTo(): array;
+
     abstract public function getSubject(array $options = []): string;
-
-    abstract protected function getRecord(): mixed;
-
-    abstract public function getData(array $options = []): array;
 
     public static function getDefaultOptions(): array
     {
@@ -49,7 +56,7 @@ abstract class BaseDraftEmailTemplate
 
     public function hasOption(string $key): bool
     {
-        return isset($this->options[$key]);
+        return array_key_exists($key, $this->options ?? []);
     }
 
     public function hasPj(): bool
@@ -64,9 +71,7 @@ abstract class BaseDraftEmailTemplate
 
     public function getAttachmentForm(): ?Group
     {
-        if (! $this->hasPj()) {
-            return null;
-        }
+        if (! $this->hasPj()) return null;
 
         return Group::make([
             CheckboxList::make('attachments')
@@ -99,15 +104,10 @@ abstract class BaseDraftEmailTemplate
     {
         if (! $this->hasPj()) return [];
 
-        $record = $this->getRecord();
-
         return collect(static::getAvailableAttachments())
             ->filter(fn($default, $cls) => in_array($cls::key(), $selected))
-            ->map(fn($default, $cls) => (new $cls($record))->generateFile(
-                $this->getMergedOptions($options)
-            ))
+            ->map(fn($default, $cls) => (new $cls($this->record, $this->getMergedOptions($options)))->generateFile())
             ->values()
             ->all();
     }
 }
-

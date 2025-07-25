@@ -1,9 +1,11 @@
 <?php 
 
-namespace App\Filament\Components\Actions;
+namespace App\Services\MaatImports\Filament\Actions;
 
 use Filament\Actions\Action;
-use App\Filament\Components\Concerns\CanImportMaatExcel;
+use App\Services\MaatImports\Filament\Traits\CanImportMaatExcel;
+
+
 
 class ImportMaatExcelAction extends Action
 {

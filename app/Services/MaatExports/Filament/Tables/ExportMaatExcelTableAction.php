@@ -1,9 +1,9 @@
 <?php 
 
-namespace App\Filament\Components\Tables;
+namespace App\Services\MaatExports\Filament\Tables;
 
 use Filament\Tables\Actions\Action;
-use App\Filament\Components\Concerns\CanExportMaatExcel;
+use App\Services\MaatExports\Filament\Traits\CanExportMaatExcel;
 
 class ExportMaatExcelTableAction extends Action
 {

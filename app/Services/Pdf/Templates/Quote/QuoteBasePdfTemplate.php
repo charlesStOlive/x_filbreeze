@@ -9,10 +9,6 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class QuoteBasePdfTemplate extends BasePdfTemplate
 {
-    public function __construct(protected Quote $quote, ?array $options = null)
-    {
-        parent::__construct($options); // Important
-    }
 
     public static function key(): string
     {
@@ -31,21 +27,17 @@ class QuoteBasePdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        return $this->quote->code ?? 'Quote#?';
+        return $this->getRecord()->code ?? 'Quote#?';
     }
 
     public function getData(array $options = []): array
     {
-        $merged = array_merge(
-            static::getDefaultOptions(),
-            $this->options ?? [],
-            $options
-        );
+        $mergedOptions = $this->getMergedOptions($options);
 
         return [
-            'quote' => $this->quote,
+            'quote' => $this->getRecord(),
             'user' => Auth::user(),
-            'options' => $merged,
+            'options' => $mergedOptions,
         ];
     }
 
@@ -62,12 +54,12 @@ class QuoteBasePdfTemplate extends BasePdfTemplate
         return [
             Forms\Components\Checkbox::make('avoid_break')
                 ->label('Empêcher les sauts de page dans une cellule')
-                ->default($this->getOption('avoid_break', true))
+                ->default($this->getOption('avoid_break'))
                 ->live(),
 
             Forms\Components\Checkbox::make('avoid_amount_break')
                 ->label('Empêcher les sauts de page dans une cellule')
-                ->default($this->getOption('avoid_amount_break', true))
+                ->default($this->getOption('avoid_amount_break'))
                 ->live(),
         ];
     }

@@ -1,11 +1,13 @@
 <?php 
 
-namespace App\Filament\Components\Tables;
+namespace App\Services\MaatImports\Filament\Tables;
 
 use Filament\Tables\Actions\Action;
-use App\Filament\Components\Concerns\CanImportMaatExcel;
+use App\Services\MaatImports\Filament\Traits\CanImportMaatExcel;
 
-class ImportMaatExcelAction extends Action
+
+
+class ImportMaatExcelTableAction extends Action
 {
     use CanImportMaatExcel;
 

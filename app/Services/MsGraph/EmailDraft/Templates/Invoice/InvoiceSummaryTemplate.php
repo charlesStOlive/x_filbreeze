@@ -2,7 +2,7 @@
 
 namespace App\Services\MsGraph\EmailDraft\Templates\Invoice;
 
-use App\Models\Invoice;
+
 use Illuminate\Support\Facades\Auth;
 use App\Services\MsGraph\EmailDraft\Base\HasPj;
 use App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate;
@@ -11,23 +11,14 @@ use Filament\Forms; // Important pour l'autocompletion des champs
 
 class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
 {
-    public function __construct(protected Invoice $invoice, ?array $options = null)
-    {
-        parent::__construct($options); // ajoute cette ligne
-    }
-
     public static function key(): string
     {
         return 'invoice_summary';
     }
+
     public static function label(): string
     {
         return 'Résumé facture (contact + montant)';
-    }
-
-    protected function getRecord(): mixed
-    {
-        return $this->invoice;
     }
 
     public function getView(): string
@@ -47,37 +38,45 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
     {
         return [
             InvoicePdfTemplate\InvoiceSummaryPdfTemplate::class => true,
-            InvoicePdfTemplate\InvoiceComplete::class => false,  // pré-coché
+            InvoicePdfTemplate\InvoiceComplete::class => false,
         ];
     }
 
-    public static function getForm(array $defaults = []): array
+    public function getToOptions(): array
+    {
+        return  $this->getRecord()->company->contacts->pluck('email', 'email')->toArray();; // plus besoin de propriété
+
+    }
+
+    public function getDefaultTo(): array
+    {
+        return  $this->getRecord()->contact?->email ? [$this->getRecord()->contact->email] : [];
+    }
+
+    public function getForm(): array
     {
         return [
             Forms\Components\Toggle::make('show_intro')
                 ->label('Afficher intro et description')
-                ->default($defaults['show_intro'] ?? true)
+                ->default($this->getOption('show_intro', true))
                 ->live(),
 
             Forms\Components\Toggle::make('show_tva')
                 ->label('Afficher la TVA')
-                ->default($defaults['show_tva'] ?? false)
+                ->default($this->getOption('show_tva', false))
                 ->live(),
         ];
     }
 
     public function getData(array $options = []): array
     {
-        $merged = array_merge(
-            static::getDefaultOptions(),
-            $this->options ?? [],
-            $options
-        );
+        $invoice = $this->getRecord(); // plus besoin de propriété
+        $merged = $this->getMergedOptions($options);
 
         return [
-            'invoice' => $this->invoice,
-            'client' => $this->invoice->client,
-            'contact' => $this->invoice->contact,
+            'invoice' => $invoice,
+            'client' => $invoice->client,
+            'contact' => $invoice->contact,
             'user' => Auth::user(),
             'options' => $merged,
         ];
@@ -85,12 +84,7 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
 
     public function getSubject(array $options = []): string
     {
-        $merged = array_merge(
-            static::getDefaultOptions(),
-            $this->options ?? [],
-            $options
-        );
-
-        return "Résumé facture #{$this->invoice->invoice_number}";
+        $invoice = $this->getRecord();
+        return "Résumé facture #{$invoice->code}";
     }
 }

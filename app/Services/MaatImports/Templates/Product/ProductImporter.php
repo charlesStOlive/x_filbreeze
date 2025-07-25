@@ -1,35 +1,48 @@
-<?php 
+<?php
 
-namespace App\Services\Imports;
+namespace App\Services\MaatImports\Templates\Product;
 
-use App\Models\Product;
 use App\Models\Gamme;
+use App\Models\Product;
 use App\Enums\ProductType;
-use Filament\Forms\Components\Checkbox;
+use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
+use Filament\Forms\Components\Radio;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use App\Services\MaatImports\Base\BaseMaatImporter;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 
-class ProductImporter extends BaseFilImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
+class ProductImporter extends BaseMaatImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
 {
+    public static function getDefaultOptions(): array
+    {
+        return [
+            'create_missing_gamme' => false,
+        ];
+    }
+
     public function getForm(): array
     {
         return [
-            Checkbox::make('create_missing_gamme')
-                ->label('Créer automatiquement les gammes manquantes')
-                ->live()
-                ->default($this->options['create_missing_gamme'] ?? false),
-
-            Checkbox::make('block_if_gamme_missing')
-                ->label('Refuser la création si la gamme est absente')
-                ->default($this->options['block_if_gamme_missing'] ?? true)
-                ->live(),
+            Radio::make('create_missing_gamme')
+                ->label('Les gammes inexistantes seront-elles créées ?')
+                ->options([
+                    true => 'Créer automatiquement les gammes manquantes',
+                    false => 'Bloquer une gamme inexistante',
+                ])
+                ->descriptions([
+                    true => 'La gamme sera créée à partir de la cellule Excel. Attention aux erreurs de frappe.',
+                    false => 'Si la gamme est manquante, la ligne sera ignorée si cette option est désactivée.',
+                ])
+                ->default($this->getOption('create_missing_gamme')),
         ];
     }
 
     public function collection(Collection $rows): void
     {
+        $options = $this->getMergedOptions();
+
         foreach ($rows as $index => $r) {
             $line = $index + 2;
 
@@ -37,7 +50,7 @@ class ProductImporter extends BaseFilImporter implements ToCollection, WithHeadi
             $code       = $r['code'] ?? null;
             $title      = $r['title'] ?? null;
             $type       = $this->normalizeType($r['type'] ?? null);
-            $gammeName  = $r['gamme'] ?? null;
+            $gammeSlug  = $r['gamme'] ?? null;
             $unitPrice  = $r['unit_price'] ?? 0;
 
             try {
@@ -47,21 +60,19 @@ class ProductImporter extends BaseFilImporter implements ToCollection, WithHeadi
 
                 // Gestion de la gamme
                 $gammeId = null;
-                if ($gammeName) {
-                    $existing = Gamme::firstWhere('name', $gammeName);
+                if ($gammeSlug) {
+                    $existing = Gamme::firstWhere('name', $gammeSlug);
                     if ($existing) {
                         $gammeId = $existing->id;
-                    } elseif ($this->options['create_missing_gamme'] ?? false) {
+                    } elseif ($options['create_missing_gamme']) {
                         $gamme = Gamme::create([
-                            'name' => $gammeName,
-                            'slug' => str($gammeName)->slug(),
+                            'name' => Str::headline($gammeSlug),
+                            'slug' => Str::slug($gammeSlug),
                         ]);
                         $gammeId = $gamme->id;
-                    } elseif ($this->options['block_if_gamme_missing'] ?? false) {
-                        throw new \Exception("Gamme '$gammeName' introuvable.");
+                    } else {
+                        throw new \Exception("Gamme slug '$gammeSlug' introuvable.");
                     }
-                } elseif ($this->options['block_if_gamme_missing'] ?? false) {
-                    throw new \Exception("Gamme absente.");
                 }
 
                 if ($id && $product = Product::find($id)) {

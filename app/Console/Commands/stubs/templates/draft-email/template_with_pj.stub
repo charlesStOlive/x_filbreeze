@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Services\MsGraph\EmailDraft\Templates\{{ model }};
+
+use Illuminate\Support\Facades\Auth;
+use App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate;
+use App\Services\MsGraph\EmailDraft\Base\HasPj;
+use Filament\Forms;
+
+class {{ className }} extends BaseDraftEmailTemplate implements HasPj
+{
+    public static function key(): string
+    {
+        return '{{ key }}';
+    }
+
+    public static function label(): string
+    {
+        return '{{ label }}';
+    }
+
+    public function getView(): string
+    {
+        return '{{ view }}';
+    }
+
+    public function getToOptions(): array
+    {
+        return [
+            // 'email@example.com' => 'Nom du contact',
+        ];
+    }
+
+    public function getDefaultTo(): array
+    {
+        $options = $this->getToOptions();
+        return count($options) > 0 ? [array_key_first($options)] : [];
+    }
+
+
+    public static function getDefaultOptions(): array
+    {
+        return [
+            'show_intro' => true,
+            'show_details' => true,
+        ];
+    }
+
+    public function getForm(): array
+    {
+        return [
+            Forms\Components\Toggle::make('show_intro')
+                ->label("Afficher l'introduction")
+                ->default($this->getOption('show_intro'))
+                ->live(),
+
+            Forms\Components\Toggle::make('show_details')
+                ->label("Afficher les détails")
+                ->default($this->getOption('show_details'))
+                ->live(),
+        ];
+    }
+
+    public function getData(array $options = []): array
+    {
+        ${{ var }} = $this->getRecord();
+        $merged = $this->getMergedOptions($options);
+
+        return [
+            '{{ var }}' => ${{ var }},
+            'user' => Auth::user(),
+            'options' => $merged,
+        ];
+    }
+
+    public function getSubject(array $options = []): string
+    {
+        ${{ var }} = $this->getRecord();
+        return "Objet de {{ var }} ". ${{ var }}->id;
+    }
+
+    public static function getAvailableAttachments(): array
+    {
+        return [
+            // App\Services\Pdf\Templates\Invoice\InvoicePdfTemplate::class => true,
+        ];
+    }
+}

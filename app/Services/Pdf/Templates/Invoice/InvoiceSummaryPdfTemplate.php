@@ -11,9 +11,6 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class InvoiceSummaryPdfTemplate extends BasePdfTemplate
 {
-    public function __construct(protected Invoice $invoice) {}
-
-
     public static function key(): string
     {
         return 'invoice_summary_pdf';
@@ -31,18 +28,18 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        $code = $this->invoice->code ?? 'facture';
+        $code = $this->getRecord()->code ?? 'facture';
         return $code.'_s';
     }
 
     public function getData(array $options = []): array
     {
-        $options = array_merge(static::getDefaultOptions(), $options);
+        $mergedOptions = array_merge(static::getDefaultOptions(), $options);
 
         return [
-            'invoice' => $this->invoice,
+            'invoice' => $this->getRecord(),
             'user' => Auth::user(),
-            'options' => $options,
+            'options' => $mergedOptions,
         ];
     }
 
@@ -54,7 +51,7 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
         ];
     }
 
-    public static function getForm(array $defaults = []): array
+    public function getForm(): array
     {
         return [
             Forms\Components\Checkbox::make('avoid_full_break')

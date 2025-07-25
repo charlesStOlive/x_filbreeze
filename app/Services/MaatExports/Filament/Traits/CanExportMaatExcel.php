@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Components\Concerns;
+namespace App\Services\MaatExports\Filament\Traits;
 
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
-use App\Services\Exports\FromCollectionExport;
+use App\Services\MaatExports\Base\FromCollectionExport;
 use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification as FilamentNotification;
 

@@ -11,8 +11,6 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class InvoiceBasePdfTemplate extends BasePdfTemplate
 {
-    public function __construct(protected Invoice $invoice) {}
-
     public static function key(): string
     {
         return 'invoice_base_pdf';
@@ -30,17 +28,17 @@ class InvoiceBasePdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        return $this->invoice->title ?? 'Invoice ';
+        return $this->getRecord()->title ?? 'Invoice ';
     }
 
     public function getData(array $options = []): array
     {
-        $options = array_merge(static::getDefaultOptions(), $options);
+        $mergedOptions = $this->getMergedOptions($options);
 
         return [
-            'invoice' => $this->invoice,
+            'invoice' => $this->getRecord(),
             'user' => Auth::user(),
-            'options' => $options,
+            'options' => $mergedOptions,
         ];
     }
 
@@ -49,27 +47,21 @@ class InvoiceBasePdfTemplate extends BasePdfTemplate
         return [
             'avoid_break' => true,
             'nb_rows' => 20,
-            // 'option' => false,
         ];
     }
 
-    public static function getForm(array $defaults = []): array
+    public function getForm(): array
     {
-        \Log::info('getForm called with defaults: ', $defaults);
         return [
             Forms\Components\Checkbox::make('avoid_break')
                 ->label('Empêcher les sauts de page dans une cellule')
-                ->default(true)
+                ->default($this->getOption('avoid_break'))
                 ->live(),
             Forms\Components\TextInput::make('nb_rows')
                 ->label('Nombre de lignes de tests')
-                ->default(20)
+                ->default($this->getOption('nb_rows'))
                 ->integer()
                 ->live(),
-            // Forms\Components\Checkbox::make('option')
-            //     ->label('option_1 label')
-            //     ->default($defaults['option_1'] ?? false)
-            //     ->live(),
         ];
     }
 }

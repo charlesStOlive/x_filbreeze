@@ -1,47 +1,30 @@
 <?php
 
-namespace App\Services\Imports;
+namespace App\Services\MaatImports\Templates\Company;
 
 use App\Models\Company;
 use App\Models\Product;
-use App\Contracts\HasFillForm;
 use Illuminate\Support\Collection;
-use Filament\Forms\Components\Hidden;
-use App\Services\Imports\BaseImporter;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use App\Services\MaatImports\Base\BaseMaatImporter;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 
-class CompanyProductsImporter extends BaseFilImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas, HasFillForm
+class CompanyProductsImporter extends BaseMaatImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
 {
-    protected Company $company;
-
-    public function __construct(array $options = [])
-    {
-        parent::__construct($options);
-
-        // Exiger une company dans les options
-        if (!isset($options['company_id']) || ! $this->company = Company::find($options['company_id'])) {
-            throw new \InvalidArgumentException("Company manquante ou introuvable pour l'import.");
-        }
-    }
-
-    public static function getFillForm(mixed $livewire): array
-    {
-        return ['company_id' => $livewire->getOwnerRecord()->id];
-    }
-
-    public static function getForm(): array
-    {
-        return [
-            Hidden::make('company_id'),
-        ];
-    }
-
-    
-
     public function collection(Collection $rows): void
     {
+        $company = $this->getRecord();
+
+        if (! $company instanceof Company) {
+            $this->errors[] = [
+                'line' => 0,
+                'code' => null,
+                'error' => 'Aucune entreprise (Company) n’a été transmise pour l’import.',
+            ];
+            return;
+        }
+
         foreach ($rows as $index => $row) {
             $line = $index + 2;
             $code = $row['code'] ?? null;
@@ -58,7 +41,7 @@ class CompanyProductsImporter extends BaseFilImporter implements ToCollection, W
                     throw new \Exception("Produit avec code '$code' introuvable.");
                 }
 
-                $this->company->products()->syncWithoutDetaching([
+                $company->products()->syncWithoutDetaching([
                     $product->id => ['unit_price' => $unitPrice],
                 ]);
 

@@ -25,12 +25,11 @@ class GenerateMsGraphEmailDraft extends Action
                 $template = EmailDraftTemplateRegistry::getDefaultTemplateInstance($record);
                 $templateClass = get_class($template);
                 $options = $templateClass::getDefaultOptions();
-
                 $rendered = app(EmailDraftRenderer::class)->render($template, $options);
 
                 return [
                     'template' => $templateClass::key(),
-                    'to' => [$record->contact->email],
+                    'to' => $template->getDefaultTo(),
                     'subject' => $rendered['subject'],
                     'body' => $rendered['body'],
                     'template_options' => $options,
@@ -61,20 +60,25 @@ class GenerateMsGraphEmailDraft extends Action
                                 $set('subject', $rendered['subject']);
                                 $set('body', $rendered['body']);
                                 $set('attachments', $template::getDefaultAttachments());
+                                $set('to', $template->getDefaultTo());
                             }),
 
                         Forms\Components\Select::make('to')
                             ->label('Destinataires')
                             ->multiple()
-                            ->options(fn($record) => [
-                                $record->contact->email => $record->contact->email,
-                            ]),
+                            ->options(function ($get, $record) {
+                                $template = EmailDraftTemplateRegistry::getTemplateInstance(
+                                    $get('template'),
+                                    $record,
+                                    $get('template_options') ?? []
+                                );
+                                return $template?->getToOptions() ?? [];
+                            }),
 
                         Forms\Components\Group::make()
                             ->schema(function (callable $get, $record) {
                                 $key = $get('template');
                                 $options = $get('template_options') ?? [];
-
                                 $template = EmailDraftTemplateRegistry::getTemplateInstance($key, $record, $options);
                                 return $template?->getForm() ?? [];
                             })
@@ -89,7 +93,6 @@ class GenerateMsGraphEmailDraft extends Action
                             ->schema(function (callable $get, $record) {
                                 $key = $get('template');
                                 $options = $get('template_options') ?? [];
-
                                 $template = EmailDraftTemplateRegistry::getTemplateInstance($key, $record, $options);
                                 return $template && $template->hasPj()
                                     ? [$template->getAttachmentForm()]
@@ -103,11 +106,8 @@ class GenerateMsGraphEmailDraft extends Action
                         ->viewData(function (callable $get, $record) {
                             $templateKey = $get('template');
                             $options = $get('template_options') ?? [];
-
                             $template = EmailDraftTemplateRegistry::getTemplateInstance($templateKey, $record, $options);
-                            if (! $template) {
-                                return ['html' => '<p>Template introuvable</p>'];
-                            }
+                            if (! $template) return ['html' => '<p>Template introuvable</p>'];
 
                             $rendered = app(EmailDraftRenderer::class)->render($template, $options);
                             return ['html' => $rendered['body']];
@@ -154,4 +154,3 @@ class GenerateMsGraphEmailDraft extends Action
             });
     }
 }
-

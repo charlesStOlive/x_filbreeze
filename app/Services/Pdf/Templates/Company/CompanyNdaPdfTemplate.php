@@ -10,8 +10,6 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class CompanyNdaPdfTemplate extends BasePdfTemplate
 {
-    public function __construct(protected Company $company) {}
-
     public static function key(): string
     {
         return 'company_nda_pdf';
@@ -29,24 +27,24 @@ class CompanyNdaPdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        $client = $this->company->slug;
-        return 'accord_confidentialite_' . $client;
+        $clientSlug = $this->getRecord()->slug;
+        return 'accord_confidentialite_' . $clientSlug;
 
     }
 
     public function getData(array $options = []): array
     {
-        $options = array_merge(static::getDefaultOptions(), $options);
+        $mergedOptions = array_merge(static::getDefaultOptions(), $options);
 
         if(!isset($options['contact_id'])) {
-            $options['contact_id'] = $this->company->contacts()->first()?->id;
+            $mergedOptions['contact_id'] = $this->getRecord()->contacts()->first()?->id;
         }
 
         return [
-            'company' => $this->company,
+            'company' => $this->getRecord(),
             'user' => Auth::user(),
-            'options' => $options,
-            'contact' => Contact::find($options['contact_id'] ?? null),
+            'options' => $mergedOptions,
+            'contact' => Contact::find($mergedOptions['contact_id'] ?? null),
         ];
     }
 
@@ -63,11 +61,11 @@ class CompanyNdaPdfTemplate extends BasePdfTemplate
             Forms\Components\Select::make('contact_id')
                 ->label('Contact de référence')
                 ->options(
-                    $this->company->contacts()?->pluck('full_name', 'id')->toArray() ?? []
+                    $this->getRecord()->contacts()?->pluck('full_name', 'id')->toArray() ?? []
                 )
                 ->searchable()
                 ->preload()
-                ->default($this->company->contacts()->first()?->id)
+                ->default($this->getRecord()->contacts()->first()?->id)
                 ->live()
         ];
     }

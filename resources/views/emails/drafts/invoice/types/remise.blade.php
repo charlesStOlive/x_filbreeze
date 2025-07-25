@@ -1,14 +1,14 @@
-<tr>
-    <td colspan="2">
-        <table width="100%" cellpadding="10" cellspacing="0" border="0" style="border-bottom: 1px solid #ccc;">
-            <tr>
-                <td width="80%" style="color: green;">
-                    <strong>{{ $item['data']['title'] ?? 'Remise' }}</strong>
-                </td>
-                <td width="20%" align="right" style="color: green;">
-                    -{{ number_format($item['data']['total'] ?? 0, 2, ',', ' ') }} €
-                </td>
-            </tr>
-        </table>
+<tr style="background-color: #e6f5e6;">
+    {{-- Colonne 1 : titre de la remise --}}
+    <td style="vertical-align: top; color: green;">
+        <strong>{{ $item['data']['title'] ?? 'Remise' }}</strong>
+    </td>
+
+    {{-- Colonne 2 vide (structure 60/20/20 respectée) --}}
+    <td></td>
+
+    {{-- Colonne 3 : montant de la remise --}}
+    <td align="right" style="vertical-align: top; color: green;">
+        -{{ number_format($item['data']['total'] ?? 0, 2, ',', ' ') }} €
     </td>
 </tr>

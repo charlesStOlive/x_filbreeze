@@ -14,7 +14,6 @@ use Filament\Resources\Resource;
 use App\Filament\Clusters\DataSets;
 use Filament\Tables\Grouping\Group;
 use YOS\FilamentExcel\Actions\Import;
-use App\Services\Exports\ProductExporter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\DeleteBulkAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
@@ -128,8 +127,8 @@ class ProductResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
-                Tables\Actions\ExportBulkAction::make()
-                    ->exporter(ProductExporter::class),
+                // Tables\Actions\ExportBulkAction::make()
+                //     ->exporter(ProductExporter::class),
             ])
             ->defaultSort('code');
     }

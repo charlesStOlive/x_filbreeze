@@ -1,28 +1,47 @@
 <?php
 
-namespace App\Services\Exports;
+namespace App\Services\MaatExports\Base;
 
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
-use App\Services\Exports\FromCollectionExport;
+use App\Services\MaatExports\Base\FromCollectionExport;
 use App\Services\Document\Dto\GeneratedDocumentDTO;
 use App\Services\Document\Contracts\DocumentProducer;
 use App\Services\Document\Concerns\InteractsWithDocumentProducer;
+
 abstract class BaseExcelTemplate implements DocumentProducer
 {
     use InteractsWithDocumentProducer;
 
-    protected array $options = [];
+    protected ?array $options = null;
+    protected mixed $record = null;
 
-    public function __construct(protected mixed $record = null, array $options = [])
+    public function __construct(mixed $record = null, ?array $options = null)
     {
-        $this->options = array_merge(static::getDefaultOptions(), $options);
+        $this->record = $record;
+        $this->options = $options !== null
+            ? array_merge(static::getDefaultOptions(), $options)
+            : null;
     }
 
-    public function getOptions(): array
+    public function getRecord(): mixed
     {
-        return $this->options;
+        return $this->record;
+    }
+
+    public function getMergedOptions(array $runtimeOptions = []): array
+    {
+        return array_merge(
+            static::getDefaultOptions(),
+            $this->options ?? [],
+            $runtimeOptions
+        );
+    }
+
+    public function getOption(string $key, mixed $default = null): mixed
+    {
+        return $this->options[$key] ?? static::getDefaultOptions()[$key] ?? $default;
     }
 
     abstract public function getColumns(): array;
@@ -58,7 +77,7 @@ abstract class BaseExcelTemplate implements DocumentProducer
 
     public function createDocument(array $options = []): string
     {
-        $options = array_merge($this->options, $options);
+        $options = $this->getMergedOptions($options);
 
         $rows = $this->getData($options)
             ->map(fn($item) => collect($this->getColumns())->keys()->map(
@@ -97,10 +116,5 @@ abstract class BaseExcelTemplate implements DocumentProducer
             name: $fileName,
             mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         );
-    }
-
-    public static function hasForm(): bool
-    {
-        return true; // car on appelle désormais getForm() sur l'instance
     }
 }

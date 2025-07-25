@@ -9,8 +9,6 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class InvoiceNdaPdfTemplate extends BasePdfTemplate
 {
-    public function __construct(protected Invoice $invoice) {}
-
     public static function key(): string
     {
         return 'invoice_nda_pdf';
@@ -28,17 +26,17 @@ class InvoiceNdaPdfTemplate extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        return $this->invoice->title ?? 'Invoice';
+        return $this->getRecord()->title ?? 'Invoice';
     }
 
     public function getData(array $options = []): array
     {
-        $options = array_merge(static::getDefaultOptions(), $options);
+        $mergedOptions = array_merge(static::getDefaultOptions(), $options);
 
         return [
-            'company' => $this->invoice->company,
+            'company' => $this->getRecord()->company,
             'user' => Auth::user(),
-            'options' => $options,
+            'options' => $mergedOptions,
         ];
     }
 
@@ -50,17 +48,17 @@ class InvoiceNdaPdfTemplate extends BasePdfTemplate
         ];
     }
 
-    public static function getForm(array $defaults = []): array
+    public function getForm(array $defaults = []): array
     {
         return [
             Forms\Components\Checkbox::make('avoid_break')
                 ->label('Empêcher les sauts de page dans une cellule')
-                ->default(true)
+                ->default($this->getOption('avoid_break'))
                 ->live(),
 
             Forms\Components\TextInput::make('nb_rows')
                 ->label('Nombre de lignes de tests')
-                ->default(20)
+                ->default($this->getOption('nb_rows'))
                 ->integer()
                 ->live(),
         ];

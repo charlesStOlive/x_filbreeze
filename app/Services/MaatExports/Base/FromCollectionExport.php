@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Services\Exports;
+namespace App\Services\MaatExports\Base;
 
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\WithHeadings;

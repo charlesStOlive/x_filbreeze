@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Components\Concerns;
+namespace App\Services\MaatImports\Filament\Traits;
 
 use Filament\Forms;
 use Maatwebsite\Excel\Facades\Excel;
@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Facades\Excel;
 trait CanImportMaatExcel
 {
     protected string $maatImporterClass;
+    protected mixed $maatImporterRecord = null;
 
     public function importer(string $importerClass): static
     {
@@ -35,12 +36,20 @@ trait CanImportMaatExcel
             $options = $data;
             unset($options['file']);
 
-            $importer = new ($this->maatImporterClass)($options);
+            $importer = app()->make($this->maatImporterClass, [
+                'record' => $this->maatImporterRecord,
+                'options' => $options,
+            ]);
             Excel::import($importer, $data['file']);
             $importer->finalize();
         });
 
         return $this;
     }
-}
 
+    public function withRecord(mixed $record): static
+    {
+        $this->maatImporterRecord = $record;
+        return $this;
+    }
+}

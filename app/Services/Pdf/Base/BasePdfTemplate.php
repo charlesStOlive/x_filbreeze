@@ -1,45 +1,34 @@
-<?php
+<?php 
 
 namespace App\Services\Pdf\Base;
 
+use Spatie\Browsershot\Browsershot;
+use Illuminate\Support\Facades\Storage;
 use App\Services\Pdf\Base\PdfRenderer;
 use App\Services\Helpers\ViteHelper;
-use Illuminate\Support\Facades\Storage;
 use App\Services\Document\Dto\GeneratedDocumentDTO;
 use App\Services\Document\Contracts\DocumentProducer;
 use App\Services\Document\Concerns\InteractsWithDocumentProducer;
-
-use Spatie\Browsershot\Browsershot;
 
 abstract class BasePdfTemplate implements DocumentProducer
 {
     use InteractsWithDocumentProducer;
 
+    protected mixed $record;
     protected ?array $options = null;
 
-    public function __construct(protected mixed $record, ?array $options = null)
+    public function __construct(mixed $record, ?array $options = null)
     {
-        // Stocke les options fusionnées avec les valeurs par défaut
+        $this->record = $record;
+
         $this->options = $options !== null
             ? array_merge(static::getDefaultOptions(), $options)
             : null;
     }
 
-    abstract public function getView(): string;
-
-    abstract public function getFileName(array $options = []): string;
-
-    public function getData(array $options = []): array
+    public function getRecord(): mixed
     {
-        $mergedOptions = array_merge(
-            static::getDefaultOptions(),
-            $this->options ?? [],
-            $options
-        );
-
-        return [
-            'options' => $mergedOptions,
-        ];
+        return $this->record;
     }
 
     public static function getDefaultOptions(): array
@@ -49,7 +38,7 @@ abstract class BasePdfTemplate implements DocumentProducer
 
     public function getOption(string $key, mixed $default = null): mixed
     {
-        return $this->options[$key] ?? $default;
+        return $this->options[$key] ?? static::getDefaultOptions()[$key] ?? $default;
     }
 
     public function hasOption(string $key): bool
@@ -57,15 +46,32 @@ abstract class BasePdfTemplate implements DocumentProducer
         return array_key_exists($key, $this->options ?? []);
     }
 
-    public function createDocument(array $options = []): string
+    public function getMergedOptions(array $runtimeOptions = []): array
     {
-        $mergedOptions = array_merge(
+        return array_merge(
             static::getDefaultOptions(),
             $this->options ?? [],
-            $options
+            $runtimeOptions
         );
+    }
+
+    abstract public function getView(): string;
+
+    abstract public function getFileName(array $options = []): string;
+
+    public function getData(array $options = []): array
+    {
+        return [
+            'options' => $this->getMergedOptions($options),
+        ];
+    }
+
+    public function createDocument(array $options = []): string
+    {
+        $mergedOptions = $this->getMergedOptions($options);
 
         $html = app(PdfRenderer::class)->render($this, $mergedOptions, false);
+
         $tempPath = tempnam(sys_get_temp_dir(), 'pdf_');
 
         Browsershot::html($html)
@@ -81,11 +87,7 @@ abstract class BasePdfTemplate implements DocumentProducer
 
     public function generateFile(array $options = []): GeneratedDocumentDTO
     {
-        $mergedOptions = array_merge(
-            static::getDefaultOptions(),
-            $this->options ?? [],
-            $options
-        );
+        $mergedOptions = $this->getMergedOptions($options);
 
         $fileName = $this->getFileName($mergedOptions) . '.pdf';
         $relativePath = static::getExportDirectory() . '/' . $fileName;
@@ -110,8 +112,6 @@ abstract class BasePdfTemplate implements DocumentProducer
         return response()->download($generated->path, $generated->name)
             ->deleteFileAfterSend(true);
     }
-
-    
 
     public static function getPreviewData(callable $get, mixed $record): array
     {
@@ -139,6 +139,6 @@ abstract class BasePdfTemplate implements DocumentProducer
 
     public static function label(): string
     {
-        return 'PDF – ' . str(class_basename(static::class))->headline();
+        return 'PDF – ' . str(class_basename(static::class))->beforeLast('PdfTemplate')->headline();
     }
 }

@@ -11,9 +11,6 @@ use App\Services\Pdf\Base\BasePdfTemplate;
 
 class InvoiceComplete extends BasePdfTemplate
 {
-    public function __construct(protected Invoice $invoice) {}
-
-
     public static function key(): string
     {
         return 'invoice_complete_pdf';
@@ -23,7 +20,6 @@ class InvoiceComplete extends BasePdfTemplate
         return 'Facture PDF (complète)';
     }
 
-    
     public function getView(): string
     {
         return 'pdf.invoice.summary';
@@ -31,7 +27,7 @@ class InvoiceComplete extends BasePdfTemplate
 
     public function getFileName(array $options = []): string
     {
-        $code = $this->invoice->code ?? 'facture';
+        $code = $this->getRecord()->code ?? 'facture';
         return $code.'_c';
     }
 
@@ -40,7 +36,7 @@ class InvoiceComplete extends BasePdfTemplate
         $options = array_merge(static::getDefaultOptions(), $options);
 
         return [
-            'invoice' => $this->invoice,
+            'invoice' => $this->getRecord(),
             'user' => Auth::user(),
             'options' => $options,
         ];

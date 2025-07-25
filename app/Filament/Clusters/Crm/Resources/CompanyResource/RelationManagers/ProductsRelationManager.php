@@ -5,22 +5,17 @@ namespace App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Product;
-use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\AttachAction;
 use Filament\Tables\Actions\DetachAction;
-use Filament\Tables\Actions\ExportAction;
-use Illuminate\Database\Eloquent\Builder;
-
-use App\Services\Imports\CompanyProductsImporter;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Resources\RelationManagers\RelationManager;
-use App\Filament\Components\Tables\ImportMaatExcelAction;
-use App\Services\Exports\Company\CompanyProductsExporter;
-use App\Filament\Components\Tables\ExportMaatExcelTableAction;
+
+use App\Services\MaatExports\Templates\Company\CompanyProductsExporter;
+use App\Services\MaatImports\Templates\Company\CompanyProductsImporter;
+use App\Services\MaatExports\Filament\Tables\ExportMaatExcelTableAction;
+use App\Services\MaatImports\Filament\Tables\ImportMaatExcelTableAction;
 
 
 class ProductsRelationManager extends RelationManager
@@ -78,13 +73,10 @@ class ProductsRelationManager extends RelationManager
                     ->label('Exporter les produits')
                     ->exporter(CompanyProductsExporter::class)
                     ->withRecord($this->getOwnerRecord()),    
-                ImportMaatExcelAction::make('importproduct')
+                ImportMaatExcelTableAction::make('importproduct')
                     ->label('Importer les produits')
-                    ->icon('heroicon-o-cloud-arrow-up')
                     ->importer(CompanyProductsImporter::class)
-                    ->modalHeading('Import produits via Excel')
-                    ->modalSubmitActionLabel('Importer')
-                    ->modalWidth('md'),
+                    ->withRecord($this->getOwnerRecord())
             ])
             ->actions([
                 EditAction::make()

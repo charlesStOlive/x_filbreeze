@@ -1,9 +1,9 @@
 <?php 
 
-namespace App\Filament\Components\Actions;
+namespace App\Services\MaatExports\Filament\Actions;
 
 use Filament\Actions\Action;
-use App\Filament\Components\Concerns\CanExportMaatExcel;
+use App\Services\MaatExports\Filament\Traits\CanExportMaatExcel;
 
 class ExportMaatExcelAction extends Action
 {
