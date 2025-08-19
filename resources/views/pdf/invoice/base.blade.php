@@ -1,6 +1,6 @@
 @extends('pdf.layouts.main')
 
-@section('title', 'Facture #' . $invoice->name)
+@section('title', 'Facture #' . $invoice->code)
 
 @section('content')
 

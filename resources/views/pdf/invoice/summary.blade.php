@@ -2,7 +2,7 @@
 
 @extends('pdf.layouts.main')
 
-@section('title', 'Facture #' . $invoice->invoice_number)
+@section('title', 'Facture #' . $invoice->code)
 
 @section('content')
 

@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Services\Pdf\Base;
 
@@ -66,6 +66,27 @@ abstract class BasePdfTemplate implements DocumentProducer
         ];
     }
 
+    public function getHeaderView(): ?string
+    {
+        // return 'pdf.layouts.header'; // à créer dans resources/views/pdf/layouts/header.blade.php
+        return null; // Si pas de header, retourner null
+    }
+
+    public function getFooterView(): ?string
+    {
+        return 'pdf.layouts.footer'; // à créer dans resources/views/pdf/layouts/footer.blade.php
+    }
+
+    public function getHeaderData(array $options = []): array
+    {
+        return [];
+    }
+
+    public function getFooterData(array $options = []): array
+    {
+        return [];
+    }
+
     public function createDocument(array $options = []): string
     {
         $mergedOptions = $this->getMergedOptions($options);
@@ -74,13 +95,32 @@ abstract class BasePdfTemplate implements DocumentProducer
 
         $tempPath = tempnam(sys_get_temp_dir(), 'pdf_');
 
-        Browsershot::html($html)
+        $browsershot = Browsershot::html($html)
             ->format('A4')
             ->scale(0.75)
-            ->margins(25, 25, 25, 25, 'px')
+            ->margins(25, 25, 50, 25, 'px')
             ->emulateMedia('screen')
-            ->showBackground()
-            ->savePdf($tempPath);
+            ->showBackground();
+
+        $headerView = $this->getHeaderView();
+        $footerView = $this->getFooterView();
+
+        if ($headerView || $footerView) {
+            $browsershot->showBrowserHeaderAndFooter();
+
+            if ($headerView) {
+                $headerHtml = app(PdfRenderer::class)->renderPartial($headerView, $this->getHeaderData($mergedOptions));
+                $browsershot->headerHtml($headerHtml);
+            }
+
+            if ($footerView) {
+                $footerHtml = app(PdfRenderer::class)->renderPartial($footerView, $this->getFooterData($mergedOptions));
+                $browsershot->footerHtml($footerHtml);
+            }
+        }
+
+        $browsershot->savePdf($tempPath);
+
 
         return $tempPath;
     }
