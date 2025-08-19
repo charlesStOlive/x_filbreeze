@@ -132,7 +132,7 @@ class InvoiceResource extends Resource
                 ->required()
                 ->reactive()
                 ->disabled(!$companyEditable)
-                ->dehydrated(fn ($state) => filled($state)),
+                ->dehydrated(fn($state) => filled($state)),
 
         ];
     }
@@ -192,7 +192,7 @@ class InvoiceResource extends Resource
                 if ($state === null) {
                     return 'Produit';
                 }
-                return sprintf('%s %s (%s €HT)', 'Produit : ', $state['product_title'] ?? 'inc',  $state['total'] ?? 0);
+                return sprintf('%s %s (%s €HT)', 'Produit : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
             })
             ->schema([
                 Forms\Components\Select::make('product_id')
