@@ -24,7 +24,7 @@ class ProductFormHelper
         $typeEnum = ProductType::from($type);
 
         return match ($typeEnum) {
-            ProductType::HEURES, ProductType::JOURS => [
+            ProductType::HEURES, ProductType::JOURS, ProductType::FORFAIT_U, ProductType::FORFAIT_M => [
                 TextInput::make('qty')
                     ->label($typeEnum->formQtyLabel())
                     ->numeric()
@@ -50,7 +50,7 @@ class ProductFormHelper
                     ->dehydrated(),
             ],
 
-            ProductType::FORFAIT_U, ProductType::FORFAIT_M, ProductType::FORFAIT_A => [
+            ProductType::FORFAIT_A => [
                 TextInput::make('total')
                     ->label($typeEnum->formCuLabel())
                     ->numeric()

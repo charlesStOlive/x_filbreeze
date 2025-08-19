@@ -45,7 +45,8 @@ class InvoiceComplete extends BasePdfTemplate
     public static function getDefaultOptions(): array
     {
         return [
-            'avoid_full_break' => true,
+            'avoid_full_break' => false,
+            'avoid_inside_break' => true,
             'avoid_amount_break' => true,
         ];
     }
@@ -54,8 +55,12 @@ class InvoiceComplete extends BasePdfTemplate
     {
         return [
             Forms\Components\Checkbox::make('avoid_full_break')
-                ->label('Empêcher les sauts de page au milieu du tableau principal')
-                ->default($defaults['avoid_full_break'] ?? false)
+                ->label('Empêcher les sauts de page dans le tableai (si intro longue et petit tableau)')
+                ->default($defaults['avoid_inside_break'] ?? false)
+                ->live(),
+            Forms\Components\Checkbox::make('avoid_inside_break')
+                ->label('Empêcher les sauts de page au milieu d une ligne du tableau principal')
+                ->default($defaults['avoid_inside_break'] ?? false)
                 ->live(),
             Forms\Components\Checkbox::make('avoid_amount_break')
                 ->label('Empêcher les sauts de page au milieu des montants')

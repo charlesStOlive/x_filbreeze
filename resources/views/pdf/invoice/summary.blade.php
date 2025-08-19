@@ -57,7 +57,9 @@
                     <div class="text-xl">Total</div>
                 </div>
                 @foreach ($invoice->items as $item)
-                    @includeIf("pdf.shared.items.{$item['type']}", ['item' => $item])
+                    <div style="{{ $options['avoid_inside_break'] ? 'page-break-inside: avoid;' : '' }}">
+                        @includeIf("pdf.shared.items.{$item['type']}", ['item' => $item])
+                    </div>
                 @endforeach
             </div>
             <div style="{{ $options['avoid_amount_break'] ? 'page-break-inside: avoid;' : '' }}">

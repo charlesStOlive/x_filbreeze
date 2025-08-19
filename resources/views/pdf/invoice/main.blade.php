@@ -70,7 +70,9 @@
                     <div class="text-xl">Total</div>
                 </div>
                 @foreach ($record->items as $item)
-                    @includeIf("pdf.shared.items.{$item['type']}", ['item' => $item])
+                    <div style="{{ $avoid_amount_break ? 'page-break-inside: avoid;' : '' }}">
+                        @includeIf("pdf.shared.items.{$item['type']}", ['item' => $item])
+                    </div>
                 @endforeach
             </div>
             <div style="{{ $avoid_amount_break ? 'page-break-inside: avoid;' : '' }}">

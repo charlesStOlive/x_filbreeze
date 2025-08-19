@@ -20,8 +20,10 @@
 
     @php
         $unitLabel = match($item['data']['type'] ?? null) {
-            'heures' => 'heures',
-            'jours' => 'jours',
+            'heures' => 'h',
+            'jours' => 'j',
+            'forfait_m' => 'm',
+            'forfait_u' => 'u',
             default => null,
         };
     @endphp

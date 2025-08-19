@@ -571,8 +571,8 @@ class InvoiceResource extends Resource
         $qty = $get('qty') ?? 1;
 
         $total = match ($type) {
-            'heures', 'jours' => $cu * $qty,
-            'forfait_u' => $cu,
+            'heures', 'jours', 'forfait_m', 'forfait_u' => $cu * $qty,
+            'forfait_a' => $cu,
             default => 0,
         };
 
