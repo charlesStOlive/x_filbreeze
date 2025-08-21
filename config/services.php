@@ -38,6 +38,10 @@ return [
     'mistral' => [
         'api_url' => env('MISTRAL_API_URL'),
         'api_key' => env('MISTRAL_API_KEY'),
+        'agents' => [
+            'correction_orthographe' => env('MISTRAL_AGENT_CORRECTION', 'ag:3e2c948d:20241213:correction-ortographe:b3c27f0b'),
+            'supplier_invoice_analysis' => env('MISTRAL_AGENT_SUPPLIER_INVOICE'),
+        ],
     ],
 
 

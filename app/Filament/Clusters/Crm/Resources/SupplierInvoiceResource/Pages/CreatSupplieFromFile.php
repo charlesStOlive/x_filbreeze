@@ -163,27 +163,16 @@ class CreatSupplieFromFile extends Page implements HasForms
 
         foreach ($files as $file) {
             $data = ['file_name' => $file->getClientOriginalName()];
+            $result = $analyzer->analyze($file);
 
-            try {
-                $response = $analyzer->analyze($file);
-
-                if ($response->isSuccess()) {
-                    $data = array_merge($data, $response->getDataArray());
-                    $data['state'] = 'Succès';
-                    $data['error_comment'] = null;
-                } else {
-                    $data['state'] = 'Erreur';
-                    $data['error_comment'] = $response->getMessage();
-                    $errors[] = "{$data['file_name']}: {$response->getMessage()}";
-                }
-            } catch (MistralException $e) {
+            if ($result->isSuccess()) {
+                $data = array_merge($data, $result->getData());
+                $data['state'] = 'Succès';
+                $data['error_comment'] = null;
+            } else {
                 $data['state'] = 'Erreur';
-                $data['error_comment'] = 'Erreur IA : ' . $e->getMessage();
-                $errors[] = "{$data['file_name']}: " . $e->getMessage();
-            } catch (\Throwable $e) {
-                $data['state'] = 'Erreur';
-                $data['error_comment'] = 'Erreur interne : ' . $e->getMessage();
-                $errors[] = "{$data['file_name']}: Erreur interne";
+                $data['error_comment'] = $result->getMessage();
+                $errors[] = "{$data['file_name']}: {$result->getMessage()}";
             }
 
             $invoiceData[] = $data;
@@ -192,14 +181,18 @@ class CreatSupplieFromFile extends Page implements HasForms
         $set('invoice_data', $invoiceData);
 
         if (!empty($errors)) {
-            \Filament\Notifications\Notification::make()
-                ->title('Analyse partielle terminée')
-                ->body(implode("\n", $errors))
-                ->danger()
-                ->send();
+            $this->showAnalysisErrors($errors);
         }
     }
 
+    protected function showAnalysisErrors(array $errors): void
+    {
+        \Filament\Notifications\Notification::make()
+            ->title('Analyse partielle terminée')
+            ->body('Certains fichiers n\'ont pas pu être analysés : ' . implode(', ', $errors))
+            ->warning()
+            ->send();
+    }
 
     public function retryFileAnalysis(array $itemData, callable $set): void
     {
@@ -227,33 +220,33 @@ class CreatSupplieFromFile extends Page implements HasForms
             return;
         }
 
-        $analyzer = app(\App\Services\Models\ExtractSupplierInvoiceData::class);
+        $analyzer = app(ExtractSupplierInvoiceData::class);
+        $result = $analyzer->analyze($file);
+
         $updatedData = $itemData;
 
-        try {
-            $response = $analyzer->analyze($file);
-
-            if ($response->isSuccess()) {
-                $updatedData = array_merge($updatedData, $response->getDataArray());
-                $updatedData['state'] = 'Succès';
-                $updatedData['error_comment'] = null;
-            } else {
-                $updatedData['state'] = 'Erreur';
-                $updatedData['error_comment'] = $response->getMessage();
-            }
-        } catch (\App\Exceptions\MistralException $e) {
+        if ($result->isSuccess()) {
+            $updatedData = array_merge($updatedData, $result->getData());
+            $updatedData['state'] = 'Succès';
+            $updatedData['error_comment'] = null;
+        } else {
             $updatedData['state'] = 'Erreur';
-            $updatedData['error_comment'] = 'Erreur IA : ' . $e->getMessage();
-        } catch (\Throwable $e) {
-            $updatedData['state'] = 'Erreur';
-            $updatedData['error_comment'] = 'Erreur interne : ' . $e->getMessage();
+            $updatedData['error_comment'] = $result->getMessage();
         }
 
         $invoiceData = collect($this->invoice_data)
-            ->map(fn($data) => $data['file_name'] === $fileName ? $updatedData : $data)
+            ->map(function ($item) use ($fileName, $updatedData) {
+                return $item['file_name'] === $fileName ? $updatedData : $item;
+            })
             ->toArray();
 
         $set('invoice_data', $invoiceData);
+
+        Notification::make()
+            ->title('Analyse relancée')
+            ->body("L'analyse du fichier {$fileName} a été relancée")
+            ->success()
+            ->send();
 
         Notification::make()
             ->title("Réanalyse de {$fileName}")
