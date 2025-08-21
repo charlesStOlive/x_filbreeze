@@ -4,24 +4,23 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Services\PermissionService;
-use Spatie\Permission\Models\Role;
 
-class RolePolicy
+class UserPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return PermissionService::can($user, 'roles.view');
+        return PermissionService::can($user, 'users.view');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Role $role): bool
+    public function view(User $user, User $model): bool
     {
-        return PermissionService::can($user, 'roles.view');
+        return PermissionService::can($user, 'users.view');
     }
 
     /**
@@ -29,22 +28,22 @@ class RolePolicy
      */
     public function create(User $user): bool
     {
-        return PermissionService::can($user, 'roles.create');
+        return PermissionService::can($user, 'users.create');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Role $role): bool
+    public function update(User $user, User $model): bool
     {
-        return PermissionService::can($user, 'roles.edit');
+        return PermissionService::can($user, 'users.edit');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Role $role): bool
+    public function delete(User $user, User $model): bool
     {
-        return PermissionService::can($user, 'roles.delete');
+        return PermissionService::can($user, 'users.delete');
     }
 }

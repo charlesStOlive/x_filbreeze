@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoleResource\Pages;
+use App\Services\PermissionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -27,22 +28,22 @@ class RoleResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('view_roles');
+        return PermissionService::can('roles.view');
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()->can('create_roles');
+        return PermissionService::can('roles.create');
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()->can('edit_roles');
+        return PermissionService::can('roles.edit');
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()->can('delete_roles');
+        return PermissionService::can('roles.delete');
     }
 
     public static function form(Form $form): Form

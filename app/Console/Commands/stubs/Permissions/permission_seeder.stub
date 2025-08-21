@@ -1,0 +1,74 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
+{{use_users}}
+
+/**
+ * Seeder généré automatiquement le {{timestamp}}
+ * 
+ * Ce seeder contient toutes les permissions et rôles du système
+ * avec leurs associations{{users_comment}}.
+ * 
+ * Généré avec: php artisan permissions:generate-seeder{{command_options}}
+ * 
+ * Statistiques:
+ * - {{permissions_count}} permission(s)
+ * - {{roles_count}} rôle(s){{users_stats}}
+ */
+class {{class_name}} extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // Désactiver les contraintes de clés étrangères temporairement
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        
+        $this->command->info('🌱 Création des permissions...');
+        $this->createPermissions();
+        
+        $this->command->info('👥 Création des rôles...');
+        $this->createRoles();
+        
+        $this->command->info('🔗 Association des permissions aux rôles...');
+        $this->assignPermissionsToRoles();
+        
+        {{create_users_call}}
+        
+        // Réactiver les contraintes
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+        $this->command->info('✅ Seeder de permissions terminé !');
+    }
+
+    /**
+     * Créer toutes les permissions
+     */
+    private function createPermissions(): void
+    {
+{{permissions_data}}
+    }
+
+    /**
+     * Créer tous les rôles
+     */
+    private function createRoles(): void
+    {
+{{roles_data}}
+    }
+
+    /**
+     * Associer les permissions aux rôles
+     */
+    private function assignPermissionsToRoles(): void
+    {
+{{role_permissions_data}}
+    }
+{{create_users_method}}
+}

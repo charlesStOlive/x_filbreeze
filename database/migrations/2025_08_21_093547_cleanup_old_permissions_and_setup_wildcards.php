@@ -1,20 +1,45 @@
 <?php
 
-namespace Database\Seeders;
-
-use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
-class RolePermissionSeeder extends Seeder
+return new class extends Migration
 {
-    public function run(): void
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Définir les permissions avec système de wildcards
-        $permissions = [
+        // Supprimer les anciennes permissions auto-générées (par exemple celles avec des noms comme Company.view-any, User.create, etc.)
+        $oldPermissionPatterns = [
+            'Company.%',
+            'Contact.%',
+            'Sector.%',
+            'Supplier.%',
+            'SupplierInvoice.%',
+            'User.%',
+            'MsgEmailIn.%',
+            'MsgToken.%',
+            'MsgUser.%',
+        ];
+
+        foreach ($oldPermissionPatterns as $pattern) {
+            Permission::where('name', 'LIKE', $pattern)->delete();
+        }
+
+        // Supprimer la table breezy_sessions si elle existe encore
+        if (Schema::hasTable('breezy_sessions')) {
+            Schema::dropIfExists('breezy_sessions');
+        }
+
+        // Définir les nouvelles permissions avec système de wildcards
+        $newPermissions = [
             // Permissions globales d'administration
             'admin.*',                    // Accès total admin
             'dashboard.view',            // Voir le dashboard
@@ -86,71 +111,65 @@ class RolePermissionSeeder extends Seeder
             'msgraph.drafts.*',        // Gestion des brouillons
         ];
 
-        // Créer les permissions
-        foreach ($permissions as $permission) {
+        // Créer les nouvelles permissions
+        foreach ($newPermissions as $permissionName) {
             Permission::firstOrCreate([
-                'name' => $permission,
+                'name' => $permissionName,
                 'guard_name' => 'web'
             ]);
         }
 
-        // Créer les rôles
+        // Mettre à jour les rôles existants
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $userRole = Role::firstOrCreate(['name' => 'user']);
-        $crmManagerRole = Role::firstOrCreate(['name' => 'crm_manager']);
-        $productManagerRole = Role::firstOrCreate(['name' => 'product_manager']);
 
-        // Assigner les permissions aux rôles
-
-        // Admin : Accès total
+        // L'admin a accès à tout
         $adminRole->syncPermissions(['admin.*']);
 
-        // Utilisateur de base : Dashboard seulement
+        // L'utilisateur de base a accès au dashboard uniquement
         $userRole->syncPermissions(['dashboard.view']);
 
-        // CRM Manager : Gestion CRM + vue utilisateurs
+        // Créer des rôles spécialisés
+        $crmManagerRole = Role::firstOrCreate(['name' => 'crm_manager']);
         $crmManagerRole->syncPermissions([
             'dashboard.view',
             'crm.*',
             'users.view',
         ]);
 
-        // Product Manager : Gestion produits + vue CRM limitée
+        $productManagerRole = Role::firstOrCreate(['name' => 'product_manager']);
         $productManagerRole->syncPermissions([
             'dashboard.view',
             'products.*',
             'crm.companies.view',
             'crm.contacts.view',
         ]);
-
-        // Créer ou mettre à jour les utilisateurs par défaut
-        $admin = \App\Models\User::updateOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'name' => 'Administrator',
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
-            ]
-        );
-        $admin->syncRoles(['admin']);
-
-        // Créer un utilisateur CRM Manager
-        $crmManager = \App\Models\User::updateOrCreate(
-            ['email' => 'crm@example.com'],
-            [
-                'name' => 'CRM Manager',
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
-            ]
-        );
-        $crmManager->syncRoles(['crm_manager']);
-
-        // Créer un utilisateur Product Manager
-        $productManager = \App\Models\User::updateOrCreate(
-            ['email' => 'product@example.com'],
-            [
-                'name' => 'Product Manager',
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
-            ]
-        );
-        $productManager->syncRoles(['product_manager']);
     }
-}
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // En cas de rollback, on peut recréer les permissions basiques
+        $basicPermissions = [
+            'view_users',
+            'create_users',
+            'edit_users',
+            'delete_users',
+            'view_roles',
+            'create_roles',
+            'edit_roles',
+            'delete_roles',
+            'view_permissions',
+            'create_permissions',
+            'edit_permissions',
+            'delete_permissions',
+            'view_dashboard',
+        ];
+
+        foreach ($basicPermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+    }
+};

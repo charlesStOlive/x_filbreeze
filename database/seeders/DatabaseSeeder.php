@@ -15,10 +15,17 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-        Artisan::call('permissions:sync');
-        $this->call(createUserAndRoles::class);
+
+        // Utiliser notre nouveau seeder de permissions avec wildcards
+        $this->call(RolePermissionSeeder::class);
+
+        // Seeders générés automatiquement disponibles (générer avec: php artisan permissions:generate-seeder)
+        // $this->call(PermissionSeeder::class);           // Toutes les permissions et rôles
+        // $this->call(CrmPermissionSeeder::class);        // Seulement le cluster CRM
+        // $this->call(PermissionsOnlySeeder::class);      // Seulement les permissions
+
+        // Garder les autres seeders
         $this->call(SectorSeeder::class);
         $this->call(SupplierSeeder::class);
-        
     }
 }

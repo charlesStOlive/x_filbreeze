@@ -17,6 +17,7 @@ use YOS\FilamentExcel\Actions\Import;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\DeleteBulkAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
+use App\Services\PermissionService;
 
 class ProductResource extends Resource
 {
@@ -25,6 +26,26 @@ class ProductResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 
     protected static ?string $cluster = DataSets::class;
+
+    public static function canViewAny(): bool
+    {
+        return PermissionService::can('products.view');
+    }
+
+    public static function canCreate(): bool
+    {
+        return PermissionService::can('products.create');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return PermissionService::can('products.edit');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return PermissionService::can('products.delete');
+    }
 
     public static function getLabel(): string
     {

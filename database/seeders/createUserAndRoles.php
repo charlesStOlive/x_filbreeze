@@ -40,13 +40,17 @@ class createUserAndRoles extends Seeder
         // Créer le rôle "Users"
         $userRole = Role::firstOrCreate(['name' => 'Users']);
 
-        // Récupérer toutes les permissions qui commencent par 'User'
-        $userPermissions = Permission::where('name', 'like', 'User%')->get();
+        // Avec le système wildcard, on donne des permissions spécifiques
+        $userPermissions = [
+            'users.view',
+            'users.create',
+            'users.edit',
+        ];
 
-        //\Log::info('userPermissions', $userPermissions->toArray());
-
-        // Assigner toutes ces permissions au rôle $userRole
-        $userRole->givePermissionTo($userPermissions);
+        foreach ($userPermissions as $permissionName) {
+            $permission = Permission::firstOrCreate(['name' => $permissionName]);
+            $userRole->givePermissionTo($permission);
+        }
 
         $userAdmin = User::create([
             'name' => 'Admin User',
@@ -55,7 +59,5 @@ class createUserAndRoles extends Seeder
         ]);
         // Assigner le rôle superadmin à cet utilisateur
         $userAdmin->assignRole($userRole);
-
-
     }
 }

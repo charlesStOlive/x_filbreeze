@@ -9,6 +9,8 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Http\Middleware\Authenticate;
+use Filament\Navigation\MenuItem;
+use App\Filament\Pages\UserSettings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -33,6 +35,12 @@ class AdminPanelProvider extends PanelProvider
             ->darkModeBrandLogo(asset('images/logo white.png'))
             ->brandLogoHeight('4rem')
             ->databaseNotifications()
+            ->userMenuItems([
+                MenuItem::make()
+                    ->label('Mes options')
+                    ->url(fn() => UserSettings::getUrl())
+                    ->icon('heroicon-o-cog-6-tooth'),
+            ])
             ->plugins([
                 FilamentPeekPlugin::make()->disablePluginStyles(),
             ])

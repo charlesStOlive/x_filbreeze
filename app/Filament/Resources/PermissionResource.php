@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PermissionResource\Pages;
+use App\Services\PermissionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -26,22 +27,22 @@ class PermissionResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('view_permissions');
+        return PermissionService::can('permissions.view');
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()->can('create_permissions');
+        return PermissionService::can('permissions.create');
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()->can('edit_permissions');
+        return PermissionService::can('permissions.edit');
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()->can('delete_permissions');
+        return PermissionService::can('permissions.delete');
     }
 
     public static function form(Form $form): Form

@@ -26,6 +26,8 @@ class UserSettings extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Profil';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public ?array $profileData = [];
     public ?array $passwordData = [];
 

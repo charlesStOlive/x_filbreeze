@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
+use App\Services\PermissionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,6 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
@@ -30,22 +32,22 @@ class UserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('view_users');
+        return PermissionService::can('users.view');
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()->can('create_users');
+        return PermissionService::can('users.create');
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()->can('edit_users');
+        return PermissionService::can('users.edit');
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()->can('delete_users');
+        return PermissionService::can('users.delete');
     }
 
     public static function form(Form $form): Form
@@ -67,7 +69,21 @@ class UserResource extends Resource
                     ->password()
                     ->required(fn(string $operation): bool => $operation === 'create')
                     ->dehydrated(fn($state) => filled($state))
-                    ->minLength(8),
+                    ->minLength(8)
+                    ->same('password_confirmation')
+                    ->revealable()
+                    ->helperText(
+                        fn(string $operation): string =>
+                        $operation === 'edit' ? 'Laissez vide pour conserver le mot de passe actuel' : ''
+                    ),
+                Forms\Components\TextInput::make('password_confirmation')
+                    ->label('Confirmer le mot de passe')
+                    ->password()
+                    ->required(fn(string $operation): bool => $operation === 'create')
+                    ->requiredWith('password')
+                    ->dehydrated(false)
+                    ->minLength(8)
+                    ->revealable(),
                 Forms\Components\Select::make('roles')
                     ->label('Rôles')
                     ->multiple()
