@@ -2,18 +2,20 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
+        "dev": "concurrently \"npm run dev:admin\" \"npm run dev:pdf\"",
+        "dev:admin": "vite --config vite.config.js",
         "dev:pdf": "vite --config vite.pdf.config.js",
+        "build": "npm run build:admin && npm run build:pdf",
+        "build:admin": "vite build --config vite.config.js",
         "build:pdf": "vite build --config vite.pdf.config.js",
-        "dev:all": "npm run dev & npm run dev:pdf",
-        "build:all": "npm run build & npm run build:pdf"
+        "clean": "powershell -Command \"Remove-Item -Recurse -Force public/build, public/pdf, public/frontend -ErrorAction SilentlyContinue\""
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.9",
         "@tailwindcss/typography": "^0.5.15",
         "autoprefixer": "^10.4.20",
         "axios": "^1.7.4",
+        "concurrently": "^8.2.2",
         "laravel-vite-plugin": "^1.1.0",
         "postcss": "^8.4.49",
         "postcss-nesting": "^13.0.1",

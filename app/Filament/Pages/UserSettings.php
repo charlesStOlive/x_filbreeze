@@ -2,15 +2,19 @@
 
 namespace App\Filament\Pages;
 
+use Exception;
 use Filament\Forms;
-use Filament\Pages\Page;
 use Filament\Forms\Form;
-use Filament\Support\Exceptions\Halt;
-use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
-use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Notifications\Notification;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Filament\Forms\Concerns\InteractsWithForms;
+use App\Services\LocaleService;
 
 class UserSettings extends Page implements HasForms
 {
@@ -30,108 +34,178 @@ class UserSettings extends Page implements HasForms
 
     public ?array $profileData = [];
     public ?array $passwordData = [];
+    public ?array $localeData = [];
 
     public function mount(): void
     {
         $this->fillForms();
     }
 
-    protected function fillForms(): void
-    {
-        $user = auth()->user();
-
-        $this->profileForm->fill([
-            'name' => $user->name,
-            'email' => $user->email,
-        ]);
-    }
-
-    public function profileForm(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->label('Nom')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->label('Email')
-                    ->email()
-                    ->required()
-                    ->unique('users', 'email', auth()->user())
-                    ->maxLength(255),
-            ])
-            ->statePath('profileData');
-    }
-
-    public function passwordForm(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('current_password')
-                    ->label('Mot de passe actuel')
-                    ->password()
-                    ->required()
-                    ->currentPassword(),
-                Forms\Components\TextInput::make('password')
-                    ->label('Nouveau mot de passe')
-                    ->password()
-                    ->required()
-                    ->rule(Password::default())
-                    ->same('password_confirmation')
-                    ->validationAttribute('mot de passe'),
-                Forms\Components\TextInput::make('password_confirmation')
-                    ->label('Confirmer le nouveau mot de passe')
-                    ->password()
-                    ->required()
-                    ->dehydrated(false),
-            ])
-            ->statePath('passwordData');
-    }
-
     protected function getForms(): array
     {
         return [
-            'profileForm',
-            'passwordForm',
+            'editProfileForm',
+            'editPasswordForm',
+            'editLocaleForm',
         ];
     }
 
-    public function updateProfile(): void
+    public function editProfileForm(Form $form): Form
     {
-        try {
-            $data = $this->profileForm->getState();
-
-            auth()->user()->update($data);
-
-            Notification::make()
-                ->success()
-                ->title('Profil mis à jour')
-                ->body('Vos informations de profil ont été mises à jour avec succès.')
-                ->send();
-        } catch (Halt $exception) {
-            return;
-        }
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Mon profil')
+                    ->description('Gérez vos informations personnelles et vos paramètres de compte.')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nom')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->required()
+                            ->unique('users', 'email', ignoreRecord: true)
+                            ->maxLength(255),
+                    ])
+                    ->footerActions([
+                        Forms\Components\Actions\Action::make('saveProfile')
+                            ->label('Sauvegarder le profil')
+                            ->submit('saveProfile'),
+                    ]),
+            ])
+            ->model($this->getUser())
+            ->statePath('profileData');
     }
 
-    public function updatePassword(): void
+    public function editLocaleForm(Form $form): Form
     {
-        try {
-            $data = $this->passwordForm->getState();
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Préférences régionales')
+                    ->description('Configurez votre fuseau horaire et votre langue préférée.')
+                    ->schema([
+                        Forms\Components\Select::make('timezone')
+                            ->label('Fuseau horaire')
+                            ->options(LocaleService::getPopularEuropeanTimezones())
+                            ->searchable()
+                            ->required()
+                            ->default('Europe/Paris')
+                            ->helperText('Sélectionnez votre fuseau horaire pour un affichage correct des dates et heures.'),
+                        Forms\Components\Select::make('locale')
+                            ->label('Langue et région')
+                            ->options(LocaleService::getLocales())
+                            ->searchable()
+                            ->required()
+                            ->default('fr_FR')
+                            ->helperText('Choisissez votre langue et région pour localiser l\'interface.'),
+                    ])
+                    ->footerActions([
+                        Forms\Components\Actions\Action::make('saveLocaleSettings')
+                            ->label('Sauvegarder les préférences')
+                            ->submit('saveLocaleSettings'),
+                    ]),
+            ])
+            ->model($this->getUser())
+            ->statePath('localeData');
+    }
 
-            auth()->user()->update([
-                'password' => Hash::make($data['password']),
-            ]);
+    public function editPasswordForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Modifier le mot de passe')
+                    ->description('Assurez-vous que votre compte utilise un mot de passe long et aléatoire pour rester sécurisé.')
+                    ->schema([
+                        Forms\Components\TextInput::make('current_password')
+                            ->label('Mot de passe actuel')
+                            ->password()
+                            ->required()
+                            ->currentPassword(),
+                        Forms\Components\TextInput::make('password')
+                            ->label('Nouveau mot de passe')
+                            ->password()
+                            ->required()
+                            ->rule(Password::default())
+                            ->autocomplete('new-password')
+                            ->dehydrateStateUsing(fn($state): string => Hash::make($state))
+                            ->live(debounce: 500)
+                            ->same('password_confirmation'),
+                        Forms\Components\TextInput::make('password_confirmation')
+                            ->label('Confirmer le nouveau mot de passe')
+                            ->password()
+                            ->required()
+                            ->dehydrated(false),
+                    ])
+                    ->footerActions([
+                        Forms\Components\Actions\Action::make('savePassword')
+                            ->label('Modifier le mot de passe')
+                            ->color('warning')
+                            ->submit('savePassword'),
+                    ]),
+            ])
+            ->model($this->getUser())
+            ->statePath('passwordData');
+    }
 
-            $this->passwordForm->fill([]);
+    private function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $record->update($data);
+        return $record;
+    }
 
-            Notification::make()
-                ->success()
-                ->title('Mot de passe mis à jour')
-                ->body('Votre mot de passe a été mis à jour avec succès.')
-                ->send();
-        } catch (Halt $exception) {
-            return;
+    private function sendSuccessNotification(string $title = 'Sauvegardé', string $body = 'Les modifications ont été sauvegardées avec succès.'): void
+    {
+        Notification::make()
+            ->success()
+            ->title($title)
+            ->body($body)
+            ->send();
+    }
+
+    public function saveProfile(): void
+    {
+        $data = $this->editProfileForm->getState();
+        $this->handleRecordUpdate($this->getUser(), $data);
+        $this->sendSuccessNotification('Profil mis à jour', 'Vos informations de profil ont été mises à jour avec succès.');
+    }
+
+    public function saveLocaleSettings(): void
+    {
+        $data = $this->editLocaleForm->getState();
+        $this->handleRecordUpdate($this->getUser(), $data);
+        $this->sendSuccessNotification('Préférences mises à jour', 'Vos préférences régionales ont été mises à jour avec succès.');
+    }
+
+    public function savePassword(): void
+    {
+        $data = $this->editPasswordForm->getState();
+
+        if (request()->hasSession() && array_key_exists('password', $data)) {
+            request()->session()->put(['password_hash_' . Filament::getAuthGuard() => $data['password']]);
         }
+
+        $this->handleRecordUpdate($this->getUser(), $data);
+        $this->editPasswordForm->fill(); // Reset les champs sensibles
+        $this->sendSuccessNotification('Mot de passe mis à jour', 'Votre mot de passe a été mis à jour avec succès.');
+    }
+
+    protected function getUser(): Authenticatable & Model
+    {
+        $user = Filament::auth()->user();
+        if (! $user instanceof Model) {
+            throw new Exception('The authenticated user object must be an Eloquent model to allow the profile page to update it.');
+        }
+        return $user;
+    }
+
+    protected function fillForms(): void
+    {
+        $user = $this->getUser();
+        $data = $user->attributesToArray();
+
+        $this->editProfileForm->fill($data);
+        $this->editLocaleForm->fill($data);
+        $this->editPasswordForm->fill();
     }
 }

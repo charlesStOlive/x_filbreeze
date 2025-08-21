@@ -17,7 +17,7 @@
                 @if ($invoice->submited_at)
                     <p>Date : {{ $invoice->submited_at->format('d/m/Y') }}</p>
                 @else
-                    <p class="text-red-500">FACTURE NON VALIDE : BROUILLON</p>
+                    <p class="bg-red-500 text-white">FACTURE NON VALIDE : BROUILLON</p>
                 @endif
             </div>
             <div>

@@ -30,6 +30,8 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'timezone',
+        'locale',
     ];
 
     /**
@@ -63,5 +65,21 @@ class User extends Authenticatable implements FilamentUser
     public static function getSystemUser(): self
     {
         return self::where('email', config('notifications.system_user_email'))->firstOrFail();
+    }
+
+    /**
+     * Obtenir le nom affiché de la timezone de l'utilisateur
+     */
+    public function getTimezoneDisplayNameAttribute(): string
+    {
+        return \App\Services\LocaleService::getTimezoneDisplayName($this->timezone ?? 'Europe/Paris');
+    }
+
+    /**
+     * Obtenir le nom affiché de la locale de l'utilisateur
+     */
+    public function getLocaleDisplayNameAttribute(): string
+    {
+        return \App\Services\LocaleService::getLocaleDisplayName($this->locale ?? 'fr_FR');
     }
 }

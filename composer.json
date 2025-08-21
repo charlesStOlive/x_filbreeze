@@ -10,7 +10,6 @@
         "cloudinary-labs/cloudinary-laravel": "^3.0",
         "filament/filament": "^3.2",
         "filament/spatie-laravel-media-library-plugin": "^3.2",
-        "filament/spatie-laravel-translatable-plugin": "^3.2",
         "guava/filament-clusters": "^1.4",
         "gwsn/flysystem-sharepoint-adapter": "^1.1",
         "ksubileau/color-thief-php": "^2.0",
@@ -18,6 +17,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "maartenpaauw/laravel-specification-pattern": "^2.8",
+        "maatwebsite/excel": "^3.1",
         "owenvoke/blade-fontawesome": "^2.8",
         "pboivin/filament-peek": "^2.2",
         "smalot/pdfparser": "^2.11",
@@ -28,9 +28,7 @@
         "spatie/laravel-model-states": "^2.9",
         "spatie/laravel-permission": "*",
         "spatie/laravel-settings": "^3.4",
-        "thiagoalessio/tesseract_ocr": "^2.13",
-        "valentin-morice/filament-json-column": "^1.5",
-        "yemenopensource/filament-excel": "^0.1.0"
+        "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",

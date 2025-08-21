@@ -21,3 +21,5 @@ yarn-error.log
 /.idea
 /.vscode
 /.zed
+
+public/pdf.hot

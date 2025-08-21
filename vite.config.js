@@ -9,7 +9,6 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/css/filament/admin/theme.css',
             ],
@@ -19,14 +18,14 @@ export default defineConfig({
     ...(isDev && {
         server: {
             host: '0.0.0.0',
-            port: 5173,
-            strictPort: true,
+            port: 5200,
+            strictPort: false,
             cors: true,
-            origin: 'https://x_filbreeze.test:5173',
+            origin: 'https://x_filbreeze.test:5200',
             allowedHosts: ['x_filbreeze.test'],
             hmr: {
                 host: 'x_filbreeze.test',
-                port: 5173,
+                port: 5200,
                 protocol: 'wss',
             },
             https: {
