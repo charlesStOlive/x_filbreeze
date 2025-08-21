@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Permission::class, PermissionPolicy::class);
         Gate::before(function (User $user, string $ability) {
-            return $user->isSuperAdmin() ? true : null;
+            return $user->hasRole('admin') ? true : null;
         });
         Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
         Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
