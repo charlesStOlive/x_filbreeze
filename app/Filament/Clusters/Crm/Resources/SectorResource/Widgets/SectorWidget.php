@@ -2,14 +2,15 @@
 
 namespace App\Filament\Clusters\Crm\Resources\SectorResource\Widgets;
 
+use Filament\Forms;
 use App\Models\Sector;
 use Filament\Actions\CreateAction;
-use Filament\Forms;
-use SolutionForest\FilamentTree\Widgets\Tree as BaseWidget;
+use App\Components\Tree\Widgets\Tree;
+
 //
 
 
-class SectorWidget extends BaseWidget
+class SectorWidget extends Tree
 {
     protected static string $model = Sector::class;
 
@@ -22,19 +23,19 @@ class SectorWidget extends BaseWidget
     protected function getFormSchema(): array
     {
         return [
-                Forms\Components\TextInput::make('title')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('slug')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('contenu')
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('txt_intro')
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('txt_kpi')
-                    ->columnSpanFull(),
-            ];
+            Forms\Components\TextInput::make('title')
+                ->required()
+                ->maxLength(255),
+            Forms\Components\TextInput::make('slug')
+                ->required()
+                ->maxLength(255),
+            Forms\Components\Textarea::make('contenu')
+                ->columnSpanFull(),
+            Forms\Components\Textarea::make('txt_intro')
+                ->columnSpanFull(),
+            Forms\Components\Textarea::make('txt_kpi')
+                ->columnSpanFull(),
+        ];
     }
 
     protected function getActions(): array
