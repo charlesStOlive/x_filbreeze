@@ -7,4 +7,5 @@ return [
     App\Providers\FlySystemSharepointProvider::class,
     App\Providers\IaServiceProvider::class,
     App\Providers\SchemaServiceProvider::class,
+    App\Providers\TreeAssetsServiceProvider::class,
 ];
