@@ -60,12 +60,19 @@ class RoleResource extends Resource
                     ->default('web')
                     ->required()
                     ->maxLength(255),
+
                 Forms\Components\CheckboxList::make('permissions')
                     ->label('Permissions')
                     ->relationship('permissions', 'name')
                     ->options(Permission::all()->pluck('name', 'id'))
-                    ->columns(2)
+                    ->columns([
+                        'sm' => 2,
+                        'md' => 4,
+                    ])
+                    ->columnSpanFull()
                     ->searchable(),
+
+
             ]);
     }
 
