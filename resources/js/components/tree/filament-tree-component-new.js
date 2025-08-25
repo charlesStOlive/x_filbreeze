@@ -29,23 +29,17 @@ export default function filamentTreeComponent({
             // Add indentation buttons
             this.addIndentationButtons();
 
-            // Add click event listeners for indent/outdent and expand/collapse buttons
+            // Add click event listeners for indent/outdent buttons
             this.nestedTreeElement.addEventListener('click', (e) => {
-                const indentBtn = e.target.closest('.fi-icon-btn[title*="Faire enfant"]');
-                const outdentBtn = e.target.closest('.fi-icon-btn[title*="Remonter"]');
-                const expandBtn = e.target.closest('[data-action="expand"]');
-                const collapseBtn = e.target.closest('[data-action="collapse"]');
+                const indentBtn = e.target.closest('.indent-btn');
+                const outdentBtn = e.target.closest('.outdent-btn');
 
-                if (indentBtn && !indentBtn.disabled) {
+                if (indentBtn) {
                     const item = indentBtn.closest('.dd-item');
                     this.indentItemManually(item);
-                } else if (outdentBtn && !outdentBtn.disabled) {
+                } else if (outdentBtn) {
                     const item = outdentBtn.closest('.dd-item');
                     this.outdentItemManually(item);
-                } else if (expandBtn) {
-                    this.handleExpand(expandBtn);
-                } else if (collapseBtn) {
-                    this.handleCollapse(collapseBtn);
                 }
             });
         },
@@ -66,7 +60,7 @@ export default function filamentTreeComponent({
                         animation: 150,
                         fallbackOnBody: true,
                         swapThreshold: 0.65,
-                        handle: '.tree-drag-handle',
+                        handle: '.dd-handle',
                         filter: '.indent-controls',
 
                         onMove: (evt) => {
@@ -126,38 +120,37 @@ export default function filamentTreeComponent({
             const items = this.nestedTreeElement.querySelectorAll('.dd-item');
 
             items.forEach(item => {
-                const existingControls = item.querySelector('.indent-controls');
-                if (!existingControls) return;
-
                 // Skip if buttons already exist
-                if (existingControls.querySelector('.indent-btn')) {
+                if (item.querySelector('.indent-controls')) {
                     return;
                 }
 
-                // Create outdent button with arrow-left icon (Heroicon outline)
-                const outdentBtn = document.createElement('button');
-                outdentBtn.className = 'fi-icon-btn relative flex items-center justify-center rounded-lg outline-none transition duration-75 focus-visible:ring-2 -m-1.5 h-8 w-8 text-gray-400 hover:text-gray-500 focus-visible:ring-primary-600 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:ring-primary-500';
-                outdentBtn.type = 'button';
-                outdentBtn.title = 'Remonter d\'un niveau';
-                outdentBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
-                        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-4.28 9.22a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06l-1.72-1.72h5.69a.75.75 0 0 0 0-1.5h-5.69l1.72-1.72a.75.75 0 0 0-1.06-1.06l-3 3Z" clip-rule="evenodd" />
-                    </svg>
-                    `;
+                const handle = item.querySelector('.dd-handle');
+                if (!handle) return;
 
-                // Create indent button with arrow-right icon (Heroicon outline)
+                // Create button container
+                const controls = document.createElement('div');
+                controls.className = 'indent-controls';
+
+                // Create indent button
                 const indentBtn = document.createElement('button');
-                indentBtn.className = 'fi-icon-btn relative flex items-center justify-center rounded-lg outline-none transition duration-75 focus-visible:ring-2 -m-1.5 h-8 w-8 text-gray-400 hover:text-gray-500 focus-visible:ring-primary-600 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:ring-primary-500';
+                indentBtn.className = 'indent-btn';
                 indentBtn.type = 'button';
                 indentBtn.title = 'Faire enfant du précédent';
-                indentBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
-                        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm4.28 10.28a.75.75 0 0 0 0-1.06l-3-3a.75.75 0 1 0-1.06 1.06l1.72 1.72H8.25a.75.75 0 0 0 0 1.5h5.69l-1.72 1.72a.75.75 0 1 0 1.06 1.06l3-3Z" clip-rule="evenodd" />
-                    </svg>`;
-                // Add to existing controls container
-                existingControls.appendChild(outdentBtn);
-                existingControls.appendChild(indentBtn);
+                indentBtn.innerHTML = '→';
 
+                // Create outdent button
+                const outdentBtn = document.createElement('button');
+                outdentBtn.className = 'outdent-btn';
+                outdentBtn.type = 'button';
+                outdentBtn.title = 'Remonter d\'un niveau';
+                outdentBtn.innerHTML = '←';
+
+                controls.appendChild(indentBtn);
+                controls.appendChild(outdentBtn);
+
+                // Add to handle
+                handle.appendChild(controls);
             });
 
             // Update button states
@@ -168,8 +161,8 @@ export default function filamentTreeComponent({
             const items = this.nestedTreeElement.querySelectorAll('.dd-item');
 
             items.forEach(item => {
-                const indentBtn = item.querySelector('.fi-icon-btn[title*="Faire enfant"]');
-                const outdentBtn = item.querySelector('.fi-icon-btn[title*="Remonter"]');
+                const indentBtn = item.querySelector('.indent-btn');
+                const outdentBtn = item.querySelector('.outdent-btn');
 
                 if (!indentBtn || !outdentBtn) return;
 
@@ -178,13 +171,8 @@ export default function filamentTreeComponent({
                 const canIndent = prevSibling && prevSibling.classList.contains('dd-item');
 
                 indentBtn.disabled = !canIndent;
-                if (!canIndent) {
-                    indentBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    indentBtn.classList.remove('hover:text-gray-500', 'dark:hover:text-gray-400');
-                } else {
-                    indentBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    indentBtn.classList.add('hover:text-gray-500', 'dark:hover:text-gray-400');
-                }
+                indentBtn.style.opacity = canIndent ? '1' : '0.5';
+                indentBtn.style.cursor = canIndent ? 'pointer' : 'not-allowed';
 
                 // Check if can outdent (not at root level)
                 const currentList = item.parentElement;
@@ -192,13 +180,8 @@ export default function filamentTreeComponent({
                 const canOutdent = !!parentItem;
 
                 outdentBtn.disabled = !canOutdent;
-                if (!canOutdent) {
-                    outdentBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    outdentBtn.classList.remove('hover:text-gray-500', 'dark:hover:text-gray-400');
-                } else {
-                    outdentBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    outdentBtn.classList.add('hover:text-gray-500', 'dark:hover:text-gray-400');
-                }
+                outdentBtn.style.opacity = canOutdent ? '1' : '0.5';
+                outdentBtn.style.cursor = canOutdent ? 'pointer' : 'not-allowed';
             });
         },
 
@@ -289,7 +272,7 @@ export default function filamentTreeComponent({
                         animation: 150,
                         fallbackOnBody: true,
                         swapThreshold: 0.65,
-                        handle: '.tree-drag-handle',
+                        handle: '.dd-handle',
                         filter: '.indent-controls',
 
                         onMove: (evt) => {
@@ -323,49 +306,18 @@ export default function filamentTreeComponent({
         },
 
         serialize: function () {
-            console.log('DEBUG serialize() called');
-            console.log('this.nestedTreeElement:', this.nestedTreeElement);
-
-            if (!this.nestedTreeElement) {
-                console.error('ERROR: nestedTreeElement is null/undefined');
-                return [];
-            }
-
-            console.log('nestedTreeElement tagName:', this.nestedTreeElement.tagName);
-            console.log('nestedTreeElement className:', this.nestedTreeElement.className);
-            console.log('nestedTreeElement children count:', this.nestedTreeElement.children.length);
-
-            // Find the main dd-list within the container
-            const mainList = this.nestedTreeElement.querySelector('.dd-list');
-            console.log('Found main dd-list:', mainList);
-
-            if (!mainList) {
-                console.error('ERROR: No .dd-list found in nestedTreeElement');
-                return [];
-            }
-
             const serialize = (list) => {
-                console.log('serialize() internal function called with list:', list);
-                console.log('list children count:', list ? list.children.length : 'list is null');
-
                 const items = [];
-                if (!list) return items;
-
                 const children = list.children;
 
                 for (let i = 0; i < children.length; i++) {
                     const item = children[i];
-                    console.log(`Processing child ${i}:`, item.tagName, item.className);
-
                     if (item.classList.contains('dd-item')) {
                         const id = item.getAttribute('data-id');
-                        console.log(`Found dd-item with id: ${id}`);
-
                         const childList = item.querySelector(':scope > .dd-list');
 
                         const itemData = { id };
                         if (childList) {
-                            console.log(`Found child list for item ${id}, recursing...`);
                             itemData.children = serialize(childList);
                         }
 
@@ -373,13 +325,10 @@ export default function filamentTreeComponent({
                     }
                 }
 
-                console.log('Returning items:', items);
                 return items;
             };
 
-            const result = serialize(mainList);
-            console.log('Final serialize result:', result);
-            return result;
+            return serialize(this.nestedTreeElement);
         },
 
         save: async function () {
@@ -409,80 +358,12 @@ export default function filamentTreeComponent({
             }
         },
 
-        handleExpand: function (button) {
-            const listItem = button.closest('li');
-
-            // Hide the expand button and show the collapse button using CSS classes
-            button.classList.add('hidden');
-            const collapseBtn = button.parentNode.querySelector('[data-action="collapse"]');
-            if (collapseBtn) {
-                collapseBtn.classList.remove('hidden');
-            }
-
-            // Show the nested list
-            const nestedList = listItem.querySelector(':scope > .dd-list');
-            if (nestedList) {
-                nestedList.classList.remove('hidden');
-                listItem.classList.remove('dd-collapsed');
-            }
-        },
-
-        handleCollapse: function (button) {
-            const listItem = button.closest('li');
-
-            // Hide the collapse button and show the expand button using CSS classes
-            button.classList.add('hidden');
-            const expandBtn = button.parentNode.querySelector('[data-action="expand"]');
-            if (expandBtn) {
-                expandBtn.classList.remove('hidden');
-            }
-
-            // Hide the nested list
-            const nestedList = listItem.querySelector(':scope > .dd-list');
-            if (nestedList) {
-                nestedList.classList.add('hidden');
-                listItem.classList.add('dd-collapsed');
-            }
-        },
-
         collapseAll: function () {
-            const dd = this.nestedTreeElement;
-            if (!dd) return;
-
-            // Hide all nested lists and show expand buttons
-            dd.querySelectorAll('.dd-item-btns [data-action="expand"]').forEach(btn => {
-                btn.classList.remove('hidden');
-            });
-            dd.querySelectorAll('.dd-item-btns [data-action="collapse"]').forEach(btn => {
-                btn.classList.add('hidden');
-            });
-            dd.querySelectorAll('.dd-list .dd-list').forEach(list => {
-                list.classList.add('hidden');
-            });
-            dd.querySelectorAll('.dd-item').forEach(item => {
-                if (item.querySelector(':scope > .dd-list')) {
-                    item.classList.add('dd-collapsed');
-                }
-            });
+            console.log('Collapse all not implemented yet');
         },
 
         expandAll: function () {
-            const dd = this.nestedTreeElement;
-            if (!dd) return;
-
-            // Show all nested lists and hide expand buttons
-            dd.querySelectorAll('.dd-item-btns [data-action="expand"]').forEach(btn => {
-                btn.classList.add('hidden');
-            });
-            dd.querySelectorAll('.dd-item-btns [data-action="collapse"]').forEach(btn => {
-                btn.classList.remove('hidden');
-            });
-            dd.querySelectorAll('.dd-list .dd-list').forEach(list => {
-                list.classList.remove('hidden');
-            });
-            dd.querySelectorAll('.dd-item').forEach(item => {
-                item.classList.remove('dd-collapsed');
-            });
+            console.log('Expand all not implemented yet');
         }
     };
 }

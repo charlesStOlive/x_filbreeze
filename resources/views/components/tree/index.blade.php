@@ -177,11 +177,34 @@
                     const originalSave = treeInstance.save;
                     treeInstance.save = async function() {
                         try {
+                            console.log('Override save called');
                             const serializedData = this.serialize();
-                            const livewireComponent = Livewire.find(document.querySelector('[wire\\:id]')
-                                .getAttribute('wire:id'));
+                            console.log('Serialized data:', serializedData);
+
+                            // Find the Livewire component more reliably
+                            const wireElement = document.querySelector('[wire\\:id]');
+                            if (!wireElement) {
+                                console.error('No Livewire element found');
+                                return;
+                            }
+
+                            const wireId = wireElement.getAttribute('wire:id');
+                            console.log('Wire ID found:', wireId);
+
+                            const livewireComponent = window.Livewire?.find?.(wireId);
                             if (livewireComponent) {
+                                console.log('Calling updateTree with:', serializedData);
                                 await livewireComponent.call('updateTree', serializedData);
+                                console.log('Tree saved successfully via Livewire');
+                            } else {
+                                console.error('Livewire component not found, trying $wire approach');
+                                // Fallback to Alpine $wire if available
+                                if (this.$wire) {
+                                    await this.$wire.updateTree(serializedData);
+                                    console.log('Tree saved via $wire');
+                                } else {
+                                    console.error('Neither Livewire nor $wire available');
+                                }
                             }
                         } catch (error) {
                             console.error('Error saving tree:', error);

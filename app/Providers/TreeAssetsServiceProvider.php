@@ -17,7 +17,7 @@ class TreeAssetsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         FilamentAsset::register([
-            Css::make('filament-tree-min', __DIR__.'/../../resources/css/dist/tree-component.css'),
+            Css::make('filament-tree-modern', __DIR__ . '/../../resources/css/dist/tree-component.css'),
         ], 'app/filament-tree');
 
         FilamentAsset::register([

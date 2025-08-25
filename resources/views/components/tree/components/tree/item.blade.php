@@ -25,7 +25,7 @@
     ])>
 
         <button type="button" @class([
-            'h-full flex items-center',
+            'tree-drag-handle h-full flex items-center',
             'rounded-l-lg border-r rtl:rounded-l rtl:border-r-0 rtl:border-l px-px',
             'bg-gray-50 border-gray-300 dark:bg-white/5 dark:border-white/10',
         ])>
@@ -33,30 +33,42 @@
             <x-heroicon-m-ellipsis-vertical class="text-gray-400 dark:text-gray-500 w-4 h-4" />
         </button>
 
-        <div class="dd-content dd-nodrag flex gap-1">
+        <div class="dd-content dd-nodrag flex gap-1 w-full items-center">
 
             <x-tree.components.tree.item-display class="ml-1 rtl:mr-1" :record="$record" :title="$title"
                 :icon="$icon" :description="$description" />
 
-            <div @class([
-                'dd-item-btns',
-                'hidden' => !count($children),
-                'flex items-center justify-center pl-3',
-            ])>
-                <button data-action="expand" @class(['hidden' => !$collapsed])>
-                    <x-heroicon-o-chevron-down class="text-gray-400 w-4 h-4" />
-                </button>
-                <button data-action="collapse" @class(['hidden' => $collapsed])>
-                    <x-heroicon-o-chevron-up class="text-gray-400 w-4 h-4" />
-                </button>
-            </div>
-        </div>
+            <!-- Boutons à côté du titre -->
+            <div class="flex items-center gap-1 ml-2">
 
-        @if (count($actions))
-            <div class="dd-nodrag ml-auto mr-4 rtl:ml-4 rtl:mr-auto">
-                <x-tree.components.actions.index :actions="$actions" :record="$record" />
+                <!-- Boutons expand/collapse en premier -->
+                <div @class([
+                    'dd-item-btns',
+                    'hidden' => !count($children),
+                    'flex items-center',
+                ])>
+                    <button data-action="expand" @class(['hidden' => !$collapsed])>
+                        <x-heroicon-o-chevron-down class="text-gray-400 w-4 h-4" />
+                    </button>
+                    <button data-action="collapse" @class(['hidden' => $collapsed])>
+                        <x-heroicon-o-chevron-up class="text-gray-400 w-4 h-4" />
+                    </button>
+                </div>
+
+                <!-- Boutons d'indentation après le collapse -->
+                <div class="indent-controls flex items-center gap-1">
+                    <!-- Ces boutons seront ajoutés par JavaScript -->
+                </div>
             </div>
-        @endif
+
+            <!-- Boutons d'actions ferrés à droite -->
+            @if (count($actions))
+                <div class="dd-nodrag ml-auto">
+                    <x-tree.components.actions.index :actions="$actions" :record="$record" />
+                </div>
+            @endif
+
+        </div>
     </div>
     @if (count($children))
         <x-tree.components.tree.list :records="$children" :containerKey="$containerKey" :tree="$tree" :collapsed="$collapsed" />

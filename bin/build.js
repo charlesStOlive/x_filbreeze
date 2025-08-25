@@ -52,7 +52,7 @@ compile({
 // Compile CSS
 compile({
     ...defaultOptions,
-    entryPoints: ['./resources/css/tree/tree-component.css'],
+    entryPoints: ['./resources/css/tree/tree-component-modern.css'],
     outfile: './resources/css/dist/tree-component.css',
     loader: { '.css': 'css' },
 })
