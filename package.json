@@ -9,9 +9,9 @@
         "build:admin": "vite build --config vite.config.js",
         "build:pdf": "vite build --config vite.pdf.config.js",
         "clean": "powershell -Command \"Remove-Item -Recurse -Force public/build, public/pdf, public/frontend -ErrorAction SilentlyContinue\"",
-        "build:tree": "node scripts/build-tree-assets.js --minify",
-        "dev:tree": "node scripts/build-tree-assets.js --dev --watch",
-        "watch:tree": "node scripts/build-tree-assets.js --watch"
+        "build:tree": "node bin/build.js",
+        "dev:tree": "node bin/build.js --dev",
+        "watch:tree": "node bin/build.js --dev"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.9",
@@ -19,6 +19,7 @@
         "autoprefixer": "^10.4.20",
         "axios": "^1.7.4",
         "concurrently": "^8.2.2",
+        "esbuild": "^0.25.9",
         "laravel-vite-plugin": "^1.1.0",
         "postcss": "^8.4.49",
         "postcss-nesting": "^13.0.1",

@@ -17,11 +17,11 @@ class TreeAssetsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         FilamentAsset::register([
-            Css::make('filament-tree-min', __DIR__ . '/../../resources/dist/filament-tree.css'),
+            Css::make('filament-tree-min', __DIR__.'/../../resources/css/dist/tree-component.css'),
         ], 'app/filament-tree');
 
         FilamentAsset::register([
-            AlpineComponent::make('filament-tree-component', __DIR__ . '/../../resources/dist/components/filament-tree-component.js'),
+            AlpineComponent::make('filament-tree-component', __DIR__ . '/../../resources/js/dist/components/filament-tree-component.js'),
         ], 'app/filament-tree');
     }
 }

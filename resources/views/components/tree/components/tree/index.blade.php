@@ -9,8 +9,8 @@
     x-ignore
     x-load
     x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('filament-tree-component', 'app/filament-tree') }}"
-    x-data="treeNestableComponent({
-        containerKey: {{ $containerKey }},
+    x-data="filamentTreeComponent({
+        containerKey: '#{{ $containerKey }}',
         maxDepth: {{ $maxDepth }}
     })">
     <x-filament::section :heading="($this->displayTreeTitle() ?? false) ? $this->getTreeTitle() : null">

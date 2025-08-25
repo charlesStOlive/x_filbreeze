@@ -19,7 +19,7 @@ export default defineConfig({
         server: {
             host: '0.0.0.0',
             port: 5200,
-            strictPort: false,
+            strictPort: true,
             cors: true,
             origin: 'https://x_filbreeze.test:5200',
             allowedHosts: ['x_filbreeze.test'],
