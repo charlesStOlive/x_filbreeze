@@ -88,7 +88,7 @@ class QuoteResource extends Resource
                 ->relationship('company', 'title')
                 ->searchable()
                 ->required()
-                ->live(onBlur:true)
+                ->live(onBlur: true)
                 ->disabled(!$companyEditable),
 
             Forms\Components\Select::make('contact_id')
@@ -100,7 +100,7 @@ class QuoteResource extends Resource
                 )
                 ->searchable(fn($get) => $get('company_id') ? false : true)
                 ->required()
-                ->live(onBlur:true)
+                ->live(onBlur: true)
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
                         $contact = Contact::find($state);
@@ -109,7 +109,7 @@ class QuoteResource extends Resource
                         }
                     }
                 }),
-            
+
 
         ];
     }
@@ -141,24 +141,32 @@ class QuoteResource extends Resource
     {
         return Forms\Components\Builder\Block::make('product')
             ->icon('fas-box')
-            ->label(function (?array $state): string {
+            ->label(function (?array $state) {
                 if ($state === null) {
                     return 'Produit';
                 }
-                
+
                 $title = $state['title'] ?? 'inc';
                 $total = $state['total'] ?? 0;
                 $type = $state['type'] ?? '';
                 $qty = $state['qty'] ?? 0;
-                
+                $isOption = $state['is_option'] ?? false;
+
                 // Ajouter la quantité entre crochets pour heures et jours
                 $qtyDisplay = '';
                 if (in_array($type, ['heures', 'jours']) && $qty > 0) {
                     $suffix = $type === 'heures' ? 'h' : 'j';
                     $qtyDisplay = " [{$qty}{$suffix}]";
                 }
-                
-                return sprintf('%s %s%s (%s €HT)', 'Produit : ', $title, $qtyDisplay, $total);
+
+                $baseText = sprintf('%s %s%s (%s €HT)', 'Produit : ', $title, $qtyDisplay, $total);
+
+                // Ajouter couleur si c'est une option
+                if ($isOption) {
+                    return new HtmlString('<span style="color: #10b981; font-weight: 600;">' . htmlspecialchars($baseText) . ' [OPTION]</span>');
+                }
+
+                return $baseText;
             })
             ->schema([
                 Forms\Components\Select::make('product_id')
@@ -264,7 +272,7 @@ class QuoteResource extends Resource
                         $get('type')
                             ? ProductFormHelper::getDynamicFormFields(
                                 $get('type'),
-                                function($set, $get, $livewire) {
+                                function ($set, $get, $livewire) {
                                     // Pour les types qui ont qty/cu, on utilise updateProductTotal
                                     // Pour FORFAIT_A qui définit total directement, on utilise updateItemsTotal
                                     $type = $get('type');
@@ -415,16 +423,16 @@ class QuoteResource extends Resource
         $totalJours = $totals[1]
             ->filter(fn($item) => $item['type'] === 'product') // seulement les produits
             ->filter(fn($item) => in_array($item['data']['type'] ?? '', ['heures', 'jours'])) // seulement heures et jours
-            ->map(function($item) {
+            ->map(function ($item) {
                 $type = $item['data']['type'] ?? '';
                 $qty = $item['data']['qty'] ?? 0;
-                
+
                 if ($type === 'jours') {
                     return $qty; // directement en jours
                 } elseif ($type === 'heures') {
                     return $qty / 8; // conversion heures -> jours (8h = 1 jour)
                 }
-                
+
                 return 0;
             })
             ->sum();
