@@ -84,8 +84,7 @@ class EditQuote extends EditRecord
     {
         return [
             StateUtils::getStateSaveButton(),
-            PdfUtils::CreateActionPdf('devis', 'pdf.quote.main'),
-            IaUtils::MisrtalCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
+            IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
             $this->getCancelFormAction()
         ];
     }
