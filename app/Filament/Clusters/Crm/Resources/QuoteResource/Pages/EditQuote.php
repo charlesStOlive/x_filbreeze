@@ -77,6 +77,7 @@ class EditQuote extends EditRecord
                 Forms\Components\Hidden::make('total_ht'),
                 Forms\Components\Hidden::make('total_options'),
                 Forms\Components\Hidden::make('total_avant_options'),
+                Forms\Components\Hidden::make('total_jours'),
             ])->columns(2);
     }
 
@@ -166,6 +167,10 @@ class EditQuote extends EditRecord
                                     ->label('Total options'),
                                 Infolists\Components\TextEntry::make('total_ht')->money('EUR')
                                     ->label('Total HT'),
+                                Infolists\Components\TextEntry::make('total_jours')
+                                    ->label('Total jours')
+                                    ->suffix(' j')
+                                    ->numeric(decimalPlaces: 2),
 
                             ]),
                         Infolists\Components\Actions::make([

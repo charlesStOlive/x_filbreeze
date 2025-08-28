@@ -288,7 +288,17 @@ class InvoiceResource extends Resource
                     ->schema(
                         fn(callable $get) =>
                         $get('type')
-                            ? ProductFormHelper::getDynamicFormFields($get('type'))
+                            ? ProductFormHelper::getDynamicFormFields(
+                                $get('type'),
+                                function ($set, $get, $livewire) {
+                                    $type = $get('type');
+                                    if ($type === 'forfait_a') {
+                                        self::updateItemsTotal($set, $get, $livewire, true);
+                                    } else {
+                                        self::updateProductTotal($set, $get, $livewire);
+                                    }
+                                }
+                            )
                             : []
                     )
                     ->columns(3),

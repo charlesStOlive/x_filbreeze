@@ -19,7 +19,7 @@ class ProductFormHelper
         return (float) $product->unit_price;
     }
 
-    public static function getDynamicFormFields(string $type): array
+    public static function getDynamicFormFields(string $type, callable $updateCallback): array
     {
         $typeEnum = ProductType::from($type);
 
@@ -29,19 +29,15 @@ class ProductFormHelper
                     ->label($typeEnum->formQtyLabel())
                     ->numeric()
                     ->suffix($typeEnum->suffix())
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function ($set, $get, $livewire) {
-                        InvoiceResource::updateProductTotal($set, $get, $livewire);
-                    }),
+                    ->live()
+                    ->afterStateUpdated($updateCallback),
 
                 TextInput::make('cu')
                     ->label($typeEnum->formCuLabel())
                     ->numeric()
                     ->suffix('€')
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function ($set, $get, $livewire) {
-                        InvoiceResource::updateProductTotal($set, $get, $livewire);
-                    }),
+                    ->live()
+                    ->afterStateUpdated($updateCallback),
 
                 TextInput::make('total')
                     ->label('Total')
@@ -55,12 +51,12 @@ class ProductFormHelper
                     ->label($typeEnum->formCuLabel())
                     ->numeric()
                     ->suffix($typeEnum->suffix() ?? '€')
-                    ->live(onBlur: true)
+                    ->live()
                     ->dehydrated()
                     ->columnStart(3)
-                    ->afterStateUpdated(function ($set, $get, $component) {
+                    ->afterStateUpdated(function ($set, $get, $component) use ($updateCallback) {
                         $livewire = $component->getLivewire();
-                        \App\Filament\Clusters\Crm\Resources\InvoiceResource::updateItemsTotal($set, $get, $livewire);
+                        $updateCallback($set, $get, $livewire);
                     }),
             ],
 

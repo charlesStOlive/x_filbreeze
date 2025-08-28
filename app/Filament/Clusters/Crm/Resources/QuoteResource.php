@@ -8,6 +8,7 @@ use App\Models\Quote;
 use Filament\Actions;
 use App\Models\Contact;
 use App\Models\Product;
+use App\Models\Company;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
@@ -144,7 +145,20 @@ class QuoteResource extends Resource
                 if ($state === null) {
                     return 'Produit';
                 }
-                return sprintf('%s %s (%s €HT)', 'Produit : ', $state['product_title'] ?? 'inc',  $state['total'] ?? 0);
+                
+                $title = $state['title'] ?? 'inc';
+                $total = $state['total'] ?? 0;
+                $type = $state['type'] ?? '';
+                $qty = $state['qty'] ?? 0;
+                
+                // Ajouter la quantité entre crochets pour heures et jours
+                $qtyDisplay = '';
+                if (in_array($type, ['heures', 'jours']) && $qty > 0) {
+                    $suffix = $type === 'heures' ? 'h' : 'j';
+                    $qtyDisplay = " [{$qty}{$suffix}]";
+                }
+                
+                return sprintf('%s %s%s (%s €HT)', 'Produit : ', $title, $qtyDisplay, $total);
             })
             ->schema([
                 Forms\Components\Select::make('product_id')
@@ -219,7 +233,7 @@ class QuoteResource extends Resource
                     ->label('Titre personnalisé')
                     ->required()
                     ->visible(fn(callable $get) => filled($get('product_id')))
-                    ->live(onBlur:true)
+                    ->live()
                     ->afterStateHydrated(function ($state, callable $set, callable $get) {
                         if (!$state && $get('product_title')) {
                             $set('title', $get('product_title'));
@@ -230,7 +244,8 @@ class QuoteResource extends Resource
                     ->label('Ligne en option')
                     ->default(false)
                     ->columnSpanFull()
-                    ->live(onBlur:true),
+                    ->live()
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire, true)),
 
                 Forms\Components\Hidden::make('type')->dehydrated(),
 
@@ -247,7 +262,19 @@ class QuoteResource extends Resource
                     ->schema(
                         fn(callable $get) =>
                         $get('type')
-                            ? ProductFormHelper::getDynamicFormFields($get('type'))
+                            ? ProductFormHelper::getDynamicFormFields(
+                                $get('type'),
+                                function($set, $get, $livewire) {
+                                    // Pour les types qui ont qty/cu, on utilise updateProductTotal
+                                    // Pour FORFAIT_A qui définit total directement, on utilise updateItemsTotal
+                                    $type = $get('type');
+                                    if ($type === 'forfait_a') {
+                                        self::updateItemsTotal($set, $get, $livewire, true);
+                                    } else {
+                                        self::updateProductTotal($set, $get, $livewire);
+                                    }
+                                }
+                            )
                             : []
                     )
                     ->columns(3),
@@ -270,7 +297,8 @@ class QuoteResource extends Resource
                 Forms\Components\TextInput::make('total')
                     ->label('Total')
                     ->numeric()
-                    ->live(onBlur: true)
+                    ->live()
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire, true))
             ])
             ->columns(3);
     }
@@ -290,12 +318,12 @@ class QuoteResource extends Resource
                 Forms\Components\TextInput::make('cu')
                     ->label('Total U')
                     ->numeric()
-                    ->live(onBlur: true)
+                    ->live()
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
                 Forms\Components\TextInput::make('qty')
                     ->label('Qty')
                     ->numeric()
-                    ->live(onBlur: true)
+                    ->live()
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
                 Forms\Components\TextInput::make('total')
                     ->label('Total')
@@ -321,7 +349,8 @@ class QuoteResource extends Resource
                 Forms\Components\TextInput::make('total')
                     ->label('Total')
                     ->numeric()
-                    ->live(onBlur: true),
+                    ->live()
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire, true)),
             ])
             ->columns(2);
     }
@@ -382,6 +411,24 @@ class QuoteResource extends Resource
             ->map(fn($item) => $item['data']['total'] ?? 0)
             ->sum();
 
+        // Calcul du total de jours (uniquement pour les produits type HEURES et JOURS)
+        $totalJours = $totals[1]
+            ->filter(fn($item) => $item['type'] === 'product') // seulement les produits
+            ->filter(fn($item) => in_array($item['data']['type'] ?? '', ['heures', 'jours'])) // seulement heures et jours
+            ->map(function($item) {
+                $type = $item['data']['type'] ?? '';
+                $qty = $item['data']['qty'] ?? 0;
+                
+                if ($type === 'jours') {
+                    return $qty; // directement en jours
+                } elseif ($type === 'heures') {
+                    return $qty / 8; // conversion heures -> jours (8h = 1 jour)
+                }
+                
+                return 0;
+            })
+            ->sum();
+
         $totalHt = $totalHtBr - $totalRemise;
 
         if ($parent) {
@@ -389,11 +436,13 @@ class QuoteResource extends Resource
             $set('../../../total_ht', $totalHt);
             $set('../../../total_avant_options', $totalAvOption);
             $set('../../../total_options', $totalOptions);
+            $set('../../../total_jours', round($totalJours, 2));
         } else {
             $set('total_ht_br', $totalHtBr);
             $set('total_ht', $totalHt);
             $set('total_avant_options', $totalAvOption);
             $set('total_options', $totalOptions);
+            $set('total_jours', round($totalJours, 2));
         }
 
         $livewire->dispatch('totalsUpdated');
@@ -414,6 +463,22 @@ class QuoteResource extends Resource
         self::updateItemsTotal($set, $get, $livewire, true);
     }
 
+    public static function updateProductTotal(callable $set, callable $get, $livewire)
+    {
+        $type = $get('type') ?? null;
+        $cu = $get('cu') ?? 0;
+        $qty = $get('qty') ?? 1;
+
+        $total = match ($type) {
+            'heures', 'jours', 'forfait_m', 'forfait_u' => $cu * $qty,
+            'forfait_a' => $cu,
+            default => 0,
+        };
+
+        $set('total', round($total, 2));
+        self::updateItemsTotal($set, $get, $livewire, true);
+    }
+
 
     public static function getBasicItemsField()
     {
@@ -421,7 +486,7 @@ class QuoteResource extends Resource
             Forms\Components\TextInput::make('title')
                 ->label('Titre élement')
                 ->required()
-                ->live(onBlur:true)
+                ->live()
                 ->columnSpanFull(),
             Forms\Components\MarkdownEditor::make('description')
                 ->label('Description élement')

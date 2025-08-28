@@ -40,6 +40,7 @@ class Quote extends Model
         'total_ht',
         'total_avant_options',
         'total_options',
+        'total_jours',
         'has_tva',
         'tx_tva',
         'tva',
