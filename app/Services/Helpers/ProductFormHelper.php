@@ -29,14 +29,14 @@ class ProductFormHelper
                     ->label($typeEnum->formQtyLabel())
                     ->numeric()
                     ->suffix($typeEnum->suffix())
-                    ->live()
+                    ->live(onBlur: true)
                     ->afterStateUpdated($updateCallback),
 
                 TextInput::make('cu')
                     ->label($typeEnum->formCuLabel())
                     ->numeric()
                     ->suffix('€')
-                    ->live()
+                    ->live(onBlur: true)
                     ->afterStateUpdated($updateCallback),
 
                 TextInput::make('total')
@@ -51,7 +51,7 @@ class ProductFormHelper
                     ->label($typeEnum->formCuLabel())
                     ->numeric()
                     ->suffix($typeEnum->suffix() ?? '€')
-                    ->live()
+                    ->live(onBlur: true)
                     ->dehydrated()
                     ->columnStart(3)
                     ->afterStateUpdated(function ($set, $get, $component) use ($updateCallback) {
