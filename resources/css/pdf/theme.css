@@ -2,4 +2,6 @@
 @import '/vendor/filament/filament/resources/css/theme.css';
 /* Ajoutez d'autres imports si nécessaire */
 
-@config 'tailwind.pdf.config.js';
+@source '../../../../app/Filament';
+@source '../../../../resources/views/filament';
+@source '../../../../resources/views/pdf';
