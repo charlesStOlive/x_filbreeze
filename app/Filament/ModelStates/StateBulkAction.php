@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\ModelStates;
 
-use Filament\Tables\Actions\BulkAction;
+use Filament\Actions\BulkAction;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;

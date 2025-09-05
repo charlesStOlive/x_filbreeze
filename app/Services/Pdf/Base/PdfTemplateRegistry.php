@@ -2,6 +2,8 @@
 
 namespace App\Services\Pdf\Base;
 
+use RuntimeException;
+use InvalidArgumentException;
 use Illuminate\Support\Arr;
 
 class PdfTemplateRegistry
@@ -32,7 +34,7 @@ class PdfTemplateRegistry
         $class = self::getDefaultTemplateFor($modelType);
 
         if (! $class || ! class_exists($class)) {
-            throw new \RuntimeException("Aucun template PDF par défaut configuré pour le type '{$modelType}'");
+            throw new RuntimeException("Aucun template PDF par défaut configuré pour le type '{$modelType}'");
         }
 
         return new $class($record, $options);
@@ -44,6 +46,6 @@ class PdfTemplateRegistry
         $class = get_class($record);
 
         return $types[$class]
-            ?? throw new \InvalidArgumentException("Aucun type configuré pour le modèle [{$class}].");
+            ?? throw new InvalidArgumentException("Aucun type configuré pour le modèle [{$class}].");
     }
 }

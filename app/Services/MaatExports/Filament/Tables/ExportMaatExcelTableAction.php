@@ -2,7 +2,7 @@
 
 namespace App\Services\MaatExports\Filament\Tables;
 
-use Filament\Tables\Actions\Action;
+use Filament\Actions\Action;
 use App\Services\MaatExports\Filament\Traits\CanExportMaatExcel;
 
 class ExportMaatExcelTableAction extends Action

@@ -2,14 +2,16 @@
 
 namespace App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\AttachAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Actions\EditAction;
+use Filament\Actions\DetachAction;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Product;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Select;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\AttachAction;
-use Filament\Tables\Actions\DetachAction;
 use Filament\Resources\RelationManagers\RelationManager;
 
 use App\Services\MaatExports\Templates\Company\CompanyProductsExporter;
@@ -28,10 +30,10 @@ class ProductsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->label('Produit')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('pivot.unit_price')
+                TextColumn::make('pivot.unit_price')
                     ->label('Prix (€)')
                     ->sortable(),
             ])
@@ -64,7 +66,7 @@ class ProductsRelationManager extends RelationManager
                                     }
                                 }),
 
-                            Forms\Components\TextInput::make('unit_price')
+                            TextInput::make('unit_price')
                                 ->numeric()
                                 ->required(),
                         ];
@@ -78,10 +80,10 @@ class ProductsRelationManager extends RelationManager
                     ->importer(CompanyProductsImporter::class)
                     ->withRecord($this->getOwnerRecord())
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make()
-                    ->form([
-                        Forms\Components\TextInput::make('unit_price')
+                    ->schema([
+                        TextInput::make('unit_price')
                             ->numeric()
                             ->step(0.01)
                             ->required(),

@@ -2,6 +2,8 @@
 
 namespace App\Services\MsGraph;
 
+use Exception;
+use Log;
 use App\Services\MsGraph\MsGraphAuthService;
 
 class MsGraphSubscriptionService
@@ -101,8 +103,8 @@ class MsGraphSubscriptionService
             }
 
             return ['success' => true, 'message' => 'All subscriptions for the user have been revoked.'];
-        } catch (\Exception $e) {
-            \Log::error('Failed to revoke all subscriptions for user: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Failed to revoke all subscriptions for user: ' . $e->getMessage());
             return ['success' => false, 'error' => 'Failed to revoke subscriptions.'];
         }
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Models;
 
+use Throwable;
 use App\Services\Ia\IaService;
 use App\Exceptions\MistralException;
 use App\Services\Processors\FileProcessor;
@@ -35,7 +36,7 @@ class ExtractSupplierInvoiceData
             return AnalysisResult::success($data);
         } catch (MistralException $e) {
             return AnalysisResult::error($e->getMessage());
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Erreur lors de l\'analyse de facture', [
                 'file' => $file->getClientOriginalName(),
                 'error' => $e->getMessage(),
@@ -55,7 +56,7 @@ class ExtractSupplierInvoiceData
             ]);
 
             return $prompt;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new MistralException('Erreur lors du traitement du fichier : ' . $e->getMessage());
         }
     }

@@ -2,17 +2,19 @@
 
 namespace App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Fieldset;
 use App\Models\Supplier;
-use Filament\Forms\Form;
 use App\Models\SupplierInvoice;
 use Filament\Resources\Pages\Page;
 use App\Exceptions\MistralException;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Wizard;
 use Illuminate\Support\Facades\Cache;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -20,13 +22,11 @@ use Filament\Notifications\Notification;
 use App\Forms\Components\NotilacRepeater;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Spatie\TemporaryDirectory\TemporaryDirectory;
 use App\Services\Models\ExtractSupplierInvoiceData;
 use App\Services\Models\SupplierInvoiceFileAnalyser;
 use Filament\Forms\Components\Actions as FormActions;
-use Filament\Forms\Components\Actions\Action as FormAction;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource;
 
@@ -36,7 +36,7 @@ class CreatSupplieFromFile extends Page implements HasForms
 
     protected static string $resource = SupplierInvoiceResource::class;
 
-    protected static string $view = 'filament.clusters.crm.resources.supplier-invoice-resource.pages.creat-supplie-from-file';
+    protected string $view = 'filament.clusters.crm.resources.supplier-invoice-resource.pages.creat-supplie-from-file';
 
     // Déclarations des propriétés pour Livewire
     public ?array $file_pdf_image = [];
@@ -45,13 +45,13 @@ class CreatSupplieFromFile extends Page implements HasForms
 
     protected SupplierInvoiceFileAnalyser $fileAnalyzer;
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Wizard::make([
                     // Étape 1 : Charger des fichiers
-                    Wizard\Step::make('Ajouter des fichiers')
+                    Step::make('Ajouter des fichiers')
                         ->schema([
                             FileUpload::make('file_pdf_image')
                                 ->label('Charger un ou plusieurs fichiers (PDF ou image)')
@@ -64,7 +64,7 @@ class CreatSupplieFromFile extends Page implements HasForms
                         }),
 
                     // Étape 2 : Vérification des informations
-                    Wizard\Step::make('Vérifier les informations')
+                    Step::make('Vérifier les informations')
                         ->schema([
                             NotilacRepeater::make('invoice_data')
                                 ->itemColor(function ($state) {
@@ -128,7 +128,7 @@ class CreatSupplieFromFile extends Page implements HasForms
                         }),
 
                     // Étape 3 : Confirmation
-                    Wizard\Step::make('Confirmation')
+                    Step::make('Confirmation')
                         ->schema([
                             Repeater::make('processedInvoices')
                                 ->label('Factures créées')
@@ -187,7 +187,7 @@ class CreatSupplieFromFile extends Page implements HasForms
 
     protected function showAnalysisErrors(array $errors): void
     {
-        \Filament\Notifications\Notification::make()
+        Notification::make()
             ->title('Analyse partielle terminée')
             ->body('Certains fichiers n\'ont pas pu être analysés : ' . implode(', ', $errors))
             ->warning()

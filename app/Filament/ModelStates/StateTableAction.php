@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\ModelStates;
 
-use Filament\Tables\Actions\Action;
+use Filament\Actions\Action;
 use App\Filament\ModelStates\Concerns\HasAttribute;
 use App\Filament\ModelStates\Concerns\TransitionsState;
 use App\Filament\ModelStates\Contracts\Config;

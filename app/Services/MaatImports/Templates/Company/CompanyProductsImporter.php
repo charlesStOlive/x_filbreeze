@@ -2,6 +2,8 @@
 
 namespace App\Services\MaatImports\Templates\Company;
 
+use Exception;
+use Throwable;
 use App\Models\Company;
 use App\Models\Product;
 use Illuminate\Support\Collection;
@@ -32,13 +34,13 @@ class CompanyProductsImporter extends BaseMaatImporter implements ToCollection, 
 
             try {
                 if (!$code || !is_numeric($unitPrice)) {
-                    throw new \Exception("Données manquantes ou invalides.");
+                    throw new Exception("Données manquantes ou invalides.");
                 }
 
                 $product = Product::where('code', $code)->first();
 
                 if (!$product) {
-                    throw new \Exception("Produit avec code '$code' introuvable.");
+                    throw new Exception("Produit avec code '$code' introuvable.");
                 }
 
                 $company->products()->syncWithoutDetaching([
@@ -46,7 +48,7 @@ class CompanyProductsImporter extends BaseMaatImporter implements ToCollection, 
                 ]);
 
                 $this->updated++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $this->errors[] = [
                     'line' => $line,
                     'code' => $code,

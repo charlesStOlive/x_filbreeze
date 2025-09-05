@@ -2,6 +2,8 @@
 
 namespace App\Services\MaatImports\Templates\Product;
 
+use Exception;
+use Throwable;
 use App\Models\Gamme;
 use App\Models\Product;
 use App\Enums\ProductType;
@@ -55,7 +57,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
 
             try {
                 if (!$code || !$title) {
-                    throw new \Exception("Champs obligatoires manquants (code ou title)");
+                    throw new Exception("Champs obligatoires manquants (code ou title)");
                 }
 
                 // Gestion de la gamme
@@ -71,13 +73,13 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                         ]);
                         $gammeId = $gamme->id;
                     } else {
-                        throw new \Exception("Gamme slug '$gammeSlug' introuvable.");
+                        throw new Exception("Gamme slug '$gammeSlug' introuvable.");
                     }
                 }
 
                 if ($id && $product = Product::find($id)) {
                     if (Product::where('code', $code)->where('id', '!=', $id)->exists()) {
-                        throw new \Exception("Code '$code' déjà utilisé.");
+                        throw new Exception("Code '$code' déjà utilisé.");
                     }
 
                     $product->update([
@@ -92,7 +94,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                 }
 
                 if (Product::where('code', $code)->exists()) {
-                    throw new \Exception("Code '$code' déjà existant.");
+                    throw new Exception("Code '$code' déjà existant.");
                 }
 
                 Product::create([
@@ -103,7 +105,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                     'unit_price' => $unitPrice,
                 ]);
                 $this->created++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $this->errors[] = [
                     'line'  => $line,
                     'code'  => $code,

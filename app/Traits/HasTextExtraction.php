@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use Exception;
 use Illuminate\Support\Arr;
 
 trait HasTextExtraction
@@ -14,7 +15,7 @@ trait HasTextExtraction
     public function extractTextToJson(): array
     {
         if (!isset($this->getTextes) || empty($this->getTextes)) {
-            throw new \Exception('The $getTextes property is not defined or empty in the model.');
+            throw new Exception('The $getTextes property is not defined or empty in the model.');
         }
 
         $result = [];
@@ -42,7 +43,7 @@ trait HasTextExtraction
         $attributesToArray = $this->attributesToArray();
 
         if (!isset($this->getTextes) || empty($this->getTextes)) {
-            throw new \Exception('The $getTextes property is not defined or empty in the model.');
+            throw new Exception('The $getTextes property is not defined or empty in the model.');
         }
 
         foreach ($this->getTextes as $path) {

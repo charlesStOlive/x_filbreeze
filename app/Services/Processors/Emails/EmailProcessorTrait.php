@@ -2,6 +2,7 @@
 
 namespace App\Services\Processors\Emails;
 
+use Exception;
 use App\Models\MsgEmailDraft;
 use App\Services\MsGraph\MsGraphEmailService;
 
@@ -125,7 +126,7 @@ trait EmailProcessorTrait
             ]);
             $this->email->save();
             return true;
-        } catch (\Exception $ex) {
+        } catch (Exception $ex) {
             $this->email->status = 'error';
             $this->email->errors = $ex->getMessage();
             $this->email->save();

@@ -2,9 +2,9 @@
 
 namespace App\Filament\Components\Actions;
 
+use Filament\Actions\Action;
 use ColorThief\ColorThief;
 use Filament\Forms\Components\ViewField;
-use Filament\Forms\Components\Actions\Action;
 use Illuminate\Support\Facades\Storage;
 
 class ColorPickerAction extends Action

@@ -2,9 +2,12 @@
 
 namespace App\Components\Tree\Pages;
 
+use App\Components\Tree\Actions\DeleteAction;
+use App\Components\Tree\Actions\EditAction;
+use App\Components\Tree\Actions\ViewAction;
+use Filament\Schemas\Components\Component;
 use Filament\Actions\Action as FilamentActionsAction;
 use Filament\Actions\CreateAction;
-use Filament\Infolists\Components\Component as InfolistsComponent;
 use Filament\Pages\Page;
 use App\Components\Tree\Actions;
 use App\Components\Tree\Components\Tree;
@@ -15,7 +18,7 @@ abstract class TreePage extends Page implements HasTree
 {
     use InteractWithTree;
 
-    protected static string $view = 'components.tree.pages.tree';
+    protected string $view = 'components.tree.pages.tree';
 
     protected static string $viewIdentifier = 'tree';
 
@@ -70,19 +73,19 @@ abstract class TreePage extends Page implements HasTree
         return CreateAction::make();
     }
 
-    protected function getDeleteAction(): Actions\DeleteAction
+    protected function getDeleteAction(): DeleteAction
     {
-        return Actions\DeleteAction::make();
+        return DeleteAction::make();
     }
 
-    protected function getEditAction(): Actions\EditAction
+    protected function getEditAction(): EditAction
     {
-        return Actions\EditAction::make();
+        return EditAction::make();
     }
 
-    protected function getViewAction(): Actions\ViewAction
+    protected function getViewAction(): ViewAction
     {
-        return Actions\ViewAction::make();
+        return ViewAction::make();
     }
 
     protected function configureAction(FilamentActionsAction $action): void
@@ -96,9 +99,9 @@ abstract class TreePage extends Page implements HasTree
     protected function configureTreeAction(Actions\Action $action): void
     {
         match (true) {
-            $action instanceof Actions\DeleteAction => $this->configureDeleteAction($action),
-            $action instanceof Actions\EditAction => $this->configureEditAction($action),
-            $action instanceof Actions\ViewAction => $this->configureViewAction($action),
+            $action instanceof DeleteAction => $this->configureDeleteAction($action),
+            $action instanceof EditAction => $this->configureEditAction($action),
+            $action instanceof ViewAction => $this->configureViewAction($action),
             default => null,
         };
     }
@@ -113,7 +116,7 @@ abstract class TreePage extends Page implements HasTree
             $schema = $this->getFormSchema();
         }
 
-        $action->form($schema);
+        $action->schema($schema);
 
         $action->model($this->getModel());
 
@@ -122,7 +125,7 @@ abstract class TreePage extends Page implements HasTree
         return $action;
     }
 
-    protected function configureDeleteAction(Actions\DeleteAction $action): Actions\DeleteAction
+    protected function configureDeleteAction(DeleteAction $action): DeleteAction
     {
         $action->tree($this->getCachedTree());
 
@@ -133,7 +136,7 @@ abstract class TreePage extends Page implements HasTree
         return $action;
     }
 
-    protected function configureEditAction(Actions\EditAction $action): Actions\EditAction
+    protected function configureEditAction(EditAction $action): EditAction
     {
         $action->tree($this->getCachedTree());
 
@@ -145,7 +148,7 @@ abstract class TreePage extends Page implements HasTree
             $schema = $this->getFormSchema();
         }
 
-        $action->form($schema);
+        $action->schema($schema);
 
         $action->model($this->getModel());
 
@@ -156,7 +159,7 @@ abstract class TreePage extends Page implements HasTree
         return $action;
     }
 
-    protected function configureViewAction(Actions\ViewAction $action): Actions\ViewAction
+    protected function configureViewAction(ViewAction $action): ViewAction
     {
         $action->tree($this->getCachedTree());
 
@@ -168,12 +171,12 @@ abstract class TreePage extends Page implements HasTree
             $schema = $this->getFormSchema();
         }
 
-        $action->form($this->getFormSchema());
+        $action->schema($this->getFormSchema());
 
-        $isInfoList = count(array_filter($schema, fn($component) => $component instanceof InfolistsComponent)) > 0;
+        $isInfoList = count(array_filter($schema, fn($component) => $component instanceof Component)) > 0;
 
         if ($isInfoList) {
-            $action->infolist($schema);
+            $action->schema($schema);
         }
 
         $action->model($this->getModel());
@@ -188,17 +191,17 @@ abstract class TreePage extends Page implements HasTree
         return $action;
     }
 
-    protected function afterConfiguredDeleteAction(Actions\DeleteAction $action): Actions\DeleteAction
+    protected function afterConfiguredDeleteAction(DeleteAction $action): DeleteAction
     {
         return $action;
     }
 
-    protected function afterConfiguredEditAction(Actions\EditAction $action): Actions\EditAction
+    protected function afterConfiguredEditAction(EditAction $action): EditAction
     {
         return $action;
     }
 
-    protected function afterConfiguredViewAction(Actions\ViewAction $action): Actions\ViewAction
+    protected function afterConfiguredViewAction(ViewAction $action): ViewAction
     {
         return $action;
     }

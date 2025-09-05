@@ -2,6 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Arr;
+use Exception;
+use Throwable;
+use Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
@@ -42,9 +47,9 @@ class MsgUserDraft extends Model
         });
     }
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(User::class);
     }
 
     public function msg_email_drafts()
@@ -81,7 +86,7 @@ class MsgUserDraft extends Model
             return isset($user['mail']) && !in_array($user['mail'], $existingEmails);
         });
 
-        return \Arr::pluck($filteredUsers, 'mail', 'id');
+        return Arr::pluck($filteredUsers, 'mail', 'id');
     }
 
     public static function getApiMsgUser($id)
@@ -120,9 +125,9 @@ class MsgUserDraft extends Model
             } else {
                 $message = 'Réponse invalide de Microsoft Graph : ' . json_encode($response);
                 $this->notifyError('Réponse invalide de Microsoft Graph', json_encode($response));
-                throw new \Exception($message);
+                throw new Exception($message);
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->notifyError('Erreur de connexion MsGraph', $e->getMessage(), 'live');
 
             // Optionnel : relancer l’exception si tu veux
@@ -162,8 +167,8 @@ class MsgUserDraft extends Model
                 //\Log::error($response);
                 $this->notifyError('Erreur lors de la révocation', json_encode($response));
             }
-        } catch (\Throwable $e) {
-            \Log::error("Erreur revokeSubscription : " . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error("Erreur revokeSubscription : " . $e->getMessage());
             $this->notifyError('Exception revokeSubscription', $e->getMessage());
         }
     }
@@ -192,11 +197,11 @@ class MsgUserDraft extends Model
                     "La souscription de {$this->email} a été prolongée jusqu’au {$this->expire_at->format('d/m/Y H:i')}."
                 );
             } else {
-                \Log::error($response);
+                Log::error($response);
                 $this->notifyError('Erreur lors du renouvellement', json_encode($response));
             }
-        } catch (\Throwable $e) {
-            \Log::error("Erreur refreshSubscription : " . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error("Erreur refreshSubscription : " . $e->getMessage());
             $this->notifyError('Exception refreshSubscription', $e->getMessage());
         }
     }
@@ -209,10 +214,10 @@ class MsgUserDraft extends Model
             return;
         }
 
-        $user = \App\Models\User::where('email', $this->email)->first();
+        $user = User::where('email', $this->email)->first();
 
         if (! $user) {
-            throw new \Exception("Aucun utilisateur trouvé avec l'email '{$this->email}'");
+            throw new Exception("Aucun utilisateur trouvé avec l'email '{$this->email}'");
         }
 
         $this->user_id = $user->id;

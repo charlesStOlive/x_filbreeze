@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Permission;
@@ -194,7 +195,7 @@ class SyncPermissions extends Command
                 $permission->delete();
                 $this->line("✅ Supprimé: {$permission->name}");
                 $deleted++;
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->error("❌ Erreur lors de la suppression de {$permission->name}: " . $e->getMessage());
             }
         }

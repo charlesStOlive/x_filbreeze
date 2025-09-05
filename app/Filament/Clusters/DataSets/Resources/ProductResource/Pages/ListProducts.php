@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
 
+use Filament\Actions\CreateAction;
+use Filament\Actions\ActionGroup;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use App\Filament\Clusters\DataSets\Resources\ProductResource;
@@ -18,8 +20,8 @@ class ListProducts extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
-            Actions\ActionGroup::make([
+            CreateAction::make(),
+            ActionGroup::make([
                 ImportMaatExcelAction::make('importproduct')
                     ->label('Importer les produits')
                     ->icon('heroicon-o-cloud-arrow-up')

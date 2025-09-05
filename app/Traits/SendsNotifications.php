@@ -2,10 +2,10 @@
 
 namespace App\Traits;
 
+use Filament\Actions\Action;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Filament\Notifications\Notification;
-use Filament\Notifications\Actions\Action;
 
 trait SendsNotifications
 {

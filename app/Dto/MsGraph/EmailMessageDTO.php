@@ -2,6 +2,7 @@
 
 namespace App\Dto\MsGraph;
 
+use Soundasleep\Html2Text;
 use Carbon\Carbon;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Attributes\Validation\Rule;
@@ -212,7 +213,7 @@ class EmailMessageDTO extends Data
      */
     private static function parseTextFromHtml(string $html): string
     {
-        return \Soundasleep\Html2Text::convert($html, ['ignore_errors' => true, 'drop_links' => true]);
+        return Html2Text::convert($html, ['ignore_errors' => true, 'drop_links' => true]);
     }
 
     /**

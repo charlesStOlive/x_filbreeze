@@ -2,6 +2,8 @@
 
 namespace App\Services\Helpers;
 
+use Exception;
+
 class ViteHelper
 {
     public static function viteAsset(string $asset, string $buildDirectory = 'pdf'): string
@@ -15,7 +17,7 @@ class ViteHelper
         $manifest = json_decode(file_get_contents($manifestPath), true);
 
         if (!isset($manifest[$asset]['file'])) {
-            throw new \Exception("L'asset {$asset} est introuvable dans le manifest.json.");
+            throw new Exception("L'asset {$asset} est introuvable dans le manifest.json.");
         }
 
         return asset("{$buildDirectory}/" . $manifest[$asset]['file']);

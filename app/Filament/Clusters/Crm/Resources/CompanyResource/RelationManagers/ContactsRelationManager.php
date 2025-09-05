@@ -2,8 +2,19 @@
 
 namespace App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,20 +25,20 @@ class ContactsRelationManager extends RelationManager
 {
     protected static string $relationship = 'contacts';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\TextInput::make('first_name')
+        return $schema->components([
+            TextInput::make('first_name')
                 ->label('Prénom')
                 ->required()
                 ->maxLength(255),
 
-            Forms\Components\TextInput::make('last_name')
+            TextInput::make('last_name')
                 ->label('Nom')
                 ->required()
                 ->maxLength(255),
 
-            Forms\Components\Select::make('civ')
+            Select::make('civ')
                 ->label('Civilité')
                 ->options([
                     'Mme' => 'Mme',
@@ -37,19 +48,19 @@ class ContactsRelationManager extends RelationManager
                 ])
                 ->default('Mme/M.'),
 
-            Forms\Components\TextInput::make('email')
+            TextInput::make('email')
                 ->label('Email')
                 ->email()
                 ->required(),
 
-            Forms\Components\TextInput::make('tel')
+            TextInput::make('tel')
                 ->label('Téléphone'),
 
-            Forms\Components\Textarea::make('memo')
+            Textarea::make('memo')
                 ->label('Mémo')
                 ->columnSpanFull(),
 
-            Forms\Components\Toggle::make('is_ex')
+            Toggle::make('is_ex')
                 ->label('Externe ?')
                 ->default(false),
         ])->columns(2);
@@ -59,39 +70,39 @@ class ContactsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('full_name')
+                TextColumn::make('full_name')
                     ->label('Nom complet')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('email')
+                TextColumn::make('email')
                     ->searchable()
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('tel')
+                TextColumn::make('tel')
                     ->label('Téléphone'),
 
-                Tables\Columns\IconColumn::make('is_ex')
+                IconColumn::make('is_ex')
                     ->label('Externe ?')
                     ->boolean()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_ex')->label('Externe ?'),
+                TernaryFilter::make('is_ex')->label('Externe ?'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 }

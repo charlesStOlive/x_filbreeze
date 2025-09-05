@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf\Templates\Quote;
 
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms;
 use App\Models\Quote;
 use Illuminate\Support\Facades\Auth;
@@ -52,12 +53,12 @@ class QuoteBasePdfTemplate extends BasePdfTemplate
     public function getForm(): array
     {
         return [
-            Forms\Components\Checkbox::make('avoid_break')
+            Checkbox::make('avoid_break')
                 ->label('Empêcher les sauts de page dans une cellule')
                 ->default($this->getOption('avoid_break'))
                 ->live(),
 
-            Forms\Components\Checkbox::make('avoid_amount_break')
+            Checkbox::make('avoid_amount_break')
                 ->label('Empêcher les sauts de page dans une cellule')
                 ->default($this->getOption('avoid_amount_break'))
                 ->live(),

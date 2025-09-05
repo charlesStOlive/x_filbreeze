@@ -2,6 +2,23 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Tables\Columns\TextColumn;
+use Str;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Forms\Components\Select;
+use App\Models\Quote;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\Action;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\ListInvoices;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\PreviewPdf;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Actions;
@@ -34,7 +51,7 @@ class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
 
-    protected static ?string $navigationIcon = 'heroicon-s-document-currency-dollar';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-document-currency-dollar';
 
     protected static ?string $cluster = Crm::class;
 
@@ -59,28 +76,28 @@ class InvoiceResource extends Resource
 
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('code')
+                TextColumn::make('code')
                     ->sortable()
-                    ->description(fn($record): string => \Str::limit($record->title, 35))
+                    ->description(fn($record): string => Str::limit($record->title, 35))
                     ->searchable(['code', 'title']),
                 StateColumn::make('state')
                     ->badge(),
-                Tables\Columns\TextColumn::make('company.title')
+                TextColumn::make('company.title')
                     ->sortable()
                     ->description(fn($record): string => $record->contact->full_name),
                 DateColumn::make('submited_at')
                     ->sortable(),
                 DateColumn::make('payed_at')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('total_ht')
+                TextColumn::make('total_ht')
                     ->numeric()
                     ->sortable()
                     ->summarize(Sum::make()),
-                Tables\Columns\TextColumn::make('total_ttc')
+                TextColumn::make('total_ttc')
                     ->numeric()
                     ->sortable()
                     ->summarize(Sum::make()),
-                Tables\Columns\TextColumn::make('tva')
+                TextColumn::make('tva')
                     ->numeric()
                     ->sortable()
                     ->summarize(Sum::make()),
@@ -93,12 +110,12 @@ class InvoiceResource extends Resource
                 StateSelectFilter::make('state')
                     ->multiple()->default(['draft', 'submited', 'payed'])
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -106,7 +123,7 @@ class InvoiceResource extends Resource
     public static function getContactAndCompanyFields($companyEditable = true): array
     {
         return [
-            Forms\Components\Select::make('contact_id')
+            Select::make('contact_id')
                 ->label('Contact')
                 ->relationship(
                     name: 'contact',
@@ -124,7 +141,7 @@ class InvoiceResource extends Resource
                         }
                     }
                 }),
-            Forms\Components\Select::make('company_id')
+            Select::make('company_id')
                 ->label('Client')
                 ->relationship('company', 'title')
                 ->searchable()
@@ -139,7 +156,7 @@ class InvoiceResource extends Resource
     protected static function getQuote($quoteId)
     {
         if (!isset(self::$quoteCache[$quoteId])) {
-            self::$quoteCache[$quoteId] = \App\Models\Quote::find($quoteId);
+            self::$quoteCache[$quoteId] = Quote::find($quoteId);
         }
         return self::$quoteCache[$quoteId];
     }
@@ -148,7 +165,7 @@ class InvoiceResource extends Resource
     {
         if ($quote) {
             $set('total_quote', $quote->total_ht);
-            $set('total_quote_left', \App\Models\Invoice::getAmountLeft($quote, $record));
+            $set('total_quote_left', Invoice::getAmountLeft($quote, $record));
         }
     }
 
@@ -160,7 +177,7 @@ class InvoiceResource extends Resource
     public static function getItemsBuilderComponent(): array
     {
         return [
-            Forms\Components\Section::make('Elements de la facture')
+            Section::make('Elements de la facture')
                 ->schema([
                     Builder::make('items')
                         ->label(false)
@@ -185,7 +202,7 @@ class InvoiceResource extends Resource
 
     protected static function getProductBlock()
     {
-        return Forms\Components\Builder\Block::make('product')
+        return Block::make('product')
             ->icon('fas-box')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -194,7 +211,7 @@ class InvoiceResource extends Resource
                 return sprintf('%s %s (%s €HT)', 'Produit : ', $state['title'] ?? 'inc',  $state['total'] ?? 0);
             })
             ->schema([
-                Forms\Components\Select::make('product_id')
+                Select::make('product_id')
                     ->label('Produit')
                     ->preload()
                     ->searchable()
@@ -254,15 +271,15 @@ class InvoiceResource extends Resource
                         }
                     }),
 
-                Forms\Components\Hidden::make('product_title')->dehydrated(),
+                Hidden::make('product_title')->dehydrated(),
 
-                Forms\Components\TextInput::make('product_code')
+                TextInput::make('product_code')
                     ->label('Code produit')
                     ->disabled()
                     ->dehydrated()
                     ->visible(fn(callable $get) => filled($get('product_code'))),
 
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Titre personnalisé')
                     ->required()
                     ->visible(fn(callable $get) => filled($get('product_id')))
@@ -273,9 +290,9 @@ class InvoiceResource extends Resource
                         }
                     }),
 
-                Forms\Components\Hidden::make('type')->dehydrated(),
+                Hidden::make('type')->dehydrated(),
 
-                Forms\Components\MarkdownEditor::make('description')
+                MarkdownEditor::make('description')
                     ->label('Description élement')
                     ->columnSpanFull()
                     ->disableToolbarButtons([
@@ -283,7 +300,7 @@ class InvoiceResource extends Resource
                         'table',
                     ]),
 
-                Forms\Components\Grid::make('Détails')
+                Grid::make('Détails')
                     ->label(false)
                     ->schema(
                         fn(callable $get) =>
@@ -311,7 +328,7 @@ class InvoiceResource extends Resource
 
     protected static function getTMABlock()
     {
-        return Builder\Block::make('tma')
+        return Block::make('tma')
             ->icon('fas-ticket')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -320,29 +337,29 @@ class InvoiceResource extends Resource
                 return sprintf('TMA du %s au %s ', $state['start_at'] ?? 'inc',  $state['end_at'] ?? 'inc');
             })
             ->schema([
-                Forms\Components\TextInput::make('start_at')
+                TextInput::make('start_at')
                     ->label('Debut')
                     ->type('month'),
-                Forms\Components\TextInput::make('end_at')
+                TextInput::make('end_at')
                     ->label('Fin')
                     ->type('month'),
-                Forms\Components\TextInput::make('qty_total')
+                TextInput::make('qty_total')
                     ->label('Nombre de ticket')
                     ->numeric(),
-                Forms\Components\TextInput::make('qty_facturable')
+                TextInput::make('qty_facturable')
                     ->label('Nombre de ticket facturable')
                     ->numeric(),
-                Forms\Components\TextInput::make('qty')
+                TextInput::make('qty')
                     ->label('Nombre Heures facturables')
                     ->numeric()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('cu')
+                TextInput::make('cu')
                     ->label('Cout heure')
                     ->numeric()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('total')
                     ->numeric(),
             ])
@@ -351,7 +368,7 @@ class InvoiceResource extends Resource
 
     protected static function getOnQuoteBlock()
     {
-        return Forms\Components\Builder\Block::make('on_quote')
+        return Block::make('on_quote')
             ->icon('fas-file-invoice')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -365,12 +382,12 @@ class InvoiceResource extends Resource
                 return sprintf('Facturation depuis devis %s montant %s', $quote->code, $state['total'] ?? 0);
             })
             ->schema([
-                Forms\Components\Select::make('quote_id')
+                Select::make('quote_id')
                     ->label('Select Quote')
                     ->options(function (callable $get) {
                         $companyId = $get('../../../company_id');
                         //\Log::info('company_id : ' . $companyId);
-                        return \App\Models\Quote::where('state', 'validated')
+                        return Quote::where('state', 'validated')
                             ->where('company_id', $companyId)
                             ->withRemainingAmount()
                             ->pluck('title', 'id');
@@ -393,34 +410,34 @@ class InvoiceResource extends Resource
                     })
                     ->columnSpanFull(),
 
-                Forms\Components\TextInput::make('total_quote')
+                TextInput::make('total_quote')
                     ->label('Total Facturable')
                     ->disabled()
                     ->dehydrated(),
-                Forms\Components\TextInput::make('total_quote_left')
+                TextInput::make('total_quote_left')
                     ->label('Total Restant à facturer')
                     ->disabled()
                     ->dehydrated(),
-                Forms\Components\TextInput::make('billing_percentage')
+                TextInput::make('billing_percentage')
                     ->label('%')
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
                     ->live(onBlur: true)
                     ->hintActions([
-                        Forms\Components\Actions\Action::make('p_30')
+                        Action::make('p_30')
                             ->label('30%')
                             ->action(function ($get, $set, $livewire) {
                                 $set('total', round($get('total_quote') * 30 / 100, 2));
                                 self::updateQuoteTotal($set, $get, $livewire, 'total');
                             }),
-                        Forms\Components\Actions\Action::make('p_40')
+                        Action::make('p_40')
                             ->label('40%')
                             ->action(function ($get, $set, $livewire) {
                                 $set('total', round($get('total_quote') * 40 / 100, 2));
                                 self::updateQuoteTotal($set, $get, $livewire, 'total');
                             }),
-                        Forms\Components\Actions\Action::make('p_full')
+                        Action::make('p_full')
                             ->label('fin')
                             ->action(function ($get, $set, $livewire) {
                                 $set('total', $get('total_quote_left'));
@@ -428,7 +445,7 @@ class InvoiceResource extends Resource
                             }),
                     ])
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateQuoteTotal($set, $get, $livewire, 'billing_percentage')),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->dehydrated()
                     ->live(onBlur: true)
@@ -436,8 +453,8 @@ class InvoiceResource extends Resource
                     ->rule(function (callable $get) {
                         return 'lte:' . ($get('total_quote_left') ?? 0);
                     }),
-                Forms\Components\Actions::make([
-                    Forms\Components\Actions\Action::make('auto_create')
+                \Filament\Schemas\Components\Actions::make([
+                    Action::make('auto_create')
                         ->icon('heroicon-m-clipboard')
                         ->label('Auto remplir titre et description')
                         ->action(function ($get, $set) {
@@ -461,12 +478,12 @@ class InvoiceResource extends Resource
                             return;
                         })
                 ])->columnSpanFull(),
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Titre élement')
                     ->required()
                     ->reactive()
                     ->columnSpanFull(),
-                Forms\Components\MarkdownEditor::make('description')
+                MarkdownEditor::make('description')
                     ->label('Description élement')
                     ->columnSpanFull()
                     ->disableToolbarButtons([
@@ -479,7 +496,7 @@ class InvoiceResource extends Resource
 
     protected static function getRemiseBlock()
     {
-        return Builder\Block::make('remise')
+        return Block::make('remise')
             ->icon('fas-percentage')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -489,7 +506,7 @@ class InvoiceResource extends Resource
             })
             ->schema([
                 ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->numeric()
                     ->live(onBlur: true),
@@ -499,7 +516,7 @@ class InvoiceResource extends Resource
 
     protected static function getForfaitBlock()
     {
-        return Builder\Block::make('forfait')
+        return Block::make('forfait')
             ->icon('fas-check-circle')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -509,7 +526,7 @@ class InvoiceResource extends Resource
             })
             ->schema([
                 ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->numeric()
                     ->live(onBlur: true)
@@ -519,7 +536,7 @@ class InvoiceResource extends Resource
 
     protected static function getTasksBlock()
     {
-        return Builder\Block::make('tasks')
+        return Block::make('tasks')
             ->icon('fas-calculator')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -529,17 +546,17 @@ class InvoiceResource extends Resource
             })
             ->schema([
                 ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('cu')
+                TextInput::make('cu')
                     ->label('Total U')
                     ->numeric()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('qty')
+                TextInput::make('qty')
                     ->label('Qty')
                     ->numeric()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->numeric()
                     ->disabled()
@@ -548,9 +565,9 @@ class InvoiceResource extends Resource
             ->columns(3);
     }
 
-    public static function getDuplicateAction(): Actions\Action
+    public static function getDuplicateAction(): Action
     {
-        return Actions\Action::make('duplicate')
+        return Action::make('duplicate')
             ->label('Dupliquer')
             ->icon('heroicon-s-document-duplicate')
             ->color('gray')
@@ -561,9 +578,9 @@ class InvoiceResource extends Resource
                 'contact_id' => $record->contact_id,
                 'title' => $record->title,
             ])
-            ->form([
+            ->schema([
                 ...InvoiceResource::getContactAndCompanyFields(),
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Titre')
                     ->required(),
             ])
@@ -656,12 +673,12 @@ class InvoiceResource extends Resource
     public static function getBasicItemsField()
     {
         return [
-            Forms\Components\TextInput::make('title')
+            TextInput::make('title')
                 ->label('Titre élement')
                 ->required()
                 ->reactive()
                 ->columnSpanFull(),
-            Forms\Components\MarkdownEditor::make('description')
+            MarkdownEditor::make('description')
                 ->label('Description élement')
                 ->columnSpanFull()
                 ->disableToolbarButtons([
@@ -682,9 +699,9 @@ class InvoiceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListInvoices::route('/'),
-            'edit' => Pages\EditInvoice::route('/{record}/edit'),
-            'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
+            'index' => ListInvoices::route('/'),
+            'edit' => EditInvoice::route('/{record}/edit'),
+            'preview-pdf' => PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }
 }

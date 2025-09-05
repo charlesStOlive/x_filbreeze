@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ActionGroup;
 use Filament\Forms;
 use Filament\Actions;
 use App\Dto\MsGraph\EmailMessageDTO;
@@ -22,8 +24,8 @@ class EditCompany extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
-            Actions\ActionGroup::make([
+            DeleteAction::make(),
+            ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft'),
                 GeneratePdfDownload::make('downloadPdf')
             ])->label('Produire')

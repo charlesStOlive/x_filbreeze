@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Services\LocaleService;
 use Filament\Panel;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -57,9 +59,9 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function msgUserDraft(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function msgUserDraft(): HasOne
     {
-        return $this->hasOne(\App\Models\MsgUserDraft::class);
+        return $this->hasOne(MsgUserDraft::class);
     }
 
     public static function getSystemUser(): self
@@ -72,7 +74,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getTimezoneDisplayNameAttribute(): string
     {
-        return \App\Services\LocaleService::getTimezoneDisplayName($this->timezone ?? 'Europe/Paris');
+        return LocaleService::getTimezoneDisplayName($this->timezone ?? 'Europe/Paris');
     }
 
     /**
@@ -80,6 +82,6 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getLocaleDisplayNameAttribute(): string
     {
-        return \App\Services\LocaleService::getLocaleDisplayName($this->locale ?? 'fr_FR');
+        return LocaleService::getLocaleDisplayName($this->locale ?? 'fr_FR');
     }
 }

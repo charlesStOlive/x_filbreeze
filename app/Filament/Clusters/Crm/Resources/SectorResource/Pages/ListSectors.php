@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources\SectorResource\Pages;
 
+use Filament\Actions\CreateAction;
 use Filament\Actions;
 use Filament\Tables\Table;
 use Filament\Resources\Pages\ListRecords;
@@ -15,7 +16,7 @@ class ListSectors extends ListRecords
     protected function getActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 

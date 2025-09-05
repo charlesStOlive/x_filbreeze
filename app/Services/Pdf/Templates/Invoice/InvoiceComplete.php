@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf\Templates\Invoice;
 
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
@@ -54,15 +55,15 @@ class InvoiceComplete extends BasePdfTemplate
     public static function getForm(array $defaults = []): array
     {
         return [
-            Forms\Components\Checkbox::make('avoid_full_break')
+            Checkbox::make('avoid_full_break')
                 ->label('Empêcher les sauts de page dans le tableai (si intro longue et petit tableau)')
                 ->default($defaults['avoid_inside_break'] ?? false)
                 ->live(),
-            Forms\Components\Checkbox::make('avoid_inside_break')
+            Checkbox::make('avoid_inside_break')
                 ->label('Empêcher les sauts de page au milieu d une ligne du tableau principal')
                 ->default($defaults['avoid_inside_break'] ?? false)
                 ->live(),
-            Forms\Components\Checkbox::make('avoid_amount_break')
+            Checkbox::make('avoid_amount_break')
                 ->label('Empêcher les sauts de page au milieu des montants')
                 ->default($defaults['avoid_amount_break'] ?? true)
                 ->live(),

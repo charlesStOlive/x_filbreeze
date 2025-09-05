@@ -2,7 +2,7 @@
 
 namespace App\Services\MaatImports\Filament\Tables;
 
-use Filament\Tables\Actions\Action;
+use Filament\Actions\Action;
 use App\Services\MaatImports\Filament\Traits\CanImportMaatExcel;
 
 

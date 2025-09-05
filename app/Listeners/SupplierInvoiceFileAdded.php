@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Models\SupplierInvoice;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,7 @@ class SupplierInvoiceFileAdded
             $file = $event->media;
             $invoice = $event->media->model;
 
-            if ($invoice instanceof \App\Models\SupplierInvoice) {
+            if ($invoice instanceof SupplierInvoice) {
                 $supplierSlug = $invoice->supplier->slug ?? 'unknown-supplier';
                 $invoiceDate = $invoice->invoice_at_my;
                 $newFileName = "{$supplierSlug}-{$file->file_name}";
@@ -36,7 +37,7 @@ class SupplierInvoiceFileAdded
 
             // if ($invoice instanceof \App\Models\SupplierInvoice) {
             //     Log::info("Suppression de média associée à la facture ID : " . $invoice->id);
-                
+
             //     // Logique de suppression additionnelle, comme supprimer un fichier dans SharePoint
             //     if (Storage::disk('sharepoint')->exists($invoice->sharepoint_path)) {
             //         Storage::disk('sharepoint')->delete($invoice->sharepoint_path);

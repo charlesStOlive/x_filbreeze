@@ -2,6 +2,7 @@
 
 namespace App\Models\States\Invoice;
 
+use Filament\Forms\Components\DateTimePicker;
 use Closure;
 use DateTime;
 use Filament\Forms;
@@ -61,7 +62,7 @@ class ToPayed extends Transition implements FilamentSpatieTransition, HasIcon, H
     public function form(): array | Closure | null
     {
         return [
-            Forms\Components\DateTimePicker::make('payed_at')
+            DateTimePicker::make('payed_at')
                 ->label('Payé le')
                 ->default(now())
                 ->helperText(__('Vous devez saisir une date de paiement.'))

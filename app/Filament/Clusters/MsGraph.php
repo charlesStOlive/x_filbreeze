@@ -7,7 +7,7 @@ use App\Services\PermissionService;
 
 class MsGraph extends Cluster
 {
-    protected static ?string $navigationIcon = 'fab-microsoft';
+    protected static string | \BackedEnum | null $navigationIcon = 'fab-microsoft';
 
     public static function canAccess(): bool
     {

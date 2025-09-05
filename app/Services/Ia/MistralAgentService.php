@@ -2,6 +2,7 @@
 
 namespace App\Services\Ia;
 
+use Throwable;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
@@ -62,7 +63,7 @@ class MistralAgentService
             ]);
 
             throw new MistralException('Erreur HTTP Mistral : ' . $msg);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new MistralException('Erreur inattendue Mistral : ' . $e->getMessage());
         }
     }

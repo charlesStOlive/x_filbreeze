@@ -2,11 +2,20 @@
 
 namespace App\Filament\Clusters\DataSets\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Actions\Action;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages\ListProducts;
+use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages\CreateProduct;
+use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages\EditProduct;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Gamme;
 use App\Models\Product;
-use Filament\Forms\Form;
 use App\Enums\ProductType;
 use Filament\Tables\Table;
 use App\Imports\ProductImporter;
@@ -15,7 +24,6 @@ use App\Filament\Clusters\DataSets;
 use Filament\Tables\Grouping\Group;
 use YOS\FilamentExcel\Actions\Import;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Actions\DeleteBulkAction;
 use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
 use App\Services\PermissionService;
 
@@ -23,7 +31,7 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cube';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-cube';
 
     protected static ?string $cluster = DataSets::class;
 
@@ -52,31 +60,31 @@ class ProductResource extends Resource
         return 'Produits';
     }
 
-    public static function form(Forms\Form $form): Forms\Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('code')
+        return $schema
+            ->components([
+                TextInput::make('code')
                     ->required()
                     ->maxLength(50)
                     ->unique(ignoreRecord: true),
 
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('type')
+                Select::make('type')
                     ->required()
                     ->options(ProductType::options())
                     ->native(false),
 
-                Forms\Components\Select::make('gamme_id')
+                Select::make('gamme_id')
                     ->label('Gamme')
                     ->relationship('gamme', 'name')
                     ->preload()
                     ->searchable()
                     ->createOptionForm([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->label('Nom de la gamme')
                             ->required()
                             ->unique(table: 'datasets_gammes', column: 'name')
@@ -84,12 +92,12 @@ class ProductResource extends Resource
                             ->afterStateUpdated(function ($state, callable $set) {
                                 $set('slug', str($state)->slug());
                             }),
-                        Forms\Components\TextInput::make('slug')
+                        TextInput::make('slug')
                             ->required()
                             ->helperText('Généré automatiquement depuis le nom')
                             ->unique(table: 'datasets_gammes', column: 'slug')
                     ])
-                    ->createOptionAction(function (Forms\Components\Actions\Action $action) {
+                    ->createOptionAction(function (Action $action) {
                         return $action
                             ->modalHeading('Créer une nouvelle gamme')
                             ->modalSubmitActionLabel('Créer')
@@ -98,7 +106,7 @@ class ProductResource extends Resource
                     ->required()
                     ->native(false),
 
-                Forms\Components\TextInput::make('unit_price')
+                TextInput::make('unit_price')
                     ->numeric()
                     ->prefix('€')
                     ->default(0)
@@ -107,7 +115,7 @@ class ProductResource extends Resource
             ->columns(2);
     }
 
-    public static function table(Tables\Table $table): Tables\Table
+    public static function table(Table $table): Table
     {
         return $table
             ->groups([
@@ -118,24 +126,24 @@ class ProductResource extends Resource
                     ->getTitleFromRecordUsing(fn($record) => $record->type?->label()),
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('code')
+                TextColumn::make('code')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->sortable()
                     ->badge()
                     ->formatStateUsing(fn(ProductType $state) => $state->label()),
 
-                Tables\Columns\TextColumn::make('gamme.name')
+                TextColumn::make('gamme.name')
                     ->label('Gamme')
                     ->sortable(),
 
-                Tables\Columns\TextInputColumn::make('unit_price')
+                TextInputColumn::make('unit_price')
                     ->sortable(),
             ])
             ->filters([
@@ -146,8 +154,8 @@ class ProductResource extends Resource
                     ->label('Gamme')
                     ->relationship('gamme', 'name'),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
                 // Tables\Actions\ExportBulkAction::make()
                 //     ->exporter(ProductExporter::class),
             ])
@@ -157,9 +165,9 @@ class ProductResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProducts::route('/'),
-            'create' => Pages\CreateProduct::route('/create'),
-            'edit' => Pages\EditProduct::route('/{record}/edit'),
+            'index' => ListProducts::route('/'),
+            'create' => CreateProduct::route('/create'),
+            'edit' => EditProduct::route('/{record}/edit'),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Utils;
 
+use Log;
 use Filament\Actions\Action;
 use App\Forms\Components\Diff2Html;
 use Filament\Forms\Components\Hidden;
@@ -30,7 +31,7 @@ class IaUtils
                     'data_corrected' => $corrected,
                 ];
             })
-            ->form([
+            ->schema([
                 Hidden::make('data_for_ia'),
                 Hidden::make('data_corrected'),
                 Diff2Html::make('jsonComparison')
@@ -60,7 +61,7 @@ class IaUtils
             $iaService = app(IaService::class);
             return $iaService->correctText($jsonText);
         } catch (MistralException $e) {
-            \Log::error('Erreur lors de la correction de texte', [
+            Log::error('Erreur lors de la correction de texte', [
                 'error' => $e->getMessage(),
             ]);
             throw $e;

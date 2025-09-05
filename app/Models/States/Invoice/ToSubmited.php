@@ -2,6 +2,7 @@
 
 namespace App\Models\States\Invoice;
 
+use Filament\Forms\Components\DateTimePicker;
 use Closure;
 use DateTime;
 use Filament\Forms;
@@ -62,7 +63,7 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
     public function form(): array | Closure | null
     {
         return [
-            Forms\Components\DateTimePicker::make('submited_at')
+            DateTimePicker::make('submited_at')
                 ->label('Validé le')
                 ->default(now())
                 ->helperText(__('Vous devez saisir une date de soumission.'))

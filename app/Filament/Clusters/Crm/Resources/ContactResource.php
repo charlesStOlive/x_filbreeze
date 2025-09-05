@@ -2,10 +2,25 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Str;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Clusters\Crm\Resources\ContactResource\Pages\ListContacts;
+use App\Filament\Clusters\Crm\Resources\ContactResource\Pages\CreateContact;
+use App\Filament\Clusters\Crm\Resources\ContactResource\Pages\EditContact;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Contact;
-use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
@@ -19,36 +34,36 @@ class ContactResource extends Resource
 {
     protected static ?string $model = Contact::class;
 
-    protected static ?string $navigationIcon = 'heroicon-s-user';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-user';
 
     protected static ?string $cluster = Crm::class;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('first_name')
+        return $schema
+            ->components([
+                TextInput::make('first_name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('last_name')
+                TextInput::make('last_name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('civ')
+                TextInput::make('civ')
                     ->maxLength(255)
                     ->default('Mme/M.'),
-                Forms\Components\TextInput::make('email')
+                TextInput::make('email')
                     ->email()
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('memo')
+                Textarea::make('memo')
                     ->columnSpanFull(),
-                Forms\Components\Toggle::make('is_ex'),
-                Forms\Components\TextInput::make('company_id')
+                Toggle::make('is_ex'),
+                TextInput::make('company_id')
                     ->numeric(),
-                Forms\Components\TextInput::make('tel')
+                TextInput::make('tel')
                     ->tel()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('linkedin_ext_id')
+                TextInput::make('linkedin_ext_id')
                     ->maxLength(255),
             ]);
     }
@@ -56,24 +71,24 @@ class ContactResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('civ')
+                TextColumn::make('civ')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('full_name')
-                    ->description(fn ($record): string => \Str::limit($record->company->title, 35))
+                TextColumn::make('full_name')
+                    ->description(fn ($record): string => Str::limit($record->company->title, 35))
                     ->searchable(['first_name', 'last_name']),
-                Tables\Columns\TextColumn::make('email')
+                TextColumn::make('email')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_ex')
+                IconColumn::make('is_ex')
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('company.title')
+                TextColumn::make('company.title')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('tel')
+                TextColumn::make('tel')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('linkedin_ext_id')
+                TextColumn::make('linkedin_ext_id')
                     ->url(fn($record) => $record->linkedin_ext_id ? 'https://www.linkedin.com/in/' . $record->linkedin_ext_id : null)
                     ->openUrlInNewTab(),
                 DateColumn::make('deleted_at')
@@ -85,20 +100,20 @@ class ContactResource extends Resource
             ])
             ->defaultSort('full_name', 'asc')
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_ex')->label('Exemple')->default(false),
-                Tables\Filters\SelectFilter::make('company')
+                TernaryFilter::make('is_ex')->label('Exemple')->default(false),
+                SelectFilter::make('company')
                     ->label('Entreprise')
                     ->relationship('company', 'title'), // Assuming 'company' is a valid relationship
-                Tables\Filters\Filter::make('linkedin_ext_id')
+                Filter::make('linkedin_ext_id')
                     ->label('Has LinkedIn?')
                     ->query(fn(Builder $query): Builder => $query->whereNotNull('linkedin_ext_id')->where('linkedin_ext_id', '!=', ''))
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -114,9 +129,9 @@ class ContactResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListContacts::route('/'),
-            'create' => Pages\CreateContact::route('/create'),
-            'edit' => Pages\EditContact::route('/{record}/edit'),
+            'index' => ListContacts::route('/'),
+            'create' => CreateContact::route('/create'),
+            'edit' => EditContact::route('/{record}/edit'),
         ];
     }
 }

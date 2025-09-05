@@ -2,7 +2,7 @@
 
 namespace App\Components\Tree\Components;
 
-use Filament\Forms\ComponentContainer;
+use Filament\Schemas\Schema;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Database\Eloquent\Model;
 use App\Components\Tree\Concern\BelongsToLivewire;
@@ -84,7 +84,7 @@ class Tree extends ViewComponent
         return $record->getAttributeValue((method_exists($record, 'determineParentKey') ? $record->determineParentColumnName() : Utils::parentColumnName()));
     }
 
-    public function getMountedActionForm(): ?ComponentContainer
+    public function getMountedActionForm(): ?Schema
     {
         return $this->getLivewire()->getMountedTreeActionForm();
     }

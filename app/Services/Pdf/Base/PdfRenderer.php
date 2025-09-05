@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf\Base;
 
+use Log;
 use App\Services\Helpers\ViteHelper;
 use Illuminate\Support\Facades\View;
 use App\Services\Pdf\Base\PdfTemplate;
@@ -11,7 +12,7 @@ class PdfRenderer
 {
     public function render(BasePdfTemplate $template, array $options = [], bool $hotReload = false): string
     {
-        \Log::info('Rendering PDF with template: ' . get_class($template) . 'and preview ' . $hotReload);
+        Log::info('Rendering PDF with template: ' . get_class($template) . 'and preview ' . $hotReload);
         return View::make($template->getView(), array_merge(
             $template->getData($options),
             [

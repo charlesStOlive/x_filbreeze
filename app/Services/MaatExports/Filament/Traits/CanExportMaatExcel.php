@@ -2,12 +2,12 @@
 
 namespace App\Services\MaatExports\Filament\Traits;
 
+use Filament\Actions\Action;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use App\Services\MaatExports\Base\FromCollectionExport;
-use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification as FilamentNotification;
 
 trait CanExportMaatExcel
@@ -52,7 +52,7 @@ trait CanExportMaatExcel
                 ->success()
                 ->body('Votre fichier est prêt à être téléchargé.')
                 ->actions([
-                    NotificationAction::make('download')
+                    Action::make('download')
                         ->label('Télécharger')
                         ->url($url, true)
                         ->color('success')

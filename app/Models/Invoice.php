@@ -133,7 +133,7 @@ class Invoice extends Model
     public static function syncLinkedQuoteAmountLeft($invoice, $quotesData) {
         //\Log::info('quotesData!!!', $quotesData);
         foreach ($quotesData as $quoteId => $pivotData) {
-                    $quote = \App\Models\Quote::find($quoteId);
+                    $quote = Quote::find($quoteId);
                     if ($quote) {
                         $currentAmount = static::getAmountFactured($quote, $invoice);
                         $newTotal = $currentAmount + $pivotData['total'];

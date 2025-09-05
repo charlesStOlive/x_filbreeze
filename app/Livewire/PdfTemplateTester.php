@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Log;
 use Livewire\Component;
 use Illuminate\Support\Str;
 use App\Services\Pdf\Base\PdfRenderer;
@@ -28,8 +29,8 @@ class PdfTemplateTester extends Component
         $templateClass = collect(PdfTemplateRegistry::getTemplatesFor($modelType))
             ->first(fn($cls) => $cls::key() === $templateKey);
 
-        \Log::info(PdfTemplateRegistry::getTemplatesFor($modelType));
-        \Log::info($templateClass);
+        Log::info(PdfTemplateRegistry::getTemplatesFor($modelType));
+        Log::info($templateClass);
 
         if (! $templateClass) {
             abort(500, "Template PDF [{$templateKey}] introuvable pour le modèle [{$modelType}].");

@@ -2,6 +2,24 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Tables\Columns\TextColumn;
+use Str;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Fieldset;
+use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\ListQuotes;
+use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\EditQuote;
+use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\PreviewPdf;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Quote;
@@ -29,7 +47,7 @@ class QuoteResource extends Resource
 {
     protected static ?string $model = Quote::class;
 
-    protected static ?string $navigationIcon = 'fas-file-invoice';
+    protected static string | \BackedEnum | null $navigationIcon = 'fas-file-invoice';
 
     protected static ?string $cluster = Crm::class;
 
@@ -42,21 +60,21 @@ class QuoteResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('code')
+                TextColumn::make('code')
                     ->sortable()
-                    ->description(fn($record): string => \Str::limit($record->title, 35))
+                    ->description(fn($record): string => Str::limit($record->title, 35))
                     ->searchable(['title', 'code']),
                 StateColumn::make('state')
                     ->badge(),
-                Tables\Columns\TextColumn::make('company.title')
+                TextColumn::make('company.title')
                     ->sortable()
-                    ->description(fn($record): string => \Str::limit($record->contact->full_name, 35))
+                    ->description(fn($record): string => Str::limit($record->contact->full_name, 35))
                     ->searchable(['title']),
-                Tables\Columns\TextColumn::make('is_retained')
+                TextColumn::make('is_retained')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('version')
+                TextColumn::make('version')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('total_ht')
+                TextColumn::make('total_ht')
                     ->numeric()
                     ->sortable(),
                 DateColumn::make('end_at'),
@@ -70,12 +88,12 @@ class QuoteResource extends Resource
                 StateSelectFilter::make('state')
                     ->multiple()->default(['draft', 'validated'])
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -83,7 +101,7 @@ class QuoteResource extends Resource
     public static function getContactAndCompanyFields($companyEditable = true): array
     {
         return [
-            Forms\Components\Select::make('company_id')
+            Select::make('company_id')
                 ->label('Client')
                 ->relationship('company', 'title')
                 ->searchable()
@@ -91,7 +109,7 @@ class QuoteResource extends Resource
                 ->live(onBlur: true)
                 ->disabled(!$companyEditable),
 
-            Forms\Components\Select::make('contact_id')
+            Select::make('contact_id')
                 ->label('Contact')
                 ->relationship(
                     name: 'contact',
@@ -117,7 +135,7 @@ class QuoteResource extends Resource
     public static function getItemsBuilderComponent(): array
     {
         return [
-            Forms\Components\Fieldset::make('Elements du devis')
+            Fieldset::make('Elements du devis')
                 ->schema([
                     Builder::make('items')
                         ->label(false)
@@ -139,7 +157,7 @@ class QuoteResource extends Resource
 
     protected static function getProductBlock()
     {
-        return Forms\Components\Builder\Block::make('product')
+        return Block::make('product')
             ->icon('fas-box')
             ->label(function (?array $state) {
                 if ($state === null) {
@@ -169,7 +187,7 @@ class QuoteResource extends Resource
                 return $baseText;
             })
             ->schema([
-                Forms\Components\Select::make('product_id')
+                Select::make('product_id')
                     ->label('Produit')
                     ->preload()
                     ->searchable()
@@ -229,15 +247,15 @@ class QuoteResource extends Resource
                         }
                     }),
 
-                Forms\Components\Hidden::make('product_title')->dehydrated(),
+                Hidden::make('product_title')->dehydrated(),
 
-                Forms\Components\TextInput::make('product_code')
+                TextInput::make('product_code')
                     ->label('Code produit')
                     ->disabled()
                     ->dehydrated()
                     ->visible(fn(callable $get) => filled($get('product_code'))),
 
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Titre personnalisé')
                     ->required()
                     ->visible(fn(callable $get) => filled($get('product_id')))
@@ -248,16 +266,16 @@ class QuoteResource extends Resource
                         }
                     }),
 
-                Forms\Components\Toggle::make('is_option')
+                Toggle::make('is_option')
                     ->label('Ligne en option')
                     ->default(false)
                     ->columnSpanFull()
                     ->live()
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateItemsTotal($set, $get, $livewire, true)),
 
-                Forms\Components\Hidden::make('type')->dehydrated(),
+                Hidden::make('type')->dehydrated(),
 
-                Forms\Components\MarkdownEditor::make('description')
+                MarkdownEditor::make('description')
                     ->label('Description élement')
                     ->columnSpanFull()
                     ->disableToolbarButtons([
@@ -265,7 +283,7 @@ class QuoteResource extends Resource
                         'table',
                     ]),
 
-                Forms\Components\Grid::make('Détails')
+                Grid::make('Détails')
                     ->label(false)
                     ->schema(
                         fn(callable $get) =>
@@ -292,7 +310,7 @@ class QuoteResource extends Resource
 
     protected static function getForfaitBlock()
     {
-        return Builder\Block::make('forfait')
+        return Block::make('forfait')
             ->icon('fas-check-circle')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -302,7 +320,7 @@ class QuoteResource extends Resource
             })
             ->schema([
                 ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->numeric()
                     ->live()
@@ -313,7 +331,7 @@ class QuoteResource extends Resource
 
     protected static function getTasksBlock()
     {
-        return Forms\Components\Builder\Block::make('tasks')
+        return Block::make('tasks')
             ->icon('fas-calculator')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -323,17 +341,17 @@ class QuoteResource extends Resource
             })
             ->schema([
                 ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('cu')
+                TextInput::make('cu')
                     ->label('Total U')
                     ->numeric()
                     ->live()
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('qty')
+                TextInput::make('qty')
                     ->label('Qty')
                     ->numeric()
                     ->live()
                     ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->numeric()
                     ->disabled()
@@ -344,7 +362,7 @@ class QuoteResource extends Resource
 
     protected static function getRemiseBlock()
     {
-        return Builder\Block::make('remise')
+        return Block::make('remise')
             ->icon('fas-percentage')
             ->label(function (?array $state): string {
                 if ($state === null) {
@@ -354,7 +372,7 @@ class QuoteResource extends Resource
             })
             ->schema([
                 ...self::getBasicItemsField(),
-                Forms\Components\TextInput::make('total')
+                TextInput::make('total')
                     ->label('Total')
                     ->numeric()
                     ->live()
@@ -365,7 +383,7 @@ class QuoteResource extends Resource
 
     public static function getDuplicateAction()
     {
-        return Actions\Action::make('duplicate')
+        return Action::make('duplicate')
             ->label('Dupliquer')
             ->icon('heroicon-s-document-duplicate')
             ->modalHeading('Dupliquer')
@@ -374,12 +392,12 @@ class QuoteResource extends Resource
                 'client_id' => $record->client_id,
                 'contact_id' => $record->contact_id,
             ])
-            ->form([
+            ->schema([
                 ...self::getContactAndCompanyFields(),
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Titre')
                     ->required(),
-                Forms\Components\DatePicker::make('end_at')
+                DatePicker::make('end_at')
                     ->label('Fin')
                     ->default(now()->addMonth())
                     ->required()
@@ -491,12 +509,12 @@ class QuoteResource extends Resource
     public static function getBasicItemsField()
     {
         return [
-            Forms\Components\TextInput::make('title')
+            TextInput::make('title')
                 ->label('Titre élement')
                 ->required()
                 ->live()
                 ->columnSpanFull(),
-            Forms\Components\MarkdownEditor::make('description')
+            MarkdownEditor::make('description')
                 ->label('Description élement')
                 ->columnSpanFull()
                 ->disableToolbarButtons([
@@ -511,7 +529,7 @@ class QuoteResource extends Resource
     {
         return [
             Actions::make([
-                Actions\Action::make('activate_v')
+                Action::make('activate_v')
                     ->label(fn($record) => $record->is_retained ? 'Devis Actif' : 'Activer ce devis')
                     ->disabled(fn($record) => $record->is_retained)
                     ->action(function ($record) {
@@ -531,9 +549,9 @@ class QuoteResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListQuotes::route('/'),
-            'edit' => Pages\EditQuote::route('/{record}/edit'),
-            'preview-pdf' => Pages\PreviewPdf::route('/{record}/preview-pdf'),
+            'index' => ListQuotes::route('/'),
+            'edit' => EditQuote::route('/{record}/edit'),
+            'preview-pdf' => PreviewPdf::route('/{record}/preview-pdf'),
         ];
     }
 }

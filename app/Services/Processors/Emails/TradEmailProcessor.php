@@ -2,6 +2,8 @@
 
 namespace App\Services\Processors\Emails;
 
+use App\Services\Ia\MistralAgentService;
+use Exception;
 use App\Models\MsgUserDraft;
 use App\Models\MsgEmailDraft;
 use App\Dto\MsGraph\EmailMessageDTO;
@@ -120,7 +122,7 @@ class TradEmailProcessor  implements ShouldQueue
 
     private function callMistralAgent(string $mistralPrompt): string
     {
-        $mistralAgent = new \App\Services\Ia\MistralAgentService(); // Instanciation directe
+        $mistralAgent = new MistralAgentService(); // Instanciation directe
         $agentId = 'ag:3e2c948d:20241128:untitled-agent:863e968f';
         $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
         //\Log::info('MISTRAL RESPONSE');
@@ -147,7 +149,7 @@ class TradEmailProcessor  implements ShouldQueue
         try {
             $processor = new self($user, $emailData, $email);
             dispatch($processor);
-        } catch(\Exception $ex) {
+        } catch(Exception $ex) {
             //\Log::info($ex->getMessage());
         }
         

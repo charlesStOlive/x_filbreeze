@@ -2,9 +2,11 @@
 
 namespace App\Filament\Components\Forms;
 
-use Filament\Forms\Set;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Utilities\Set;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Log;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Actions\Action;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class CloudinaryFileUpload extends FileUpload
@@ -36,8 +38,8 @@ class CloudinaryFileUpload extends FileUpload
         $this->afterStateUpdated(function ($state, $component, $livewire) {
             $record = $livewire->getRecord();
 
-            if (! $record || !$state instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-                \Log::info('ABANDON-------------------------');
+            if (! $record || !$state instanceof TemporaryUploadedFile) {
+                Log::info('ABANDON-------------------------');
                 return;
             }
 
@@ -130,8 +132,8 @@ class CloudinaryFileUpload extends FileUpload
 
     public function deleteImageFromCloudinary(): void
     {
-        \Log::info('State Path: ' . $this->getStatePath());
-        \Log::info('delete image');
+        Log::info('State Path: ' . $this->getStatePath());
+        Log::info('delete image');
         $record = $this->getLivewire()?->getRecord();
 
         if (! $record || ! method_exists($record, $this->getRelationName())) {
@@ -149,6 +151,6 @@ class CloudinaryFileUpload extends FileUpload
         $image->delete();
         $record->refresh(); // ✅ recharge depuis la DB
         $this->state([]);   // ✅ reset du Field state
-        \Log::info('State Path on end !!!!: ' . $this->getStatePath());
+        Log::info('State Path on end !!!!: ' . $this->getStatePath());
     }
 }

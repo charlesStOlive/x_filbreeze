@@ -2,6 +2,8 @@
 
 namespace App\Filament\Utils;
 
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\ViewField;
 use Filament\Actions\Action;
 use App\Services\Helpers\ViteHelper;
 use Filament\Forms;
@@ -16,18 +18,18 @@ class PdfUtils
             ->label($label)
             ->color('redpdf')
             ->icon('far-file-pdf', 30)
-            ->form([
+            ->schema([
                 // Champs de configuration du PDF
-                Forms\Components\Checkbox::make('avoid_full_break')
+                Checkbox::make('avoid_full_break')
                     ->label('Empêcher les sauts de page au milieu du tableau principal')
                     ->default(false),
-                Forms\Components\Checkbox::make('avoid_amount_break')
+                Checkbox::make('avoid_amount_break')
                     ->label('Empêcher les sauts de page au milieu des montants')
                     ->default(true),
-                Forms\Components\Checkbox::make('avoid_row_break')
+                Checkbox::make('avoid_row_break')
                     ->label('Empêcher les sauts au milieu d\'une ligne')
                     ->default(true),
-                \Filament\Forms\Components\ViewField::make('html_preview')
+                ViewField::make('html_preview')
                     ->view('components.html_preview') // Vue personnalisée pour afficher l'aperçu
                     ->label("Aperçu"),
             ])

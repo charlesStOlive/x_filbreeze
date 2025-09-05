@@ -2,9 +2,9 @@
 
 namespace App\Services\MaatExports\Templates\Product;
 
+use Filament\Schemas\Components\Group;
 use App\Models\Product;
 use Illuminate\Support\Collection;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Toggle;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use App\Services\MaatExports\Base\BaseExcelTemplate;

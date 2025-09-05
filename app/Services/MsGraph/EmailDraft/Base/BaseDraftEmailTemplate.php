@@ -2,7 +2,7 @@
 
 namespace App\Services\MsGraph\EmailDraft\Base;
 
-use Filament\Forms\Components\Group;
+use Filament\Schemas\Components\Group;
 use Filament\Forms\Components\CheckboxList;
 
 abstract class BaseDraftEmailTemplate

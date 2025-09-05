@@ -2,6 +2,8 @@
 
 namespace App\Components\Tree\Concern\TreeRecords;
 
+use App\Components\Tree\Actions\EditAction;
+use App\Components\Tree\Actions\ViewAction;
 use Filament\Actions\CreateAction;
 use Illuminate\Database\Eloquent\Model;
 use App\Components\Tree\Actions;
@@ -63,7 +65,7 @@ trait Translatable
         return $action;
     }
 
-    protected function afterConfiguredEditAction(Actions\EditAction $action): Actions\EditAction
+    protected function afterConfiguredEditAction(EditAction $action): EditAction
     {
         /** @var Actions\EditAction */
         $action = parent::afterConfiguredEditAction($action);
@@ -93,7 +95,7 @@ trait Translatable
         return $action;
     }
 
-    protected function afterConfiguredViewAction(Actions\ViewAction $action): Actions\ViewAction
+    protected function afterConfiguredViewAction(ViewAction $action): ViewAction
     {
         /** @var Actions\ViewAction */
         $action = parent::afterConfiguredViewAction($action);

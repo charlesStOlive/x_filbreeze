@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\MsGraph\MsgConnect;
 use App\Models\User;
 use Illuminate\View\View;
 use Filament\Tables\Table;
@@ -31,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('msgconnect', function () {
-            return new \App\Services\MsGraph\MsgConnect; // Assurez-vous que le chemin est correct
+            return new MsgConnect; // Assurez-vous que le chemin est correct
         });
     }
 

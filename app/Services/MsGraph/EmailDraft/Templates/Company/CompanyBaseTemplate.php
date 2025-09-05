@@ -2,6 +2,7 @@
 
 namespace App\Services\MsGraph\EmailDraft\Templates\Company;
 
+use Filament\Forms\Components\Toggle;
 use Filament\Forms;
 use Illuminate\Support\Facades\Auth;
 use App\Services\MsGraph\EmailDraft\Base\HasPj;
@@ -48,12 +49,12 @@ class CompanyBaseTemplate extends BaseDraftEmailTemplate implements HasPj
     public function getForm(): array
     {
         return [
-            Forms\Components\Toggle::make('show_intro')
+            Toggle::make('show_intro')
                 ->label("Afficher l'introduction")
                 ->default($this->getOption('show_intro'))
                 ->live(),
 
-            Forms\Components\Toggle::make('show_details')
+            Toggle::make('show_details')
                 ->label("Afficher les détails")
                 ->default($this->getOption('show_details'))
                 ->live(),

@@ -11,7 +11,7 @@ class PreviewPdf extends Page
 {
     protected static string $resource = QuoteResource::class;
 
-    protected static string $view = 'components.html_preveiw_page'; // Vue associée
+    protected string $view = 'components.html_preveiw_page'; // Vue associée
 
     public $invoice;
 

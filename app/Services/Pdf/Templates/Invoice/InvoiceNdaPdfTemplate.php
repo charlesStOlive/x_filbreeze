@@ -2,6 +2,8 @@
 
 namespace App\Services\Pdf\Templates\Invoice;
 
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
@@ -51,12 +53,12 @@ class InvoiceNdaPdfTemplate extends BasePdfTemplate
     public function getForm(array $defaults = []): array
     {
         return [
-            Forms\Components\Checkbox::make('avoid_break')
+            Checkbox::make('avoid_break')
                 ->label('Empêcher les sauts de page dans une cellule')
                 ->default($this->getOption('avoid_break'))
                 ->live(),
 
-            Forms\Components\TextInput::make('nb_rows')
+            TextInput::make('nb_rows')
                 ->label('Nombre de lignes de tests')
                 ->default($this->getOption('nb_rows'))
                 ->integer()

@@ -3,6 +3,7 @@
 namespace App\Services\MsGraph\EmailDraft\Templates\Invoice;
 
 
+use Filament\Forms\Components\Toggle;
 use Illuminate\Support\Facades\Auth;
 use App\Services\MsGraph\EmailDraft\Base\HasPj;
 use App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate;
@@ -56,12 +57,12 @@ class InvoiceSummaryTemplate extends BaseDraftEmailTemplate implements HasPj
     public function getForm(): array
     {
         return [
-            Forms\Components\Toggle::make('show_intro')
+            Toggle::make('show_intro')
                 ->label('Afficher intro et description')
                 ->default($this->getOption('show_intro', true))
                 ->live(),
 
-            Forms\Components\Toggle::make('show_tva')
+            Toggle::make('show_tva')
                 ->label('Afficher la TVA')
                 ->default($this->getOption('show_tva', false))
                 ->live(),

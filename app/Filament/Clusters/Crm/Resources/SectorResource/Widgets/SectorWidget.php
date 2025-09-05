@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Crm\Resources\SectorResource\Widgets;
 
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms;
 use App\Models\Sector;
 use Filament\Actions\CreateAction;
@@ -23,17 +25,17 @@ class SectorWidget extends Tree
     protected function getFormSchema(): array
     {
         return [
-            Forms\Components\TextInput::make('title')
+            TextInput::make('title')
                 ->required()
                 ->maxLength(255),
-            Forms\Components\TextInput::make('slug')
+            TextInput::make('slug')
                 ->required()
                 ->maxLength(255),
-            Forms\Components\Textarea::make('contenu')
+            Textarea::make('contenu')
                 ->columnSpanFull(),
-            Forms\Components\Textarea::make('txt_intro')
+            Textarea::make('txt_intro')
                 ->columnSpanFull(),
-            Forms\Components\Textarea::make('txt_kpi')
+            Textarea::make('txt_kpi')
                 ->columnSpanFull(),
         ];
     }

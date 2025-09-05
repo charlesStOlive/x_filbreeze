@@ -2,6 +2,7 @@
 
 namespace App\Models\States\Quote;
 
+use Filament\Forms\Components\DateTimePicker;
 use Closure;
 use Filament\Forms;
 use App\Models\Quote;
@@ -59,7 +60,7 @@ class ToValidated extends Transition implements FilamentSpatieTransition, HasCol
     public function form(): array | Closure | null
     {
         return [
-            Forms\Components\DateTimePicker::make('validated_at')
+            DateTimePicker::make('validated_at')
                 ->label('Validé le')
                 ->default(now())
                 ->helperText(__('Date de validation'))

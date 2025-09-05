@@ -2,21 +2,29 @@
 
 namespace App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 
+use Filament\Actions\DeleteAction;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\Hidden;
+use Filament\Schemas\Components\Section;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Grid;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Forms;
 use App\Models\Quote;
 use Filament\Actions;
 use Filament\Infolists;
-use Filament\Forms\Form;
 use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
-use Filament\Infolists\Infolist;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Quote\Draft;
 use App\Models\States\Quote\Validated;
 use Filament\Actions\ActionGroup;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\ModelStates\StateAction;
-use Guava\FilamentClusters\Forms\Cluster;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
@@ -28,7 +36,7 @@ class EditQuote extends EditRecord
     use HasPreviewModal;
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
-    protected static string $view = 'filament.templates.form-info-list';
+    protected string $view = 'filament.templates.form-info-list';
 
     protected function getHeaderActions(): array
     {
@@ -58,26 +66,26 @@ class EditQuote extends EditRecord
                 ->icon('fas-file-export')
                 ->button()
                 ->color('gray'),
-            Actions\DeleteAction::make()->hidden(fn($record) => $record->state->isSaveHidden)
+            DeleteAction::make()->hidden(fn($record) => $record->state->isSaveHidden)
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('title')
+        return $schema
+            ->components([
+                TextInput::make('title')
                     ->label('Titre')
                     ->required(),
-                Forms\Components\MarkdownEditor::make('description')
+                MarkdownEditor::make('description')
                     ->label('Description du devis')
                     ->columnSpanFull(),
                 ...QuoteResource::getItemsBuilderComponent(),
-                Forms\Components\Hidden::make('total_ht_br'),
-                Forms\Components\Hidden::make('total_ht'),
-                Forms\Components\Hidden::make('total_options'),
-                Forms\Components\Hidden::make('total_avant_options'),
-                Forms\Components\Hidden::make('total_jours'),
+                Hidden::make('total_ht_br'),
+                Hidden::make('total_ht'),
+                Hidden::make('total_options'),
+                Hidden::make('total_avant_options'),
+                Hidden::make('total_jours'),
             ])->columns(2);
     }
 
@@ -96,21 +104,21 @@ class EditQuote extends EditRecord
         $this->infolist->record($data)->render();
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
-        return $infolist
+        return $schema
             ->record($this->getRecord())
-            ->schema([
-                Infolists\Components\Section::make('info')
+            ->components([
+                Section::make('info')
                     ->headerActions([
-                        Infolists\Components\Actions\Action::make('edit')
+                        Action::make('edit')
                             ->fillForm(fn($record): array => [
                                 'company_id' => $record->company_id,
                                 'contact_id' => $record->contact_id,
                                 'end_at' => $record->end_at,
                             ])
-                            ->form([
-                                Forms\Components\Select::make('company_id')
+                            ->schema([
+                                Select::make('company_id')
                                     ->label('Client')
                                     ->relationship('company', 'title')
                                     ->searchable()
@@ -118,7 +126,7 @@ class EditQuote extends EditRecord
                                     ->live(onBlur: true)
                                     ->disabled(true),
 
-                                Forms\Components\Select::make('contact_id')
+                                Select::make('contact_id')
                                     ->label('Contact')
                                     ->relationship(
                                         name: 'contact',
@@ -127,7 +135,7 @@ class EditQuote extends EditRecord
                                     )
                                     ->searchable(fn($get) => $get('company_id') ? false : true)
                                     ->required(),
-                                Forms\Components\DatePicker::make('end_at')
+                                DatePicker::make('end_at')
                                     ->label('Fin')
                                     ->default(now()->addMonth())
                                     ->required(),
@@ -138,43 +146,43 @@ class EditQuote extends EditRecord
                             ->slideOver(),
                     ])
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('code')
+                                TextEntry::make('code')
                                     ->label('Code'),
-                                Infolists\Components\TextEntry::make('state')
+                                TextEntry::make('state')
                                     ->label('État'),
-                                Infolists\Components\TextEntry::make('version')
+                                TextEntry::make('version')
                                     ->label('Version'),
                             ]),
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('company.title')
+                                TextEntry::make('company.title')
                                     ->label('Client')
                                     ->url(fn($record): string => route('filament.admin.crm.resources.companies.edit', ['record' => $record->company])),
-                                Infolists\Components\TextEntry::make('contact.full_name')
+                                TextEntry::make('contact.full_name')
                                     ->label('Contact')
                                     ->url(fn($record): string => route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact])),
 
                             ]),
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('total_ht_br')->money('EUR')
+                                TextEntry::make('total_ht_br')->money('EUR')
                                     ->label('Total Av remise'),
-                                Infolists\Components\TextEntry::make('total_avant_options')->money('EUR')
+                                TextEntry::make('total_avant_options')->money('EUR')
                                     ->label('Total hors options'),
-                                Infolists\Components\TextEntry::make('total_options')->money('EUR')
+                                TextEntry::make('total_options')->money('EUR')
                                     ->label('Total options'),
-                                Infolists\Components\TextEntry::make('total_ht')->money('EUR')
+                                TextEntry::make('total_ht')->money('EUR')
                                     ->label('Total HT'),
-                                Infolists\Components\TextEntry::make('total_jours')
+                                TextEntry::make('total_jours')
                                     ->label('Total jours')
                                     ->suffix(' j')
                                     ->numeric(decimalPlaces: 2),
 
                             ]),
-                        Infolists\Components\Actions::make([
-                            Infolists\Components\Actions\Action::make('activate_v')
+                        \Filament\Schemas\Components\Actions::make([
+                            Action::make('activate_v')
                                 ->label('Activer ce devis')
                                 ->hidden(function ($record) {
                                     $validatedExist = $record->hasOneVersionValidated();
@@ -185,7 +193,7 @@ class EditQuote extends EditRecord
                                     $record->swapRetainedQuote();
                                 })
                                 ->color('success'),
-                            Infolists\Components\Actions\Action::make('create_v')
+                            Action::make('create_v')
                                 ->label('Nouvelle version')
                                 ->action(function ($record, $component) {
                                     //\Log::info($this->form->getState());
@@ -193,7 +201,7 @@ class EditQuote extends EditRecord
                                     $newRecord = $record->createNewVersion($data);
                                     return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
                                 }),
-                            Infolists\Components\Actions\Action::make('clean')
+                            Action::make('clean')
                                 ->label('Nettoyer autres V')
                                 ->action(function ($record) {
                                     $record->cleanUnactive();

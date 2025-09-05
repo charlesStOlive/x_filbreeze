@@ -2,6 +2,9 @@
 
 namespace App\Services\Processors;
 
+use InvalidArgumentException;
+use Exception;
+use RuntimeException;
 use Imagick;
 use Smalot\PdfParser\Parser;
 use thiagoalessio\TesseractOCR\TesseractOCR;
@@ -22,7 +25,7 @@ class FileProcessor
     {
         // Vérifier si le fichier existe
         if (!file_exists($filePath)) {
-            throw new \InvalidArgumentException('Le fichier est introuvable : ' . $filePath);
+            throw new InvalidArgumentException('Le fichier est introuvable : ' . $filePath);
         }
 
         // Identifier le type MIME du fichier
@@ -135,8 +138,8 @@ class FileProcessor
                 'type' => 'image_pdf',
                 'content' => $fullText
             ];
-        } catch (\Exception $e) {
-            throw new \RuntimeException('Erreur lors du traitement du PDF en mode image : ' . $e->getMessage());
+        } catch (Exception $e) {
+            throw new RuntimeException('Erreur lors du traitement du PDF en mode image : ' . $e->getMessage());
         } finally {
             $imagick->clear();
             $imagick->destroy();

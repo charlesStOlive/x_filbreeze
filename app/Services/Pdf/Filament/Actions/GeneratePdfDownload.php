@@ -2,6 +2,10 @@
 
 namespace App\Services\Pdf\Filament\Actions;
 
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms;
 use Filament\Actions\Action;
 use App\Services\Pdf\Base\BasePdfTemplate;
@@ -26,11 +30,11 @@ class GeneratePdfDownload extends Action
                     'template_options' => $templateClass::getDefaultOptions(), // ✅ injecte les valeurs par défaut
                 ];
             })
-            ->form(fn($record) => [
-                Forms\Components\Grid::make(4)
+            ->schema(fn($record) => [
+                Grid::make(4)
                     ->schema([
-                        Forms\Components\Group::make([
-                            Forms\Components\Select::make('template')
+                        Group::make([
+                            Select::make('template')
                                 ->label('Modèle de PDF')
                                 ->options(
                                     collect(PdfTemplateRegistry::getTemplatesFor(
@@ -49,7 +53,7 @@ class GeneratePdfDownload extends Action
                                     }
                                 }),
 
-                            Forms\Components\Group::make()
+                            Group::make()
                                 ->schema(function (callable $get) use ($record) {
                                     $key = $get('template');
                                     $options = $get('template_options') ?? [];
@@ -62,8 +66,8 @@ class GeneratePdfDownload extends Action
                                 ->columns(1),
                         ])->columnSpan(1),
 
-                        Forms\Components\Group::make([
-                            Forms\Components\ViewField::make('body')
+                        Group::make([
+                            ViewField::make('body')
                                 ->label('Aperçu HTML')
                                 ->view('components.fields.pdf-preview')
                                 ->viewData(fn($get) => BasePdfTemplate::getPreviewData($get, $this->getRecord()))

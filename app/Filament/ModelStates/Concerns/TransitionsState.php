@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\ModelStates\Concerns;
 
-use Filament\Actions\MountableAction;
-use Filament\Tables\Actions\Action as TableAction;
+use Filament\Actions\Action;
 use App\Filament\ModelStates\Contracts\PendingTransition;
 use App\Filament\ModelStates\Contracts\Transition;
 use App\Filament\ModelStates\GenericPendingTransition;
@@ -27,11 +26,11 @@ trait TransitionsState
         $this->label(fn (): ?string => $this->getTransition()->getLabel());
         $this->successNotificationTitle(static fn (): string => __('model-states-for-filament::labels.transitioned'));
         $this->when(
-            is_a($this, TableAction::class),
-            fn (MountableAction $action): MountableAction => $action->icon(
+            is_a($this, Action::class),
+            fn (Action $action): Action => $action->icon(
                 fn (): string => $this->getTransition()->getIcon() ?? 'heroicon-s-arrow-right-circle',
             ),
-            fn (MountableAction $action): MountableAction => $action->icon(
+            fn (Action $action): Action => $action->icon(
                 fn (): ?string => $this->getTransition()->getIcon(),
             ),
         );
@@ -48,7 +47,7 @@ trait TransitionsState
 
         $this->form(fn (): ?array => $this->evaluate($this->getTransition()->form()));
 
-        $this->action(function (MountableAction $action, array $data): void {
+        $this->action(function (Action $action, array $data): void {
             $this->getStateDriver()
                 ->executePendingTransition($this->getStateConfig(), $this->getPendingTransition($data));
 

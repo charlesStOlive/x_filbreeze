@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Services\MsGraph\MsGraphNotificationService;
@@ -40,7 +41,7 @@ class MsgEmailNotification extends Controller
                 'status' => 'success',
                 'message' => 'Email processed successfully'
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to process incoming email: ' . $e->getMessage());
 
             return response()->json([
@@ -89,7 +90,7 @@ class MsgEmailNotification extends Controller
                 'status' => 'success',
                 'message' => 'Draft processed successfully'
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to process draft: ' . $e->getMessage());
 
             return response()->json([

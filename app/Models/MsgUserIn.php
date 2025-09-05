@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Exception;
+use Log;
+use Arr;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use App\Casts\MsGraph\DynamicEmailServicesCast;
@@ -53,8 +56,8 @@ class MsgUserIn extends Model
 
         try {
             $users = $authService->guzzle('get', 'users');
-        } catch (\Exception $e) {
-            \Log::error('Failed to fetch users from MsGraph: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Failed to fetch users from MsGraph: ' . $e->getMessage());
             return [];
         }
 
@@ -65,7 +68,7 @@ class MsgUserIn extends Model
             return isset($user['mail']) && !in_array($user['mail'], $existingEmails);
         });
 
-        return \Arr::pluck($filteredUsers, 'mail', 'id');
+        return Arr::pluck($filteredUsers, 'mail', 'id');
     }
 
     public static function getLocalUser()
@@ -90,8 +93,8 @@ class MsgUserIn extends Model
             $users = $authService->guzzle('get', 'users');
             $users = collect($users['value'] ?? []);
             return $users->where('id', $id)->first();
-        } catch (\Exception $e) {
-            \Log::error('Failed to fetch user from MsGraph: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Failed to fetch user from MsGraph: ' . $e->getMessage());
             return [];
         }
     }
@@ -114,7 +117,7 @@ class MsgUserIn extends Model
             $this->expire_at = Carbon::parse($response['expirationDateTime']);
             $this->save();
         } else {
-            \Log::error('Failed to subscribe: ', $response);
+            Log::error('Failed to subscribe: ', $response);
         }
     }
 
@@ -139,7 +142,7 @@ class MsgUserIn extends Model
             $this->expire_at = null;
             $this->save();
         } else {
-            \Log::error($response);
+            Log::error($response);
         }
     }
 
@@ -165,7 +168,7 @@ class MsgUserIn extends Model
             $this->expire_at = Carbon::parse($response['expirationDateTime']);
             $this->save();
         } else {
-            \Log::error($response);
+            Log::error($response);
         }
     }
 }

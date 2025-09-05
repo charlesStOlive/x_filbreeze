@@ -2,8 +2,8 @@
 
 namespace App\Components\Tree\Resources\Pages;
 
+use Filament\Schemas\Schema;
 use Filament\Actions\CreateAction;
-use Filament\Forms\Form;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Panel;
 use Filament\Resources\Pages\PageRegistration;
@@ -26,7 +26,7 @@ abstract class TreePage extends BasePage
 
     protected function getFormSchema(): array
     {
-        return static::getResource()::form(Form::make($this))->getComponents();
+        return static::getResource()::form(Schema::make($this))->getComponents();
     }
 
     public static function route(string $path): PageRegistration

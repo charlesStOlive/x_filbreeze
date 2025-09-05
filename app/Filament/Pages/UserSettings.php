@@ -2,9 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Exception;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Hash;
@@ -20,15 +24,15 @@ class UserSettings extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-circle';
 
-    protected static string $view = 'filament.pages.user-settings';
+    protected string $view = 'filament.pages.user-settings';
 
     protected static ?string $navigationLabel = 'Paramètres utilisateur';
 
     protected static ?string $title = 'Paramètres utilisateur';
 
-    protected static ?string $navigationGroup = 'Profil';
+    protected static string | \UnitEnum | null $navigationGroup = 'Profil';
 
     protected static bool $shouldRegisterNavigation = false;
 
@@ -50,18 +54,18 @@ class UserSettings extends Page implements HasForms
         ];
     }
 
-    public function editProfileForm(Form $form): Form
+    public function editProfileForm(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Mon profil')
+        return $schema
+            ->components([
+                Section::make('Mon profil')
                     ->description('Gérez vos informations personnelles et vos paramètres de compte.')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->label('Nom')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('email')
+                        TextInput::make('email')
                             ->label('Email')
                             ->email()
                             ->required()
@@ -69,7 +73,7 @@ class UserSettings extends Page implements HasForms
                             ->maxLength(255),
                     ])
                     ->footerActions([
-                        Forms\Components\Actions\Action::make('saveProfile')
+                        Action::make('saveProfile')
                             ->label('Sauvegarder le profil')
                             ->submit('saveProfile'),
                     ]),
@@ -78,21 +82,21 @@ class UserSettings extends Page implements HasForms
             ->statePath('profileData');
     }
 
-    public function editLocaleForm(Form $form): Form
+    public function editLocaleForm(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Préférences régionales')
+        return $schema
+            ->components([
+                Section::make('Préférences régionales')
                     ->description('Configurez votre fuseau horaire et votre langue préférée.')
                     ->schema([
-                        Forms\Components\Select::make('timezone')
+                        Select::make('timezone')
                             ->label('Fuseau horaire')
                             ->options(LocaleService::getPopularEuropeanTimezones())
                             ->searchable()
                             ->required()
                             ->default('Europe/Paris')
                             ->helperText('Sélectionnez votre fuseau horaire pour un affichage correct des dates et heures.'),
-                        Forms\Components\Select::make('locale')
+                        Select::make('locale')
                             ->label('Langue et région')
                             ->options(LocaleService::getLocales())
                             ->searchable()
@@ -101,7 +105,7 @@ class UserSettings extends Page implements HasForms
                             ->helperText('Choisissez votre langue et région pour localiser l\'interface.'),
                     ])
                     ->footerActions([
-                        Forms\Components\Actions\Action::make('saveLocaleSettings')
+                        Action::make('saveLocaleSettings')
                             ->label('Sauvegarder les préférences')
                             ->submit('saveLocaleSettings'),
                     ]),
@@ -110,19 +114,19 @@ class UserSettings extends Page implements HasForms
             ->statePath('localeData');
     }
 
-    public function editPasswordForm(Form $form): Form
+    public function editPasswordForm(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Modifier le mot de passe')
+        return $schema
+            ->components([
+                Section::make('Modifier le mot de passe')
                     ->description('Assurez-vous que votre compte utilise un mot de passe long et aléatoire pour rester sécurisé.')
                     ->schema([
-                        Forms\Components\TextInput::make('current_password')
+                        TextInput::make('current_password')
                             ->label('Mot de passe actuel')
                             ->password()
                             ->required()
                             ->currentPassword(),
-                        Forms\Components\TextInput::make('password')
+                        TextInput::make('password')
                             ->label('Nouveau mot de passe')
                             ->password()
                             ->required()
@@ -131,14 +135,14 @@ class UserSettings extends Page implements HasForms
                             ->dehydrateStateUsing(fn($state): string => Hash::make($state))
                             ->live(debounce: 500)
                             ->same('password_confirmation'),
-                        Forms\Components\TextInput::make('password_confirmation')
+                        TextInput::make('password_confirmation')
                             ->label('Confirmer le nouveau mot de passe')
                             ->password()
                             ->required()
                             ->dehydrated(false),
                     ])
                     ->footerActions([
-                        Forms\Components\Actions\Action::make('savePassword')
+                        Action::make('savePassword')
                             ->label('Modifier le mot de passe')
                             ->color('warning')
                             ->submit('savePassword'),

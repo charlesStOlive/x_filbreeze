@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\ModelStates;
 
+use Filament\Schemas\Components\Tabs\Tab;
 use Closure;
-use Filament\Resources\Components\Tab;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Contracts\Support\Arrayable;

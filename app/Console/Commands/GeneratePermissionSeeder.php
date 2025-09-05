@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -139,7 +140,7 @@ class GeneratePermissionSeeder extends Command
         // Charger le stub depuis le dossier spécifique à la commande
         $stubPath = app_path('Console/Commands/stubs/Permissions/permission_seeder.stub');
         if (!File::exists($stubPath)) {
-            throw new \Exception("Fichier stub introuvable : {$stubPath}");
+            throw new Exception("Fichier stub introuvable : {$stubPath}");
         }
 
         $stub = File::get($stubPath);

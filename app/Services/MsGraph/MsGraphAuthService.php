@@ -2,6 +2,7 @@
 
 namespace App\Services\MsGraph;
 
+use Log;
 use Exception;
 use GuzzleHttp\Client;
 use App\Models\MsgToken;
@@ -38,7 +39,7 @@ class MsGraphAuthService
 
             return $redirect ? redirect(config('msgraph.msgraphLandingUri')) : $token->access_token;
         } catch (Exception $e) {
-            \Log::error($e->getMessage());
+            Log::error($e->getMessage());
             throw new Exception("Failed to connect: " . $e->getMessage());
         }
     }
@@ -66,11 +67,11 @@ class MsGraphAuthService
                 $message .= ' | Response: ' . $response->getBody()->getContents();
             }
 
-            \Log::error('Guzzle RequestException: ' . $message);
-            throw new \Exception("Failed to execute API request: " . $message);
-        } catch (\Exception $e) {
-            \Log::error('General Exception: ' . $e->getMessage());
-            throw new \Exception("Failed to execute API request: " . $e->getMessage());
+            Log::error('Guzzle RequestException: ' . $message);
+            throw new Exception("Failed to execute API request: " . $message);
+        } catch (Exception $e) {
+            Log::error('General Exception: ' . $e->getMessage());
+            throw new Exception("Failed to execute API request: " . $e->getMessage());
         }
     }
 

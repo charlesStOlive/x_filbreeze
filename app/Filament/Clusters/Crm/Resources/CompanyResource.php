@@ -2,11 +2,30 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Fieldset;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use App\Enums\Country;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages\ListCompanies;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages\CreateCompany;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages\EditCompany;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Sector;
 use App\Models\Company;
-use Filament\Forms\Form;
 use App\Enums\CompanyType;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
@@ -27,7 +46,7 @@ class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static ?string $navigationIcon = 'heroicon-s-building-office';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-building-office';
 
     protected static ?string $cluster = Crm::class;
 
@@ -39,26 +58,26 @@ class CompanyResource extends Resource
     }
 
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Split::make([
-                    Forms\Components\Section::make([
-                        Forms\Components\Fieldset::make('Informations générales')
+        return $schema
+            ->components([
+                Flex::make([
+                    Section::make([
+                        Fieldset::make('Informations générales')
                             ->schema([
-                                Forms\Components\Toggle::make('is_ex')->columnSpanFull(),
-                                Forms\Components\TextInput::make('title')->label('Nom entreprise')
+                                Toggle::make('is_ex')->columnSpanFull(),
+                                TextInput::make('title')->label('Nom entreprise')
                                     ->required()
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(function (callable $set, $state) {
                                         $set('slug', Str::slug($state));
                                     })
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('slug')
+                                TextInput::make('slug')
                                     ->required()
                                     ->maxLength(255),
-                                Forms\Components\Select::make('type')
+                                Select::make('type')
                                     ->label('Type de structure')
                                     ->options(
                                         collect(CompanyType::cases())
@@ -68,52 +87,52 @@ class CompanyResource extends Resource
                                     )
                                     ->searchable()
                                     ->required(),
-                                Forms\Components\Select::make('sector_id')
+                                Select::make('sector_id')
                                     ->relationship(name: 'sector', titleAttribute: 'title')->options(Sector::selectArrayNested()),
-                                Forms\Components\TextInput::make('nb_collab')
+                                TextInput::make('nb_collab')
                                     ->numeric()
                                     ->default(10),
-                                Forms\Components\TextInput::make('site_url')
+                                TextInput::make('site_url')
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('email')
+                                TextInput::make('email')
                                     ->email()
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('siret')
+                                TextInput::make('siret')
                                     ->maxLength(255),
                             ])
                             ->columns([
                                 'sm' => 1, // Mobile: 1 colonne
                                 'md' => 2, // Écran normal: 4 colonnes
                             ]),
-                        Forms\Components\Fieldset::make('Localisation')
+                        Fieldset::make('Localisation')
                             ->schema([
-                                Forms\Components\Textarea::make('address')
+                                Textarea::make('address')
                                     ->columnSpanFull(),
-                                Forms\Components\TextInput::make('city')
+                                TextInput::make('city')
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('tel')
+                                TextInput::make('tel')
                                     ->tel()
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('longitude')
+                                TextInput::make('longitude')
                                     ->numeric(),
-                                Forms\Components\TextInput::make('latitude')
+                                TextInput::make('latitude')
                                     ->numeric(),
-                                Forms\Components\TextInput::make('distance')
+                                TextInput::make('distance')
                                     ->numeric(),
-                                Forms\Components\Select::make('country')
+                                Select::make('country')
                                     ->label('Pays')
-                                    ->options(\App\Enums\Country::options()),
+                                    ->options(Country::options()),
                             ])
                             ->columns([
                                 'sm' => 1,
                                 'md' => 4,
                             ]),
-                        Forms\Components\Fieldset::make('Paramètres et autres')
+                        Fieldset::make('Paramètres et autres')
                             ->schema([
 
                                 // Forms\Components\TextInput::make('others')
                                 //     ->maxLength(255),
-                                Forms\Components\Textarea::make('memo')
+                                Textarea::make('memo')
                                     ->columnSpanFull(),
                             ])
                             ->columns([
@@ -121,7 +140,7 @@ class CompanyResource extends Resource
                                 'md' => 4,
                             ]),
                     ])->compact(),
-                    Forms\Components\Section::make('Style')
+                    Section::make('Style')
                         ->schema([
                             SpatieMediaLibraryFileUpload::make('logo')
                                 ->collection('logo')
@@ -130,10 +149,10 @@ class CompanyResource extends Resource
                                 ->label('Logo Cloudinary')
                                 ->relation('logo_cloudinary')
                                 ->dehydrated(false), // on ne stocke pas dans la colonne du modèle
-                            Forms\Components\ColorPicker::make('primary_color')
+                            ColorPicker::make('primary_color')
                                 ->label('Couleur primaire')
                                 ->suffixAction(ImageUtils::getPalettesFromImage('logo', 'primary_color')),
-                            Forms\Components\ColorPicker::make('secondary_color')
+                            ColorPicker::make('secondary_color')
                                 ->label('Couleur secondaire')
                                 ->suffixAction(ImageUtils::getPalettesFromImage('logo', 'secondary_color')),
                         ])
@@ -148,26 +167,26 @@ class CompanyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->searchable()
                     ->description(fn($record): string => \Str::limit($record->slug, 35))
                     ->searchable(['slug', 'title']),
-                Tables\Columns\TextColumn::make('sector.title')
+                TextColumn::make('sector.title')
                     ->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('contacts_count')
+                TextColumn::make('contacts_count')
                     ->label('NB contacts')
                     ->counts('contacts')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('is_ex')
+                IconColumn::make('is_ex')
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('distance')
+                TextColumn::make('distance')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('others')
+                TextColumn::make('others')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 DateColumn::make('deleted_at')
@@ -179,17 +198,17 @@ class CompanyResource extends Resource
             ])
             ->defaultSort('title', 'asc')
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_ex')->label('Exemple')->default(false),
-                Tables\Filters\SelectFilter::make('sector')
+                TernaryFilter::make('is_ex')->label('Exemple')->default(false),
+                SelectFilter::make('sector')
                     ->label('Secteur')
                     ->relationship('sector', 'title'), // Assuming 'company' is a valid relationship
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -205,9 +224,9 @@ class CompanyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCompanies::route('/'),
-            'create' => Pages\CreateCompany::route('/create'),
-            'edit' => Pages\EditCompany::route('/{record}/edit'),
+            'index' => ListCompanies::route('/'),
+            'create' => CreateCompany::route('/create'),
+            'edit' => EditCompany::route('/{record}/edit'),
         ];
     }
 }

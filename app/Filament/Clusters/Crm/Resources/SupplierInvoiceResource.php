@@ -2,10 +2,24 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\ListSupplierInvoices;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreateSupplierInvoice;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\EditSupplierInvoice;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreatSupplieFromFile;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Supplier;
-use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
 use Illuminate\Support\Carbon;
@@ -13,7 +27,6 @@ use App\Models\SupplierInvoice;
 use Filament\Resources\Resource;
 use Illuminate\Support\Facades\DB;
 use Filament\Tables\Grouping\Group;
-use Filament\Tables\Actions\BulkAction;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\Summarizers\Sum;
@@ -30,32 +43,32 @@ class SupplierInvoiceResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
-    protected static ?string $navigationIcon = 'fas-receipt';
+    protected static string | \BackedEnum | null $navigationIcon = 'fas-receipt';
 
     public static function getLabel(): string
     {
         return 'Factures fournisseurs';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // Les autres composants du formulaire restent inchangés
-                Forms\Components\Select::make('supplier_id')
+                Select::make('supplier_id')
                     ->relationship('supplier', 'name')
                     ->label('Supplier')
                     ->required(),
 
-                Forms\Components\TextInput::make('invoice_number')
+                TextInput::make('invoice_number')
                     ->label('Invoice Number'),
 
-                Forms\Components\DatePicker::make('invoice_at')
+                DatePicker::make('invoice_at')
                     ->label('Invoice Date')
                     ->required()
                     ->default(today()),
 
-                Forms\Components\Select::make('status')
+                Select::make('status')
                     ->options([
                         'pending' => 'Pending',
                         'validated' => 'Validated',
@@ -65,16 +78,16 @@ class SupplierInvoiceResource extends Resource
                     ->required()
                     ->columnSpan('full'),
 
-                Forms\Components\Section::make('Détails TVA')
+                Section::make('Détails TVA')
                     ->schema([
-                        Forms\Components\Toggle::make('has_tva')
+                        Toggle::make('has_tva')
                             ->label('Has TVA')
                             ->default(true)
                             ->columnSpan('full')
                             ->live(debounce: 1000)
                             ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'has_tva')),
 
-                        Forms\Components\TextInput::make('total_ht')
+                        TextInput::make('total_ht')
                             ->numeric()
                             ->label('Total HT')
                             ->suffix('€ HT')
@@ -82,7 +95,7 @@ class SupplierInvoiceResource extends Resource
                             ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'total_ht'))
                             ->requiredIf('status', 'validated'),
 
-                        Forms\Components\TextInput::make('tx_tva')
+                        TextInput::make('tx_tva')
                             ->numeric()
                             ->nullable()
                             ->default('20')
@@ -93,7 +106,7 @@ class SupplierInvoiceResource extends Resource
                             ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'tx_tva'))
                             ->requiredIf('has_tva', true),
 
-                        Forms\Components\TextInput::make('tva')
+                        TextInput::make('tva')
                             ->numeric()
                             ->label('Total TVA')
                             ->suffix('€')
@@ -102,7 +115,7 @@ class SupplierInvoiceResource extends Resource
                             ->visible(fn(callable $get) => $get('has_tva'))
                             ->requiredIf('has_tva', true),
 
-                        Forms\Components\TextInput::make('total_ttc')
+                        TextInput::make('total_ttc')
                             ->numeric()
                             ->label('Total TTC')
                             ->suffix('€ TTC')
@@ -123,7 +136,7 @@ class SupplierInvoiceResource extends Resource
                     ->downloadable()
                     ->required(fn(callable $get) => $get('status') === 'validated'),
 
-                Forms\Components\Textarea::make('notes')
+                Textarea::make('notes')
                     ->nullable()
                     ->label('Notes')
                     ->rows(4)
@@ -199,34 +212,34 @@ class SupplierInvoiceResource extends Resource
 
             ])
             ->columns([
-                Tables\Columns\TextColumn::make('supplier.name')
+                TextColumn::make('supplier.name')
                     ->label('Supplier')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->colors([
                         'pending' => 'secondary',
                         'validated' => 'success',
                     ]),
-                Tables\Columns\TextColumn::make('invoice_number')
+                TextColumn::make('invoice_number')
                     ->label('Numéro')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('total_ttc')
+                TextColumn::make('total_ttc')
                     ->summarize(Sum::make())
                     ->label('Total TTC')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('tva')
+                TextColumn::make('tva')
                     ->summarize(Sum::make())
                     ->label('Total TVA')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('total_ht')
+                TextColumn::make('total_ht')
                     ->label('Total HT')
                     ->sortable()
                     ->searchable()
@@ -240,10 +253,10 @@ class SupplierInvoiceResource extends Resource
             ->filters([
                 // Add any filters if necessary
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])->bulkActions([
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
+            ])->toolbarActions([
                 BulkAction::make('delete')
                     ->requiresConfirmation()
                     ->action(fn(Collection $records) => $records->each->delete())
@@ -253,10 +266,10 @@ class SupplierInvoiceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSupplierInvoices::route('/'),
-            'create' => Pages\CreateSupplierInvoice::route('/create'),
-            'edit' => Pages\EditSupplierInvoice::route('/{record}/edit'),
-            'createfromfile' => Pages\CreatSupplieFromFile::route('/createfromfile'),
+            'index' => ListSupplierInvoices::route('/'),
+            'create' => CreateSupplierInvoice::route('/create'),
+            'edit' => EditSupplierInvoice::route('/{record}/edit'),
+            'createfromfile' => CreatSupplieFromFile::route('/createfromfile'),
         ];
     }
 }

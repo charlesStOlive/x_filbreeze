@@ -2,8 +2,14 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use App\Filament\Clusters\Crm\Resources\SupplierResource\Pages\ListSuppliers;
+use App\Filament\Clusters\Crm\Resources\SupplierResource\Pages\CreateSupplier;
+use App\Filament\Clusters\Crm\Resources\SupplierResource\Pages\EditSupplier;
 use App\Models\Supplier;
-use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Forms;
 use Filament\Tables;
@@ -22,18 +28,18 @@ class SupplierResource extends Resource
 
     protected static ?string $cluster = Crm::class;
 
-    protected static ?string $navigationIcon = 'heroicon-s-building-storefront';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-building-storefront';
 
     public static function getLabel(): string
     {
         return 'Fournisseurs';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Fournisseur')
+        return $schema
+            ->components([
+                Section::make('Fournisseur')
                     ->schema([
                         TextInput::make('name')
                             ->required()
@@ -71,7 +77,7 @@ class SupplierResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Adresse')
+                Section::make('Adresse')
                     ->schema([
                         TextInput::make('phone')
                             ->tel()
@@ -88,7 +94,7 @@ class SupplierResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Memo')
+                Section::make('Memo')
                     ->schema([
                         Textarea::make('memo')
                             ->nullable()
@@ -113,18 +119,18 @@ class SupplierResource extends Resource
             ->filters([
                 // Add any filters if necessary
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSuppliers::route('/'),
-            'create' => Pages\CreateSupplier::route('/create'),
-            'edit' => Pages\EditSupplier::route('/{record}/edit'),
+            'index' => ListSuppliers::route('/'),
+            'create' => CreateSupplier::route('/create'),
+            'edit' => EditSupplier::route('/{record}/edit'),
         ];
     }
 }

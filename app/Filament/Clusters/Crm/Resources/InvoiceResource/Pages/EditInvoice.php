@@ -2,14 +2,21 @@
 
 namespace App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Hidden;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Forms;
 use Filament\Actions;
 use Filament\Infolists;
-use Filament\Forms\Form;
 use Filament\Actions\Action;
 
 use App\Filament\Utils\IaUtils;
-use Filament\Infolists\Infolist;
 use Filament\Actions\ActionGroup;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Invoice\Payed;
@@ -31,7 +38,7 @@ class EditInvoice extends EditRecord
 
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
-    protected static string $view = 'filament.templates.form-info-list';
+    protected string $view = 'filament.templates.form-info-list';
 
     protected function getHeaderActions(): array
     {
@@ -104,16 +111,16 @@ class EditInvoice extends EditRecord
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 ...InvoiceResource::getItemsBuilderComponent(),
-                Forms\Components\Hidden::make('total_ht_br'),
-                Forms\Components\Hidden::make('total_ht'),
-                Forms\Components\Hidden::make('tx_tva'),
-                Forms\Components\Hidden::make('tva'),
-                Forms\Components\Hidden::make('total_ttc'),
+                Hidden::make('total_ht_br'),
+                Hidden::make('total_ht'),
+                Hidden::make('tx_tva'),
+                Hidden::make('tva'),
+                Hidden::make('total_ttc'),
 
 
             ]);
@@ -125,14 +132,14 @@ class EditInvoice extends EditRecord
         $this->infolist->record($data)->render();
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
-        return $infolist
+        return $schema
             ->record($this->getRecord())
-            ->schema([
-                Infolists\Components\Section::make('info')
+            ->components([
+                Section::make('info')
                     ->headerActions([
-                        Infolists\Components\Actions\Action::make('edit')
+                        Action::make('edit')
                             ->fillForm(fn($record): array => [
                                 'company_id' => $record->company_id,
                                 'description' => $record->description,
@@ -142,27 +149,27 @@ class EditInvoice extends EditRecord
                                 'tx_tva' => $record->tx_tva,
                                 'submited_at' => $record->submited_at,
                             ])
-                            ->form([
-                                Forms\Components\Grid::make(2)
+                            ->schema([
+                                Grid::make(2)
                                     ->schema([
                                         ...InvoiceResource::getContactAndCompanyFields(false),
-                                        Forms\Components\TextInput::make('title')
+                                        TextInput::make('title')
                                             ->label('Titre')
                                             ->required()
                                             ->columnSpan(fn($record) => $record->state == 'draft' ? 1 : 2),
-                                        Forms\Components\MarkdownEditor::make('description')
+                                        MarkdownEditor::make('description')
                                             ->label('Description de la facture')
                                             ->columnSpanFull(),
-                                        Forms\Components\DatePicker::make('submited_at')
+                                        DatePicker::make('submited_at')
                                             ->label('Date de soumission')
                                             ->required()
                                             ->visible(fn($record) => $record->state == 'draft' ? false : true)
                                             ->dehydrated(fn($state) => filled($state)),
-                                        Forms\Components\TextInput::make('modalite')
+                                        TextInput::make('modalite')
                                             ->label('Modalité')
                                             ->default('fin de mois')
                                             ->required(),
-                                        Forms\Components\Select::make('tx_tva')
+                                        Select::make('tx_tva')
                                             ->label('TVA')
                                             ->options([
                                                 0 => '0%',
@@ -179,31 +186,31 @@ class EditInvoice extends EditRecord
                             ->slideOver(),
                     ])
                     ->schema([
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('code')
+                                TextEntry::make('code')
                                     ->label('Code'),
-                                Infolists\Components\TextEntry::make('state')
+                                TextEntry::make('state')
                                     ->label('État')
                                     ->badge(),
                             ]),
-                        Infolists\Components\TextEntry::make('modalite')
+                        TextEntry::make('modalite')
                             ->label('modalite'),
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('total_ht_br')
+                                TextEntry::make('total_ht_br')
                                     ->label('Total avant remise HT')->money('EUR'),
-                                Infolists\Components\TextEntry::make('total_ht')
+                                TextEntry::make('total_ht')
                                     ->label('Total HT')->money('EUR'),
                             ]),
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('tx_tva')
+                                TextEntry::make('tx_tva')
                                     ->label('Taux TVA'),
-                                Infolists\Components\TextEntry::make('tva')
+                                TextEntry::make('tva')
                                     ->label('Montant TVA')->money('EUR'),
                             ]),
-                        Infolists\Components\TextEntry::make('total_ttc')->money('EUR')
+                        TextEntry::make('total_ttc')->money('EUR')
                             ->label('Total TTC'),
                     ])
             ])->columns(3);

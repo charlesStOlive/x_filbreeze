@@ -2,9 +2,9 @@
 
 namespace App\Components\Tree\Widgets;
 
+use Filament\Schemas\Components\Component;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Infolists\Components\Component as InfolistsComponent;
 use Filament\Support\Contracts\TranslatableContentDriver;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +21,7 @@ class Tree extends Widget implements HasForms, HasTree
     use InteractsWithForms;
     use InteractWithTree;
 
-    protected static string $view = 'components.tree.widgets.tree';
+    protected string $view = 'components.tree.widgets.tree';
 
     protected int|string|array $columnSpan = 'full';
 
@@ -136,7 +136,7 @@ class Tree extends Widget implements HasForms, HasTree
             $schema = $this->getFormSchema();
         }
 
-        $action->form($schema);
+        $action->schema($schema);
 
         $action->model($this->getModel());
 
@@ -157,12 +157,12 @@ class Tree extends Widget implements HasForms, HasTree
             $schema = $this->getFormSchema();
         }
 
-        $action->form($this->getFormSchema());
+        $action->schema($this->getFormSchema());
 
-        $isInfoList = count(array_filter($schema, fn($component) => $component instanceof InfolistsComponent)) > 0;
+        $isInfoList = count(array_filter($schema, fn($component) => $component instanceof Component)) > 0;
 
         if ($isInfoList) {
-            $action->infolist($schema);
+            $action->schema($schema);
         }
 
         $action->model($this->getModel());

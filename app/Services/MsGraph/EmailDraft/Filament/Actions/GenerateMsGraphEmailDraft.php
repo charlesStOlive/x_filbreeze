@@ -2,6 +2,12 @@
 
 namespace App\Services\MsGraph\EmailDraft\Filament\Actions;
 
+use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Group;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
+use Exception;
 use Filament\Forms;
 use Filament\Actions\Action;
 use App\Dto\MsGraph\EmailMessageDTO;
@@ -36,10 +42,10 @@ class GenerateMsGraphEmailDraft extends Action
                     'attachments' => $templateClass::getDefaultAttachments(),
                 ];
             })
-            ->form(fn ($record) => [
-                Forms\Components\Split::make([
-                    Forms\Components\Group::make([
-                        Forms\Components\Select::make('template')
+            ->schema(fn ($record) => [
+                Flex::make([
+                    Group::make([
+                        Select::make('template')
                             ->label('Modèle d’email')
                             ->options(
                                 collect(EmailDraftTemplateRegistry::getTemplatesFor(
@@ -63,7 +69,7 @@ class GenerateMsGraphEmailDraft extends Action
                                 $set('to', $template->getDefaultTo());
                             }),
 
-                        Forms\Components\Select::make('to')
+                        Select::make('to')
                             ->label('Destinataires')
                             ->multiple()
                             ->options(function ($get, $record) {
@@ -75,7 +81,7 @@ class GenerateMsGraphEmailDraft extends Action
                                 return $template?->getToOptions() ?? [];
                             }),
 
-                        Forms\Components\Group::make()
+                        Group::make()
                             ->schema(function (callable $get, $record) {
                                 $key = $get('template');
                                 $options = $get('template_options') ?? [];
@@ -85,11 +91,11 @@ class GenerateMsGraphEmailDraft extends Action
                             ->statePath('template_options')
                             ->columns(1),
 
-                        Forms\Components\TextInput::make('subject')
+                        TextInput::make('subject')
                             ->label('Sujet')
                             ->required(),
 
-                        Forms\Components\Group::make()
+                        Group::make()
                             ->schema(function (callable $get, $record) {
                                 $key = $get('template');
                                 $options = $get('template_options') ?? [];
@@ -100,7 +106,7 @@ class GenerateMsGraphEmailDraft extends Action
                             }),
                     ]),
 
-                    Forms\Components\ViewField::make('body')
+                    ViewField::make('body')
                         ->label('Aperçu HTML')
                         ->view('components.fields.email-preview')
                         ->viewData(function (callable $get, $record) {
@@ -120,7 +126,7 @@ class GenerateMsGraphEmailDraft extends Action
                 $msUser = Auth::user()?->msgUserDraft;
 
                 if (! $msUser) {
-                    throw new \Exception('Aucun utilisateur Microsoft Graph lié.');
+                    throw new Exception('Aucun utilisateur Microsoft Graph lié.');
                 }
 
                 $template = EmailDraftTemplateRegistry::getTemplateInstance(

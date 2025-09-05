@@ -7,7 +7,7 @@ use App\Services\PermissionService;
 
 class Crm extends Cluster
 {
-    protected static ?string $navigationIcon = 'fas-bullseye';
+    protected static string | \BackedEnum | null $navigationIcon = 'fas-bullseye';
 
     public static function canAccess(): bool
     {

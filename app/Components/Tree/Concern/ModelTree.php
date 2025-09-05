@@ -2,6 +2,8 @@
 
 namespace App\Components\Tree\Concern;
 
+use InvalidArgumentException;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -112,7 +114,7 @@ trait ModelTree
     /**
      * Format all nodes as tree.
      *
-     * @param  array|\Illuminate\Support\Collection|null  $nodes
+     * @param array|Collection|null $nodes
      */
     public function toTree($nodes = null): array
     {
@@ -193,7 +195,7 @@ trait ModelTree
     }
 
     /**
-     * @return static[]|\Illuminate\Support\Collection
+     * @return static[]|Collection
      */
     public static function allNodes()
     {
@@ -213,7 +215,7 @@ trait ModelTree
     private static function buildSelectArrayItem(array &$final, array $item, string $primaryKeyName, string $titleKeyName, string $childrenKeyName, int $depth, ?int $maxDepth = null): void
     {
         if (!isset($item[$primaryKeyName])) {
-            throw new \InvalidArgumentException("Unset '{$primaryKeyName}' primary key.");
+            throw new InvalidArgumentException("Unset '{$primaryKeyName}' primary key.");
         }
 
         if ($maxDepth && $depth > $maxDepth) {

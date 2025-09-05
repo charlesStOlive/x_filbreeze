@@ -2,10 +2,15 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use App\Filament\Clusters\Crm\Resources\SectorResource\Pages\ListSectors;
+use App\Filament\Clusters\Crm\Resources\SectorResource\Pages\CreateSector;
+use App\Filament\Clusters\Crm\Resources\SectorResource\Pages\EditSector;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Sector;
-use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
@@ -19,7 +24,7 @@ class SectorResource extends Resource
 {
     protected static ?string $model = Sector::class;
 
-    protected static ?string $navigationIcon = 'heroicon-s-building-library';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-building-library';
 
     protected static ?string $cluster = Crm::class;
 
@@ -35,27 +40,27 @@ class SectorResource extends Resource
         ];
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('title')
+        return $schema
+            ->components([
+                TextInput::make('title')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('slug')
+                TextInput::make('slug')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('contenu')
+                Textarea::make('contenu')
                     ->columnSpanFull(),
-                Forms\Components\Textarea::make('txt_intro')
+                Textarea::make('txt_intro')
                     ->columnSpanFull(),
-                Forms\Components\Textarea::make('txt_kpi')
+                Textarea::make('txt_kpi')
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('parent_id')
+                TextInput::make('parent_id')
                     ->required()
                     ->numeric()
                     ->default(-1),
-                Forms\Components\TextInput::make('order')
+                TextInput::make('order')
                     ->required()
                     ->numeric()
                     ->default(0),
@@ -74,9 +79,9 @@ class SectorResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSectors::route('/'),
-            'create' => Pages\CreateSector::route('/create'),
-            'edit' => Pages\EditSector::route('/{record}/edit'),
+            'index' => ListSectors::route('/'),
+            'create' => CreateSector::route('/create'),
+            'edit' => EditSector::route('/{record}/edit'),
         ];
     }
 }

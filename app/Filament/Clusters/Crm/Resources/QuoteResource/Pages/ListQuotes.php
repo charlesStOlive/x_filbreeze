@@ -2,8 +2,12 @@
 
 namespace App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 
+use Filament\Actions\CreateAction;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Actions;
-use Filament\Forms\Form;
 use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
@@ -17,7 +21,7 @@ class ListQuotes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->modalHeading('Creer un nouveau devis')
                 ->label('Nouveau devis')
                 ->createAnother(false)
@@ -25,20 +29,20 @@ class ListQuotes extends ListRecords
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 ...QuoteResource::getContactAndCompanyFields(),
-                Forms\Components\DatePicker::make('end_at')
+                DatePicker::make('end_at')
                     ->label('Fin')
                     ->default(now()->addMonth())
                     ->required(),
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Titre')
                     ->required()
                     ->columnSpanFull(),
-                Forms\Components\MarkdownEditor::make('description')
+                MarkdownEditor::make('description')
                     ->label('Description du devis')
                     ->columnSpanFull(),
             ])->columns(3);

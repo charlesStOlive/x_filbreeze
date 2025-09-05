@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf\Templates\Company;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms;
 use App\Models\Company;
 use App\Models\Contact;
@@ -58,7 +59,7 @@ class CompanyNdaPdfTemplate extends BasePdfTemplate
     public function getForm(): array
     {
         return [
-            Forms\Components\Select::make('contact_id')
+            Select::make('contact_id')
                 ->label('Contact de référence')
                 ->options(
                     $this->getRecord()->contacts()?->pluck('full_name', 'id')->toArray() ?? []

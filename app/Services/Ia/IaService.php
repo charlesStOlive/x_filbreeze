@@ -2,6 +2,7 @@
 
 namespace App\Services\Ia;
 
+use Throwable;
 use App\Exceptions\MistralException;
 use Illuminate\Support\Facades\Log;
 
@@ -47,7 +48,7 @@ class IaService
                 'error' => $e->getMessage(),
             ]);
             throw $e;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Erreur inattendue lors de l\'appel agent', [
                 'agent_id' => $agentId,
                 'error' => $e->getMessage(),

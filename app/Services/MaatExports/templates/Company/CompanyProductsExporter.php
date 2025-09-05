@@ -2,9 +2,10 @@
 
 namespace App\Services\MaatExports\Templates\Company;
 
+use Filament\Schemas\Components\Group;
+use App\Models\Product;
 use App\Models\Company;
 use Illuminate\Support\Collection;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Toggle;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use App\Services\MaatExports\Base\BaseExcelTemplate;
@@ -91,7 +92,7 @@ class CompanyProductsExporter extends BaseExcelTemplate
         }
 
         // ✅ Tous les produits, en remplaçant le prix si un pivot existe
-        $products = \App\Models\Product::all()->keyBy('id');
+        $products = Product::all()->keyBy('id');
 
         return $products->map(function ($product) use ($companyProducts) {
             $pivotProduct = $companyProducts->get($product->id);

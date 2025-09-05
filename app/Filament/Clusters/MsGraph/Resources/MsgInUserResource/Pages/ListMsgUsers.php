@@ -18,7 +18,7 @@ class ListMsgUsers extends ListRecords
     {
         return [
             Action::make('createUser')->label('Ajouter utilisateur')
-                ->form([
+                ->schema([
                     Select::make('msg_id')
                         ->label('Choisissez un Email')
                         ->options(function () {

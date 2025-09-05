@@ -2,6 +2,7 @@
 
 namespace App\Services\MaatImports\Filament\Traits;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -17,7 +18,7 @@ trait CanImportMaatExcel
         $this->form(function (): array {
             $importer = new $this->maatImporterClass(); // instance SANS options pour afficher getForm()
             return array_merge([
-                Forms\Components\FileUpload::make('file')
+                FileUpload::make('file')
                     ->label('Fichier Excel')
                     ->acceptedFileTypes([
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

@@ -2,9 +2,9 @@
 
 namespace App\Filament\Utils;
 
+use Filament\Actions\Action;
 use ColorThief\ColorThief;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Actions\Action;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Services\Helpers\ViteHelper;
 
@@ -37,7 +37,7 @@ class ImageUtils
                 // Mettre à jour les options dynamiquement dans Livewire
                 $livewire->colorPalettes = $colorPalettes;
             })
-            ->form([
+            ->schema([
                 Select::make('select-color')
                     ->label('Palette de couleurs')
                     ->view('filament.forms.components.color-palette')

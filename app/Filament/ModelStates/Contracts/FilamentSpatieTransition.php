@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Filament\ModelStates\Contracts;
 
 use Closure;
-use Filament\Forms\Components\Component;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\ModelStates\Transition as SpatieTransition;
 
@@ -21,7 +20,7 @@ interface FilamentSpatieTransition
     public static function fill(Model $model, array $formData): SpatieTransition;
 
     /**
-     * @return null|array<Component>|Closure
+     * @return null|array<\Filament\Schemas\Components\Component>|Closure
      */
     public function form(): array | Closure | null;
 }

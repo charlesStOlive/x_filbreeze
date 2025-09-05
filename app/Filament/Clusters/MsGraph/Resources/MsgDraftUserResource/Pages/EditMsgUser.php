@@ -35,7 +35,7 @@ class EditMsgUser extends EditRecord
                 ->label('Simuler un email')
                 ->icon('heroicon-s-play')
                 ->color('primary')
-                ->form([
+                ->schema([
                     TextInput::make('test_from')->label('From')->default('alexis.clement@suscillon.com'),
                     TextInput::make('test_tos')->label('To')->helperText('Séparer les valeurs par une ",", la première valeur sera la cible MsgraphUser, elle doit exister !')->default(fn () => $this->record->email),
                     TextInput::make('test_bccs')->label('Cc')->helperText('Séparer les valeurs par une ",",'),

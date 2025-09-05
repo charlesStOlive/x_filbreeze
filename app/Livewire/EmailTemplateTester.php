@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Illuminate\Database\Eloquent\Model;
 use Livewire\Component;
 use App\Models\Invoice;
 use App\Models\Company;
@@ -30,7 +31,7 @@ class EmailTemplateTester extends Component
         return view('livewire.email-template-tester');
     }
 
-    protected function resolveModelInstance(string $key, string $modelId): \Illuminate\Database\Eloquent\Model
+    protected function resolveModelInstance(string $key, string $modelId): Model
     {
         return str_contains($key, 'invoice')
             ? Invoice::findOrFail($modelId)

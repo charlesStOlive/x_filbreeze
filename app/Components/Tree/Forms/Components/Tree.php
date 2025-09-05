@@ -2,9 +2,10 @@
 
 namespace App\Components\Tree\Forms\Components;
 
+use Filament\Schemas\Components\Concerns\BelongsToModel;
+use Filament\Schemas\Components\Concerns\HasState;
+use Throwable;
 use Closure;
-use Filament\Forms\Components\Concerns\BelongsToModel;
-use Filament\Forms\Components\Concerns\HasState;
 use Filament\Forms\Components\Field;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Collection;
@@ -61,7 +62,7 @@ class Tree extends Field
                 if (in_array(ModelTree::class, class_uses($relatedModel))) {
                     $result = $relatedModel::treeNodes();
                 }
-            } catch (\Throwable $th) {
+            } catch (Throwable $th) {
                 //
             }
         }
