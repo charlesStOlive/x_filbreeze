@@ -29,6 +29,9 @@ use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
+use App\Services\Pdf\Templates\Invoice\InvoiceSummaryPdfTemplate;
+use App\Services\Pdf\Templates\Invoice\InvoiceBasePdfTemplate;
+use App\Services\Pdf\Templates\Invoice\InvoiceComplete;
 use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 
 class EditInvoice extends EditRecord
@@ -67,6 +70,11 @@ class EditInvoice extends EditRecord
             ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft'),
                 GeneratePdfDownload::make('downloadPdf')
+                    ->templates([
+                        InvoiceSummaryPdfTemplate::class,
+                        InvoiceBasePdfTemplate::class,
+                        InvoiceComplete::class,
+                    ])
             ])->label('Produire')
                 ->icon('fas-file-export')
                 ->button()
@@ -102,6 +110,11 @@ class EditInvoice extends EditRecord
             ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft'),
                 GeneratePdfDownload::make('downloadPdf')
+                    ->templates([
+                        InvoiceSummaryPdfTemplate::class,
+                        InvoiceBasePdfTemplate::class,
+                        InvoiceComplete::class,
+                    ])
             ])->label('Produire')
                 ->icon('fas-file-export')
                 ->button()

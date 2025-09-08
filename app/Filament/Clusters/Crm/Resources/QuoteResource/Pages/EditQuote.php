@@ -28,6 +28,8 @@ use App\Filament\ModelStates\StateAction;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
+use App\Services\Pdf\Templates\Quote\QuoteBasePdfTemplate;
+use App\Services\Pdf\Templates\Quote\QuoteDetailedPdfTemplate;
 use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 
 class EditQuote extends EditRecord
@@ -63,6 +65,10 @@ class EditQuote extends EditRecord
             ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft'),
                 GeneratePdfDownload::make('downloadPdf')
+                    ->templates([
+                        QuoteBasePdfTemplate::class,
+                        QuoteDetailedPdfTemplate::class,
+                    ])
             ])->label('Produire')
                 ->icon('fas-file-export')
                 ->button()

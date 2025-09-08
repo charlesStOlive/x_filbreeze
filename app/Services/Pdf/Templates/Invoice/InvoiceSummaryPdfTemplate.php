@@ -21,7 +21,7 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
         return 'Facture PDF (simple)';
     }
 
-    
+
     public function getView(): string
     {
         return 'pdf.invoice.summary';
@@ -30,7 +30,7 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
     public function getFileName(array $options = []): string
     {
         $code = $this->getRecord()->code ?? 'facture';
-        return $code.'_s';
+        return $code . '_s';
     }
 
     public function getData(array $options = []): array
@@ -57,15 +57,15 @@ class InvoiceSummaryPdfTemplate extends BasePdfTemplate
     {
         return [
             Checkbox::make('avoid_full_break')
-                ->label('Empêcher les sauts de page dans le tableai (si intro longue et petit tableau)')
+                ->label('Eviter sauts de page dans tableau')
                 ->default($defaults['avoid_inside_break'] ?? false)
                 ->live(),
             Checkbox::make('avoid_inside_break')
-                ->label('Empêcher les sauts de page au milieu d une ligne du tableau principal')
+                ->label('Eviter sauts de page dans ligne de tableau')
                 ->default($defaults['avoid_inside_break'] ?? false)
                 ->live(),
             Checkbox::make('avoid_amount_break')
-                ->label('Empêcher les sauts de page au milieu des montants')
+                ->label('Empêcher sauts de page dans montants')
                 ->default($defaults['avoid_amount_break'] ?? true)
                 ->live(),
         ];
