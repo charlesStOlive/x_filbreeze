@@ -8,7 +8,7 @@ use Filament\Widgets;
 use Filament\PanelProvider;
 use Filament\Actions\Action;
 
-use Filament\Support\Enums\Width;
+
 use Filament\Support\Colors\Color;
 use App\Filament\Pages\UserSettings;
 use Filament\Http\Middleware\Authenticate;
@@ -22,6 +22,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Filament\Support\Enums\Width;
 
 class AdminPanelProvider extends PanelProvider
 {

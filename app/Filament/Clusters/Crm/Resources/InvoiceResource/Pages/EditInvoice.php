@@ -38,7 +38,6 @@ class EditInvoice extends EditRecord
 
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
-    protected string $view = 'filament.templates.form-info-list';
 
     protected function getHeaderActions(): array
     {
@@ -129,7 +128,7 @@ class EditInvoice extends EditRecord
     public function refreshInfolist()
     {
         $data = $this->getRecord()->fill($this->form->getState());
-        $this->infolist->record($data)->render();
+        $this->infolist->record($data);
     }
 
     public function infolist(Schema $schema): Schema

@@ -18,15 +18,8 @@ class StateUtils
     public static function getStateSaveButton(): Action
     {
         return Action::make('save')
-            ->label(__('filament-panels::pages/tenancy/edit-tenant-profile.form.actions.save.label'))
+            ->label(__('Sauver'))
             ->submit('save')
-            ->keyBindings(['mod+s'])->icon('far-floppy-disk')->hidden(fn($record) => $record->state->isSaveHidden);
+            ->keyBindings(['mod+s'])->icon('far-floppy-disk')->hidden(fn($record) => $record?->state?->isSaveHidden);
     }
-    
-
-    
-
-    
-
-    
 }

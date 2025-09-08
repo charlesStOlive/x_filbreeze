@@ -38,6 +38,7 @@ use Filament\Tables\Actions\CreateAction;
 use App\Services\Helpers\ProductFormHelper;
 use App\Filament\Components\Tables\DateColumn;
 use App\Filament\ModelStates\StateSelectFilter;
+use BackedEnum;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -47,7 +48,7 @@ class QuoteResource extends Resource
 {
     protected static ?string $model = Quote::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'fas-file-invoice';
+    protected static string | BackedEnum | null $navigationIcon = 'fas-file-invoice';
 
     protected static ?string $cluster = Crm::class;
 

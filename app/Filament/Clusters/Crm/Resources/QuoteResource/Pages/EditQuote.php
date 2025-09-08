@@ -36,11 +36,12 @@ class EditQuote extends EditRecord
     use HasPreviewModal;
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
-    protected string $view = 'filament.templates.form-info-list';
 
     protected function getHeaderActions(): array
     {
         return [
+            // Bouton Save en premier
+            StateUtils::getStateSaveButton(),
             QuoteResource::getDuplicateAction(),
             ActionGroup::make([
                 StateAction::make('a_valide')
@@ -92,6 +93,7 @@ class EditQuote extends EditRecord
     protected function getFormActions(): array
     {
         return [
+            // Le bouton Save est maintenant dans le header
             StateUtils::getStateSaveButton(),
             IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
             $this->getCancelFormAction()
