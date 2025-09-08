@@ -17,6 +17,9 @@ use App\Services\MsGraph\MsGraphSubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\SendsNotifications;
 
+/**
+ * @mixin IdeHelperMsgUserDraft
+ */
 class MsgUserDraft extends Model
 {
     use HasFactory, SendsNotifications;

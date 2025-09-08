@@ -6,6 +6,7 @@ use RuntimeException;
 use InvalidArgumentException;
 use Illuminate\Support\Arr;
 use App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate;
+use function config;
 
 
 
@@ -47,9 +48,10 @@ class EmailDraftTemplateRegistry
     {
         $types = config('templates-email-draft.types', []);
         $class = get_class($record);
+        \Log::info($types);
+
 
         return $types[$class]
             ?? throw new InvalidArgumentException("Aucun type configuré pour le modèle [{$class}].");
     }
 }
-

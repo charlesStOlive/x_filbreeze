@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Components\Tree\Concern\ModelTree;
+use App\Traits\VendorOverrides\ModelTree;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @mixin IdeHelperSector
+ */
 class Sector extends Model
 {
     use HasFactory, ModelTree;

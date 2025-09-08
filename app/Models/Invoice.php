@@ -12,6 +12,9 @@ use App\Models\States\Invoice\InvoiceState;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @mixin IdeHelperInvoice
+ */
 class Invoice extends Model
 {
     use HasFactory;

@@ -12,6 +12,9 @@ use App\Services\MsGraph\MsGraphAuthService;
 use App\Services\MsGraph\MsGraphSubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @mixin IdeHelperMsgUserIn
+ */
 class MsgUserIn extends Model
 {
     use HasFactory;

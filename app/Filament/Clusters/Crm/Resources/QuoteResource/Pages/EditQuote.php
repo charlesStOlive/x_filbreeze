@@ -101,7 +101,8 @@ class EditQuote extends EditRecord
     public function refreshInfolist()
     {
         $data = $this->getRecord()->fill($this->form->getState());
-        $this->infolist->record($data)->render();
+        $this->infolist->record($data);
+        // Ne pas appeler ->render() sur un Schema dans Filament v4
     }
 
     public function infolist(Schema $schema): Schema

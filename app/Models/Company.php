@@ -11,6 +11,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+/**
+ * @mixin IdeHelperCompany
+ */
 class Company extends Model implements HasMedia
 {
     use HasFactory;

@@ -9,6 +9,9 @@ use App\Services\EmailsProcessorRegisterServices;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 
+/**
+ * @mixin IdeHelperMsgEmailDraft
+ */
 class MsgEmailDraft extends Model
 {
     use HasFactory;

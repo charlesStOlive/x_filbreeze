@@ -7,12 +7,13 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms;
 use App\Models\Sector;
 use Filament\Actions\CreateAction;
-use App\Components\Tree\Widgets\Tree;
+// use App\Components\Tree\Widgets\Tree;
+use SolutionForest\FilamentTree\Widgets\Tree as BaseWidget;
 
 //
 
 
-class SectorWidget extends Tree
+class SectorWidget extends BaseWidget
 {
     protected static string $model = Sector::class;
 

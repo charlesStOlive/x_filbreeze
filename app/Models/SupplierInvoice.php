@@ -10,6 +10,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
 
+/**
+ * @mixin IdeHelperSupplierInvoice
+ */
 class SupplierInvoice extends Model implements HasMedia
 {
     use HasFactory;
