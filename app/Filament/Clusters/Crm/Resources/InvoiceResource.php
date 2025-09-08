@@ -31,7 +31,7 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Grouping\Group;
-use Filament\Forms\Components\Builder;
+
 use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Columns\Summarizers\Sum;
@@ -46,6 +46,8 @@ use App\Models\Product;
 use App\Models\Company;
 use App\Enums\ProductType;
 use App\Services\Helpers\ProductFormHelper;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Builder as FormBuilder;
 
 class InvoiceResource extends Resource
 {
@@ -67,14 +69,20 @@ class InvoiceResource extends Resource
     {
         return $table
             ->groups([
-                Group::make('company.name')
+                Group::make('company.title')
                     ->label('Client'),
                 Group::make('submited_at_my')
-                    ->label('Soumis Ans/Mois'),
+                    ->label('Soumis Ans/Mois')
+                    ->getKeyFromRecordUsing(fn($record) => $record->submited_at_my ?? 'Non défini')
+                    ->orderQueryUsing(fn(Builder $query) => $query->orderBy('submited_at_my', 'desc')),
                 Group::make('payed_at_my')
-                    ->label('Payement Ans/Mois'),
+                    ->label('Payement Ans/Mois')
+                    ->getKeyFromRecordUsing(fn($record) => $record->payed_at_my ?? 'Non payé')
+                    ->orderQueryUsing(fn(Builder $query) => $query->orderBy('payed_at_my', 'desc')),
 
             ])
+            ->defaultGroup('payed_at_my')
+            ->groupingDirectionSettingHidden()
             ->columns([
                 TextColumn::make('code')
                     ->sortable()
@@ -179,7 +187,7 @@ class InvoiceResource extends Resource
         return [
             Section::make('Elements de la facture')
                 ->schema([
-                    Builder::make('items')
+                    FormBuilder::make('items')
                         ->label(false)
                         ->addActionLabel('Ajouter un élément à la facture')
                         ->collapsed()

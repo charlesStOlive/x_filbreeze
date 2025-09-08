@@ -125,6 +125,7 @@ class ProductResource extends Resource
                     ->label('Type')
                     ->getTitleFromRecordUsing(fn($record) => $record->type?->label()),
             ])
+            ->defaultGroup('gamme.name')
             ->columns([
                 TextColumn::make('code')
                     ->searchable()

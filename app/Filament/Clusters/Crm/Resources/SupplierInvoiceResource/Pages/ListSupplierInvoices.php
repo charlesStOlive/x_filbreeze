@@ -26,6 +26,23 @@ class ListSupplierInvoices extends ListRecords
     protected SupplierInvoiceFileAnalyser $fileAnalyzer;
     protected ?string $tempFilePath = null; // Stocker le chemin temporaire du fichier traité
 
+    public ?string $grouping = 'supplier.name';
+
+    public function getGroupedSelectableTableRecordKeys(?string $group): array
+    {
+        // Si le groupe est null, retourner un tableau vide
+        if ($group === null) {
+            return [];
+        }
+        
+        // Extraire seulement la clé du groupe, en ignorant la direction de tri
+        if (str_contains($group, ':')) {
+            $group = explode(':', $group)[0];
+        }
+        
+        return parent::getGroupedSelectableTableRecordKeys($group);
+    }
+
     public string $modalCloseButtonLabel = 'Abandonner';
     public ?SupplierInvoice $createdInvoice = null;
 

@@ -196,7 +196,7 @@ class SupplierInvoiceResource extends Resource
         }
     }
 
-    
+
 
 
     public static function table(Table $table): Table
@@ -206,11 +206,16 @@ class SupplierInvoiceResource extends Resource
                 Group::make('supplier.name')
                     ->label('Fournisseur'),
                 Group::make('invoice_at_my')
-                    ->label('Annes Mois'),
+                    ->label('Annes Mois')
+                    ->orderQueryUsing(fn(Builder $query) => $query->orderBy('invoice_at_my', 'desc')),
+
                 Group::make('invoice_at_qy')
-                    ->label('Semestre Mois'),
+                    ->label('Semestre Mois')
+                    ->orderQueryUsing(fn(Builder $query) => $query->orderBy('invoice_at_qy', 'desc')),
 
             ])
+            ->groupingDirectionSettingHidden()
+            ->defaultGroup('invoice_at_my')
             ->columns([
                 TextColumn::make('supplier.name')
                     ->label('Supplier')

@@ -17,6 +17,23 @@ class ListProducts extends ListRecords
 {
     protected static string $resource = ProductResource::class;
 
+    public ?string $grouping = 'gamme.name';
+
+    public function getGroupedSelectableTableRecordKeys(?string $group): array
+    {
+        // Si le groupe est null, retourner un tableau vide
+        if ($group === null) {
+            return [];
+        }
+        
+        // Extraire seulement la clé du groupe, en ignorant la direction de tri
+        if (str_contains($group, ':')) {
+            $group = explode(':', $group)[0];
+        }
+        
+        return parent::getGroupedSelectableTableRecordKeys($group);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
