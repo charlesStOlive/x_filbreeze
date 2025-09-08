@@ -5,7 +5,7 @@ namespace App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 use Filament\Actions\Action;
 use App\Models\SupplierInvoice;
 use Filament\Forms\Components\Wizard;
-use Filament\Forms\Components\Fieldset;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;

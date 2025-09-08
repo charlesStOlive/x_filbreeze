@@ -283,8 +283,7 @@ class QuoteResource extends Resource
                         'table',
                     ]),
 
-                Grid::make('Détails')
-                    ->label(false)
+                Grid::make(2)
                     ->schema(
                         fn(callable $get) =>
                         $get('type')

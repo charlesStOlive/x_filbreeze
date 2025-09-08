@@ -21,6 +21,12 @@ use App\Listeners\SupplierInvoiceFileAdded;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Schemas\Components\Fieldset;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
@@ -56,8 +62,29 @@ class AppServiceProvider extends ServiceProvider
             $table
                 ->paginationPageOptions([15, 25, 50, 100])
                 ->defaultPaginationPageOption(25)
-                ->defaultSort('updated_at', 'desc');
+                ->defaultSort('updated_at', 'desc')
+                ->deferFilters(false); // Préserver le comportement v3
         });
+
+        // Préserver le comportement v3 pour la visibilité des fichiers (si vous utilisez des disques non-locaux)
+        FileUpload::configureUsing(fn (FileUpload $fileUpload) => $fileUpload
+            ->visibility('public'));
+
+        ImageColumn::configureUsing(fn (ImageColumn $imageColumn) => $imageColumn
+            ->visibility('public'));
+
+        ImageEntry::configureUsing(fn (ImageEntry $imageEntry) => $imageEntry
+            ->visibility('public'));
+
+        // Préserver le comportement v3 pour les composants de layout
+        Fieldset::configureUsing(fn (Fieldset $fieldset) => $fieldset
+            ->columnSpanFull());
+
+        Grid::configureUsing(fn (Grid $grid) => $grid
+            ->columnSpanFull());
+
+        Section::configureUsing(fn (Section $section) => $section
+            ->columnSpanFull());
         FilamentAsset::register([
             Js::make('diff-js', 'https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js'),
             Js::make('diff2html-js', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js'),

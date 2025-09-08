@@ -1,8 +1,7 @@
 // vite.pdf.config.js
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
+import tailwindcssPostcss from '@tailwindcss/postcss';
 import path from 'path';
 import fs from 'fs';
 
@@ -20,10 +19,7 @@ export default defineConfig({
     css: {
         postcss: {
             plugins: [
-                tailwindcss({
-                    config: path.resolve(__dirname, 'resources/css/pdf/tailwind.pdf.config.js'),
-                }),
-                autoprefixer,
+                tailwindcssPostcss(),
             ],
         },
     },

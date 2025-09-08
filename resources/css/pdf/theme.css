@@ -1,7 +1,3 @@
-/* resources/css/pdf/theme.css */
-@import '/vendor/filament/filament/resources/css/theme.css';
-/* Ajoutez d'autres imports si nécessaire */
+@import '../../../vendor/filament/filament/resources/css/theme.css';
 
-@source '../../../../app/Filament';
-@source '../../../../resources/views/filament';
-@source '../../../../resources/views/pdf';
+@source '../../../resources/views/pdf';

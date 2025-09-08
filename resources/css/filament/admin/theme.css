@@ -1,17 +1,14 @@
-@import '/vendor/filament/filament/resources/css/theme.css';
-@import '../../../../vendor/pboivin/filament-peek/resources/css/plugin.css';
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
 
 @source '../../../../app/Filament';
 @source '../../../../resources/views/filament';
-@source '../../../../vendor/pboivin/filament-peek/resources';
 
-/* Configuration des couleurs personnalisées */
+/* Test CSS pour debug */
+
+
+/* Couleurs personnalisées pour Filament */
 :root {
     --color-primary-base: #F87F04;
     --color-primary-light: #FF9F36;
     --color-primary-dark: #C46303;
-}
-
-.reset-tailwind, .reset-tailwind * {
-    all: revert;
 }

@@ -2,18 +2,17 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Support\Enums\Width;
-use Filament\Pages\Dashboard;
-use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
 use Filament\PanelProvider;
+use Filament\Actions\Action;
+
+use Filament\Support\Enums\Width;
 use Filament\Support\Colors\Color;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Navigation\MenuItem;
 use App\Filament\Pages\UserSettings;
+use Filament\Http\Middleware\Authenticate;
+use Pboivin\FilamentPeek\FilamentPeekPlugin;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -23,7 +22,6 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Pboivin\FilamentPeek\FilamentPeekPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -39,7 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('4rem')
             ->databaseNotifications()
             ->userMenuItems([
-                MenuItem::make()
+                Action::make('user_settings')
                     ->label('Mes options')
                     ->url(fn() => UserSettings::getUrl())
                     ->icon('heroicon-o-cog-6-tooth'),
@@ -49,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->colors([
                 'primary' => "#F87F04",
-                'redpdf' => Color::generateV3Palette('#e30022')
+                'redpdf' => Color::hex('#e30022')
 
             ])
             ->maxContentWidth(Width::Full)
@@ -58,13 +56,13 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->pages([
-                Dashboard::class,
+                Pages\Dashboard::class,
             ])
 
 
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                Widgets\AccountWidget::class,
+                Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

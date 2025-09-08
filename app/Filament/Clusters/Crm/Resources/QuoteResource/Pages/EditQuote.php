@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 
 use Filament\Actions\DeleteAction;
+use Filament\Forms\Form;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\MarkdownEditor;
@@ -15,7 +16,6 @@ use Filament\Schemas\Components\Grid;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Forms;
 use App\Models\Quote;
-use Filament\Actions;
 use Filament\Infolists;
 use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
@@ -73,7 +73,7 @@ class EditQuote extends EditRecord
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->components([
+            ->schema([
                 TextInput::make('title')
                     ->label('Titre')
                     ->required(),
@@ -181,7 +181,7 @@ class EditQuote extends EditRecord
                                     ->numeric(decimalPlaces: 2),
 
                             ]),
-                        \Filament\Schemas\Components\Actions::make([
+                        ActionGroup::make([
                             Action::make('activate_v')
                                 ->label('Activer ce devis')
                                 ->hidden(function ($record) {
@@ -200,14 +200,14 @@ class EditQuote extends EditRecord
                                     $data = $this->form->getState();
                                     $newRecord = $record->createNewVersion($data);
                                     return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
-                                }),
+                                })->color('success'),
                             Action::make('clean')
                                 ->label('Nettoyer autres V')
                                 ->action(function ($record) {
                                     $record->cleanUnactive();
                                 })
                                 ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0))
-                        ])->fullWidth(),
+                        ])->buttonGroup(),
                     ]),
 
 
