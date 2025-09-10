@@ -117,4 +117,13 @@ abstract class BaseExcelTemplate implements DocumentProducer
             mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         );
     }
+
+    public function download(array $options = []): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $generated = $this->generateFile($options);
+        
+        return response()->download($generated->path, $generated->name, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
 }

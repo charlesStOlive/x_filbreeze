@@ -20,7 +20,7 @@ class GeneratePdfDownload extends BaseDocumentAction
             ->icon('fas-file-pdf');
     }
 
-    protected function getServiceSchema($record): array
+    protected function getServiceSchema($record = null): array
     {
         return [
             Grid::make(4)
@@ -67,7 +67,7 @@ class GeneratePdfDownload extends BaseDocumentAction
         ];
     }
 
-    protected function handleAction(array $data, $record): mixed
+    protected function handleAction(array $data, $record = null): mixed
     {
         $template = $this->getTemplateInstance(
             $data['template'],
@@ -76,5 +76,10 @@ class GeneratePdfDownload extends BaseDocumentAction
         );
 
         return $template->download();
+    }
+
+    protected function getExpectedTemplateType(): string
+    {
+        return \App\Services\Pdf\Base\BasePdfTemplate::class;
     }
 }

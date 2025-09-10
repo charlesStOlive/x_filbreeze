@@ -2,36 +2,37 @@
 
 namespace App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Hidden;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Grid;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\MarkdownEditor;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Forms;
 use Filament\Actions;
 use Filament\Infolists;
 use Filament\Actions\Action;
-
+use Filament\Schemas\Schema;
 use App\Filament\Utils\IaUtils;
 use Filament\Actions\ActionGroup;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Invoice\Payed;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
 use App\Models\States\Invoice\Canceled;
+
 use App\Models\States\Invoice\Submited;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Section;
 use App\Filament\ModelStates\StateAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Forms\Components\MarkdownEditor;
+use App\Services\Pdf\Templates\Invoice\InvoiceComplete;
+
+
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
-
-
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
-use App\Services\Pdf\Templates\Invoice\InvoiceSummaryPdfTemplate;
 use App\Services\Pdf\Templates\Invoice\InvoiceBasePdfTemplate;
-use App\Services\Pdf\Templates\Invoice\InvoiceComplete;
+use App\Services\Pdf\Templates\Invoice\InvoiceSummaryPdfTemplate;
+use App\Services\MsGraph\EmailDraft\Templates\Invoice\InvoiceSummaryTemplate;
 use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 
 class EditInvoice extends EditRecord
@@ -68,7 +69,10 @@ class EditInvoice extends EditRecord
                 ->color('primary'),
             InvoiceResource::getDuplicateAction(),
             ActionGroup::make([
-                GenerateMsGraphEmailDraft::make('generateEmailDraft'),
+                GenerateMsGraphEmailDraft::make('generateEmailDraft')
+                    ->templates([
+                        InvoiceSummaryTemplate::class
+                    ]),
                 GeneratePdfDownload::make('downloadPdf')
                     ->templates([
                         InvoiceSummaryPdfTemplate::class,

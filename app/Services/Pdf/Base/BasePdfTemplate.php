@@ -145,7 +145,7 @@ abstract class BasePdfTemplate implements DocumentProducer
         );
     }
 
-    public function download(array $options = [])
+    public function download(array $options = []): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $generated = $this->generateFile($options);
 

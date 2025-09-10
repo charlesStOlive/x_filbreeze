@@ -16,8 +16,8 @@ use Filament\Resources\RelationManagers\RelationManager;
 
 use App\Services\MaatExports\Templates\Company\CompanyProductsExporter;
 use App\Services\MaatImports\Templates\Company\CompanyProductsImporter;
-use App\Services\MaatExports\Filament\Tables\ExportMaatExcelTableAction;
-use App\Services\MaatImports\Filament\Tables\ImportMaatExcelTableAction;
+use App\Services\MaatExports\Filament\Actions\ExportMaatExcelAction;
+use App\Services\MaatImports\Filament\Actions\ImportMaatExcelAction;
 
 
 class ProductsRelationManager extends RelationManager
@@ -71,13 +71,13 @@ class ProductsRelationManager extends RelationManager
                                 ->required(),
                         ];
                     }), // permet d’ajouter un lien produit ↔ société
-                ExportMaatExcelTableAction::make('exportProduits')
+                ExportMaatExcelAction::make('exportProduits')
                     ->label('Exporter les produits')
-                    ->exporter(CompanyProductsExporter::class)
+                    ->templates([CompanyProductsExporter::class])
                     ->withRecord($this->getOwnerRecord()),    
-                ImportMaatExcelTableAction::make('importproduct')
+                ImportMaatExcelAction::make('importproduct')
                     ->label('Importer les produits')
-                    ->importer(CompanyProductsImporter::class)
+                    ->templates([CompanyProductsImporter::class])
                     ->withRecord($this->getOwnerRecord())
             ])
             ->recordActions([
