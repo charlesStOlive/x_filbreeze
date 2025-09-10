@@ -9,8 +9,8 @@ use Filament\Resources\Pages\ListRecords;
 use App\Filament\Clusters\DataSets\Resources\ProductResource;
 use App\Services\MaatImports\Templates\Product\ProductImporter;
 use App\Services\MaatExports\Templates\Product\ProductMaatExporter;
-use App\Services\MaatExports\Filament\Actions\ExportMaatExcelAction;
-use App\Services\MaatImports\Filament\Actions\ImportMaatExcelAction;
+use App\Services\MaatExports\Filament\Actions\ExportMaatExcelListAction;
+use App\Services\MaatImports\Filament\Actions\ImportMaatExcelListAction;
 
 
 class ListProducts extends ListRecords
@@ -39,21 +39,18 @@ class ListProducts extends ListRecords
         return [
             CreateAction::make(),
             ActionGroup::make([
-                ImportMaatExcelAction::make('importproduct')
+                ImportMaatExcelListAction::make('importproduct')
                     ->label('Importer les produits')
                     ->icon('heroicon-o-cloud-arrow-up')
-                    ->importer(ProductImporter::class)
-                    ->modalHeading('Import produits via Excel')
-                    ->modalSubmitActionLabel('Importer')
-                    ->modalWidth('md'),
-                ExportMaatExcelAction::make('exportProduits')
+                    ->templates([ProductImporter::class])
+                    ->modalHeading('Import produits via Excel'),
+                ExportMaatExcelListAction::make('exportProduits')
                     ->label('Exporter les produits')
-                    ->exporter(ProductMaatExporter::class),
-                // Array of actions
+                    ->icon('heroicon-o-cloud-arrow-down')
+                    ->templates([ProductMaatExporter::class]),
             ])
                 ->label('Import/Export')
                 ->icon('heroicon-m-ellipsis-vertical')
-                // ->size(ActionSize::Small)
                 ->color('primary')
                 ->button()
 

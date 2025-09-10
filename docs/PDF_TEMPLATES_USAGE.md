@@ -1,4 +1,76 @@
-# Utilisation des Templates PDF avec GeneratePdfDownload
+# Architecture des Actions de Document
+
+## Nouvelle Architecture Centralisée
+
+Tous les services de génération de documents (PDF, Email, Excel Import/Export) utilisent maintenant une architecture commune basée sur `BaseDocumentAction`.
+
+### Classe de Base : BaseDocumentAction
+
+```php
+// app/Services/Document/Filament/Actions/BaseDocumentAction.php
+abstract class BaseDocumentAction extends Action
+{
+    protected ?array $templates = null;
+    
+    public function templates(array $templates): static
+    {
+        $this->templates = $templates;
+        return $this;
+    }
+    
+    // Méthodes communes pour tous les services
+    protected function getTemplatesForRecord($record): array
+    protected function getDefaultTemplateForRecord($record): string  
+    protected function getTemplateInstance(string $key, $record, ?array $options = null): mixed
+    
+    // Méthodes abstraites que chaque service doit implémenter
+    abstract protected function getServiceSchema($record): array;
+    abstract protected function handleAction(array $data, $record): mixed;
+}
+```
+
+## Utilisation par Service
+
+### 1. PDF (GeneratePdfDownload)
+
+```php
+GeneratePdfDownload::make('downloadPdf')
+    ->templates([
+        InvoiceSummaryPdfTemplate::class,
+        InvoiceBasePdfTemplate::class,
+        InvoiceComplete::class,
+    ])
+```
+
+### 2. Email (GenerateMsGraphEmailDraft)
+
+```php
+GenerateMsGraphEmailDraftNew::make('createEmailDraft')
+    ->templates([
+        InvoiceSummaryTemplate::class,
+        CompanyBaseTemplate::class,
+    ])
+```
+
+### 3. Export Excel (ExportMaatExcelAction)
+
+```php
+ExportMaatExcelActionNew::make('exportExcel')
+    ->templates([
+        CompanyProductsExporter::class,
+        ProductMaatExporter::class,
+    ])
+```
+
+### 4. Import Excel (ImportMaatExcelAction)
+
+```php
+ImportMaatExcelActionNew::make('importExcel')
+    ->templates([
+        CompanyProductsImporter::class,
+        ProductImporter::class,
+    ])
+```
 
 ## Nouvelle syntaxe (recommandée)
 

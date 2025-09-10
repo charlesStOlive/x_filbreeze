@@ -58,15 +58,15 @@ class QuoteDetailedPdfTemplate extends BasePdfTemplate
             Toggle::make('show_description')
                 ->label('Afficher les descriptions détaillées')
                 ->default($defaults['show_description'] ?? true),
-            
+
             Toggle::make('show_timeline')
                 ->label('Afficher la timeline du projet')
                 ->default($defaults['show_timeline'] ?? true),
-            
+
             Checkbox::make('avoid_break')
                 ->label('Éviter les sauts de page dans le tableau')
                 ->default($defaults['avoid_break'] ?? true),
-                
+
             Checkbox::make('avoid_amount_break')
                 ->label('Empêcher les sauts de page dans les montants')
                 ->default($defaults['avoid_amount_break'] ?? true),

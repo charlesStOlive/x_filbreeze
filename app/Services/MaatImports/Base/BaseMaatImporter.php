@@ -16,7 +16,17 @@ abstract class BaseMaatImporter implements HasImportForm
     protected ?array $options = null;
     protected mixed $record = null;
 
-    public function __construct(?array $options = null, mixed $record = null)
+    /**
+     * Clé unique pour identifier ce template
+     */
+    public static abstract function key(): string;
+
+    /**
+     * Label d'affichage pour ce template
+     */
+    public static abstract function label(): string;
+
+    public function __construct(mixed $record = null, ?array $options = null)
     {
         $this->record = $record;
         $this->options = $options !== null

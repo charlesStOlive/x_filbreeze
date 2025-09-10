@@ -1,33 +1,32 @@
 <?php
 
-namespace App\Services\Pdf\Filament\Actions;
+namespace App\Services\MaatExports\Filament\Actions;
 
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ViewField;
-use App\Services\Pdf\Base\BasePdfTemplate;
 use App\Services\Document\Filament\Actions\BaseDocumentAction;
 
-class GeneratePdfDownload extends BaseDocumentAction
+class ExportMaatExcelActionNew extends BaseDocumentAction
 {
     protected function setUp(): void
     {
         parent::setUp();
 
         $this
-            ->label('Créer PDF')
-            ->icon('fas-file-pdf');
+            ->label('Exporter Excel')
+            ->icon('fas-file-excel');
     }
 
     protected function getServiceSchema($record): array
     {
         return [
-            Grid::make(4)
+            Grid::make(2)
                 ->schema([
                     Group::make([
                         Select::make('template')
-                            ->label('Modèle de PDF')
+                            ->label('Format d\'export')
                             ->options(
                                 collect($this->getTemplatesForRecord($record))
                                     ->mapWithKeys(fn($cls) => [$cls::key() => $cls::label()])
@@ -46,10 +45,9 @@ class GeneratePdfDownload extends BaseDocumentAction
                         Group::make()
                             ->schema(function (callable $get) use ($record) {
                                 $key = $get('template');
-                                $options = $get('template_options') ?? [];
+                                if (!$key) return [];
 
-                                $template = $this->getTemplateInstance($key, $record, $options);
-
+                                $template = $this->getTemplateInstance($key, $record);
                                 return $template?->getForm() ?? [];
                             })
                             ->statePath('template_options')
@@ -57,12 +55,26 @@ class GeneratePdfDownload extends BaseDocumentAction
                     ])->columnSpan(1),
 
                     Group::make([
-                        ViewField::make('body')
-                            ->label('Aperçu HTML')
-                            ->view('components.fields.pdf-preview')
-                            ->viewData(fn($get) => BasePdfTemplate::getPreviewData($get, $this->getRecord()))
+                        ViewField::make('preview')
+                            ->label('Aperçu des données')
+                            ->view('components.fields.excel-preview')
+                            ->viewData(function (callable $get) use ($record) {
+                                $key = $get('template');
+                                $options = $get('template_options') ?? [];
+
+                                if (!$key) return ['data' => []];
+
+                                $template = $this->getTemplateInstance($key, $record, $options);
+
+                                // Prévisualisation des premières lignes
+                                return [
+                                    'headers' => $template->getHeaders(),
+                                    'preview_data' => $template->getPreviewData(5), // 5 premières lignes
+                                    'total_count' => $template->getTotalCount(),
+                                ];
+                            })
                             ->disabled(),
-                    ])->columnSpan(3),
+                    ])->columnSpan(1),
                 ]),
         ];
     }

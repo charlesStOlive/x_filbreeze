@@ -9,7 +9,7 @@ use App\Models\Product;
 use App\Enums\ProductType;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
-use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Toggle;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use App\Services\MaatImports\Base\BaseMaatImporter;
@@ -17,6 +17,16 @@ use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 
 class ProductImporter extends BaseMaatImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
 {
+    public static function key(): string
+    {
+        return 'product_importer';
+    }
+
+    public static function label(): string
+    {
+        return 'Import Produits';
+    }
+
     public static function getDefaultOptions(): array
     {
         return [
@@ -27,16 +37,9 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
     public function getForm(): array
     {
         return [
-            Radio::make('create_missing_gamme')
-                ->label('Les gammes inexistantes seront-elles créées ?')
-                ->options([
-                    true => 'Créer automatiquement les gammes manquantes',
-                    false => 'Bloquer une gamme inexistante',
-                ])
-                ->descriptions([
-                    true => 'La gamme sera créée à partir de la cellule Excel. Attention aux erreurs de frappe.',
-                    false => 'Si la gamme est manquante, la ligne sera ignorée si cette option est désactivée.',
-                ])
+            Toggle::make('create_missing_gamme')
+                ->label('Créer automatiquement les gammes manquantes')
+                ->helperText('Si activé, les gammes inexistantes seront créées automatiquement. Sinon, les lignes avec des gammes inexistantes seront ignorées.')
                 ->default($this->getOption('create_missing_gamme')),
         ];
     }
@@ -44,6 +47,8 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
     public function collection(Collection $rows): void
     {
         $options = $this->getMergedOptions();
+
+        \Log::info('Import Products', ['options' => $options]);
 
         foreach ($rows as $index => $r) {
             $line = $index + 2;
@@ -63,7 +68,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                 // Gestion de la gamme
                 $gammeId = null;
                 if ($gammeSlug) {
-                    $existing = Gamme::firstWhere('name', $gammeSlug);
+                    $existing = Gamme::firstWhere('slug', $gammeSlug);
                     if ($existing) {
                         $gammeId = $existing->id;
                     } elseif ($options['create_missing_gamme']) {
@@ -112,6 +117,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                     'error' => $e->getMessage(),
                 ];
             }
+            \Log::info($this->errors);
         }
     }
 

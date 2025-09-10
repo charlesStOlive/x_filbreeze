@@ -14,6 +14,26 @@ use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 
 class CompanyProductsImporter extends BaseMaatImporter implements ToCollection, WithHeadingRow, WithCalculatedFormulas
 {
+    public static function key(): string
+    {
+        return 'company_products_importer';
+    }
+
+    public static function label(): string
+    {
+        return 'Import Produits Entreprise';
+    }
+
+    public static function getDefaultOptions(): array
+    {
+        return [];
+    }
+
+    public function getForm(): array
+    {
+        return [];
+    }
+
     public function collection(Collection $rows): void
     {
         $company = $this->getRecord();
