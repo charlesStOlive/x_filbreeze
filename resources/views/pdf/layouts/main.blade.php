@@ -4,11 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>@yield('title')</title>
-    @if ($hotReload ?? false)
-        @vite('resources/css/pdf/theme.css')
-    @else
-        <link href="{{ $cssPath }}" rel="stylesheet">
-    @endif
+    <link href="{{ $cssPath }}" rel="stylesheet">
     <style>
         :root {
             --font-family: 'Inter', sans-serif;

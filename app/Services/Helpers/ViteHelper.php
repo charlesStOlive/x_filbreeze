@@ -8,6 +8,12 @@ class ViteHelper
 {
     public static function viteAsset(string $asset, string $buildDirectory = 'pdf'): string
     {
+        // En mode PDF, on utilise toujours les fichiers buildés (pas de serveur de dev)
+        return static::getProductionAssetUrl($asset, $buildDirectory);
+    }
+
+    protected static function getProductionAssetUrl(string $asset, string $buildDirectory): string
+    {
         $manifestPath = public_path("{$buildDirectory}/manifest.json");
 
         if (!file_exists($manifestPath)) {

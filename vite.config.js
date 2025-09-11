@@ -18,14 +18,14 @@ export default defineConfig({
     ...(isDev && {
         server: {
             host: '0.0.0.0',
-            port: 5200,
-            strictPort: true,
+            port: 5173,
+            strictPort: false,
             cors: true,
-            origin: 'https://x_filbreeze.test:5200',
+            origin: 'https://x_filbreeze.test:5173',
             allowedHosts: ['x_filbreeze.test'],
             hmr: {
                 host: 'x_filbreeze.test',
-                port: 5200,
+                port: 5173,
                 protocol: 'wss',
             },
             https: {

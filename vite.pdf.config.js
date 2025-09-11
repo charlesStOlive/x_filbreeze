@@ -11,7 +11,7 @@ export default defineConfig({
     plugins: [
         laravel({
             input: ['resources/css/pdf/theme.css'],
-            refresh: true,
+            refresh: false, // Pas besoin de refresh pour PDF
             hotFile: 'public/pdf.hot',
             buildDirectory: 'pdf',
         }),
@@ -22,6 +22,16 @@ export default defineConfig({
                 tailwindcssPostcss(),
             ],
         },
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                // Évite la génération de JS inutile pour le PDF
+                entryFileNames: 'assets/[name].[hash].js',
+                chunkFileNames: 'assets/[name].[hash].js',
+                assetFileNames: 'assets/[name].[hash].[ext]'
+            }
+        }
     },
     ...(isDev && {
         server: {
@@ -35,6 +45,13 @@ export default defineConfig({
                 host: 'x_filbreeze.test',
                 port: 5201,
                 protocol: 'wss',
+                // Désactive le rechargement automatique de page pour PDF
+                overlay: false,
+            },
+            // Mode watch uniquement pour CSS, pas de HMR complet
+            watch: {
+                usePolling: true,
+                interval: 300,
             },
             https: {
                 key: fs.readFileSync(path.resolve(__dirname, 'C:/laragon/etc/ssl/laragon.key')),

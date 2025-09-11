@@ -2,9 +2,12 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "concurrently \"npm run dev:admin\" \"npm run dev:pdf\"",
+        "dev": "concurrently \"npm run dev:admin\" \"npm run dev:pdf:watch\"",
         "dev:admin": "vite --config vite.config.js",
         "dev:pdf": "vite --config vite.pdf.config.js",
+        "dev:pdf:watch": "vite build --config vite.pdf.config.js --watch --mode development",
+        "dev:admin-only": "vite --config vite.config.js",
+        "dev:pdf-only": "npm run dev:pdf:watch",
         "build": "npm run build:admin && npm run build:pdf",
         "build:admin": "vite build --config vite.config.js",
         "build:pdf": "vite build --config vite.pdf.config.js",

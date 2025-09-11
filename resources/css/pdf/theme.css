@@ -1,3 +1,45 @@
-@import '../../../vendor/filament/filament/resources/css/theme.css';
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
 
-@source '../../../resources/views/pdf';
+@source "./resources/views/pdf/**/*.blade.php";
+@source "./app/Services/Pdf/**/*.php";
+
+@theme {
+  /* Configuration spécifique PDF */
+  --color-primary-base: #F87F04;
+  --color-primary-light: #FF9F36;
+  --color-primary-dark: #C46303;
+}
+
+/* Surcharge des styles prose pour PDF */
+@layer components {
+  .prose :where(p):not(:where([class~=not-prose],[class~=not-prose] *)) {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+  
+  .prose :where(ul):not(:where([class~=not-prose],[class~=not-prose] *)) {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .prose :where(li):not(:where([class~=not-prose],[class~=not-prose] *)) {
+    margin-top: 0.125rem !important;
+    margin-bottom: 0.125rem !important;
+  }
+}
+
+/* Utilities spécifiques PDF */
+@layer utilities {
+    .break-inside-avoid {
+        break-inside: avoid;
+    }
+
+    .break-after-page {
+        break-after: page;
+    }
+
+    .break-before-page {
+        break-before: page;
+    }
+}
