@@ -11,6 +11,7 @@ export default defineConfig({
             input: [
                 'resources/js/app.js',
                 'resources/css/filament/admin/theme.css',
+                'resources/images/topography.svg',
             ],
             refresh: true,
         }),
@@ -18,14 +19,14 @@ export default defineConfig({
     ...(isDev && {
         server: {
             host: '0.0.0.0',
-            port: 5173,
-            strictPort: false,
+            port: 5200,
+            strictPort: true,
             cors: true,
-            origin: 'https://x_filbreeze.test:5173',
+            origin: 'https://x_filbreeze.test:5200',
             allowedHosts: ['x_filbreeze.test'],
             hmr: {
                 host: 'x_filbreeze.test',
-                port: 5173,
+                port: 5200,
                 protocol: 'wss',
             },
             https: {

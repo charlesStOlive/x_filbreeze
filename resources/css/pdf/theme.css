@@ -11,6 +11,38 @@
   --color-primary-dark: #C46303;
 }
 
+/* ===== CLASSE PDF-CONTENT (IGNORER DARK MODE) ===== */
+/* Classe à appliquer sur le container principal du PDF */
+@layer components {
+  .pdf-content {
+    color: black;
+  }
+
+  /* Force tous les éléments à l'intérieur de pdf-content */
+  
+
+  /* Exceptions pour les couleurs spécifiques dans le PDF */
+  .pdf-content .text-primary, 
+  .pdf-content .text-primary:where(.dark, .dark *) {
+    color: var(--color-primary-base) !important;
+  }
+
+  .pdf-content .bg-primary,
+  .pdf-content .bg-primary:where(.dark, .dark *) {
+    background-color: var(--color-primary-base) !important;
+    color: white !important; 
+  }
+
+  
+
+  /* Force les liens en couleur primaire dans le PDF */
+  .pdf-content a,
+  .pdf-content a:where(.dark, .dark *) {
+    color: var(--color-primary-base) !important;
+  }
+
+}
+
 /* Surcharge des styles prose pour PDF */
 @layer components {
   .prose :where(p):not(:where([class~=not-prose],[class~=not-prose] *)) {

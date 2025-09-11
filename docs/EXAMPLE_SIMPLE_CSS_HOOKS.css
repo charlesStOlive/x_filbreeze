@@ -1,0 +1,98 @@
+/* ===== EXEMPLE SIMPLE POUR DÉBUTER AVEC LES HOOKS CSS FILAMENT ===== */
+
+/* 
+🎯 ÉTAPE 1: Identifier le hook CSS à modifier
+Utilisez les DevTools pour inspecter l'élément et trouvez sa classe fi-*
+
+🎯 ÉTAPE 2: Créer la règle CSS avec deux versions (light/dark)
+Utilisez @apply ou CSS natif selon votre préférence
+*/
+
+/* ===== SIDEBAR - COULEURS SIMPLES ===== */
+
+/* Light Mode: Fond bleu clair pour la sidebar */
+.fi-sidebar {
+    background-color: #dbeafe; /* blue-100 */
+    border-right: 2px solid #3b82f6; /* blue-500 */
+}
+
+/* Dark Mode: Fond violet sombre pour la sidebar */
+.fi-sidebar:where(.dark, .dark *) {
+    background-color: #581c87; /* purple-900 */
+    border-right: 2px solid #a855f7; /* purple-500 */
+}
+
+/* ===== TOPBAR - COULEURS SIMPLES ===== */
+
+/* Light Mode: Fond vert clair pour la topbar */
+.fi-topbar {
+    background-color: #dcfce7; /* green-100 */
+    border-bottom: 1px solid #16a34a; /* green-600 */
+}
+
+/* Dark Mode: Fond gris sombre pour la topbar */
+.fi-topbar:where(.dark, .dark *) {
+    background-color: #1f2937; /* gray-800 */
+    border-bottom: 1px solid #6b7280; /* gray-500 */
+}
+
+/* ===== ÉLÉMENTS DE NAVIGATION ===== */
+
+/* Items de navigation inactifs */
+.fi-sidebar-nav-item {
+    color: #1d4ed8; /* blue-700 */
+}
+
+.fi-sidebar-nav-item:where(.dark, .dark *) {
+    color: #c4b5fd; /* purple-300 */
+}
+
+/* Items de navigation au survol */
+.fi-sidebar-nav-item:hover {
+    background-color: #bfdbfe; /* blue-200 */
+    color: #1e40af; /* blue-800 */
+}
+
+.fi-sidebar-nav-item:hover:where(.dark, .dark *) {
+    background-color: #7c3aed; /* purple-600 */
+    color: #e9d5ff; /* purple-200 */
+}
+
+/* Items de navigation actifs */
+.fi-sidebar-nav-item.fi-active {
+    background-color: #3b82f6 !important; /* blue-500 */
+    color: white !important;
+    font-weight: bold;
+}
+
+.fi-sidebar-nav-item.fi-active:where(.dark, .dark *) {
+    background-color: #a855f7 !important; /* purple-500 */
+    color: white !important;
+}
+
+/* ===== ICÔNES ===== */
+
+.fi-sidebar-nav-item .fi-icon {
+    color: #2563eb !important; /* blue-600 */
+}
+
+.fi-sidebar-nav-item .fi-icon:where(.dark, .dark *) {
+    color: #d8b4fe !important; /* purple-300 */
+}
+
+.fi-sidebar-nav-item.fi-active .fi-icon {
+    color: white !important;
+}
+
+/* ===== GROUPES DE NAVIGATION ===== */
+
+.fi-sidebar-group-label {
+    color: #1e40af; /* blue-800 */
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.75rem; /* text-xs */
+}
+
+.fi-sidebar-group-label:where(.dark, .dark *) {
+    color: #c4b5fd; /* purple-300 */
+}

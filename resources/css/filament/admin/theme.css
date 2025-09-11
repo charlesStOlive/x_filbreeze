@@ -17,3 +17,39 @@
     --color-primary-light: #FF9F36;
     --color-primary-dark: #C46303;
 }
+
+/* ===== HOOKS CSS POUR LA SIDEBAR - EXEMPLE 1: AVEC @apply ===== */
+
+
+/* ===== HOOKS CSS POUR LA ZONE MAIN - PATTERN TOPOGRAPHY SVG ===== */
+.fi-main {
+    /* Pattern topography avec fond adaptatif en light mode */
+
+    background-image: url('../../../images/topography.svg');
+    background-repeat: repeat;
+    background-size: 304px 304px;
+    background-attachment: local;
+}
+
+/* Mode sombre pour fi-main avec filtre */
+.fi-main:where(.dark, .dark *) {
+    /* Fond sombre avec le même pattern mais inversé */
+    background-image: url('../../../images/topography.svg');
+    background-repeat: repeat;
+    background-size: 304px 304px;
+    background-attachment: fixed;
+    /* Filtre pour adapter le SVG au mode sombre : inversion + ajustement luminosité */
+
+}
+
+.fi-page-sub-navigation-sidebar-ctn {
+    background-color: #ffffff;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    box-shadow: inset 0 0 4px 0 rgb(0 0 0 / 0.1);
+}
+
+.fi-page-sub-navigation-sidebar-ctn:where(.dark, .dark *) {
+    background-color: #1a1a1a;
+
+}

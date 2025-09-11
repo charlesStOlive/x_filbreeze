@@ -61,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
         FilamentView::registerRenderHook(
             'panels::auth.login.form.after',
-            fn(): View => view('filament.login_extra')
+            fn(): View => view('filament.hooks.login_extra')
         );
         Table::configureUsing(function (Table $table): void {
             $table

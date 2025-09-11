@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <div class="pdf-wrapper">
+    <div class="pdf-wrapper pdf-content">
 
         @yield('content')
     </div>
