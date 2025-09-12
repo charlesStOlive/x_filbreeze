@@ -699,10 +699,17 @@ class InvoiceResource extends Resource
 
 
 
+    public static function getEloquentQuery(): EloquentBuilder
+    {
+        return parent::getEloquentQuery()
+            ->with(['contact', 'company']);
+    }
+
     public static function getRelations(): array
     {
         return [];
     }
+    
     public static function getPages(): array
     {
         return [
