@@ -1,0 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Poppins:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@plugin '@tailwindcss/typography';
+
+/* Test explicite des classes - Safelist pour les couleurs primaire, secondaire et tertiaire */
+@source inline("bg-primary-300 bg-primary-500 bg-primary-700");
+@source inline("bg-secondary-300 bg-secondary-500 bg-secondary-700"); 
+@source inline("bg-tertiary-300 bg-tertiary-500 bg-tertiary-700");
+@source inline("text-primary-300 text-primary-500 text-primary-700");
+@source inline("text-secondary-300 text-secondary-500 text-secondary-700");
+@source inline("text-tertiary-300 text-tertiary-500 text-tertiary-700");
+@source inline("border-primary-300 border-primary-500 border-primary-700");
+@source inline("border-secondary-300 border-secondary-500 border-secondary-700");
+@source inline("border-tertiary-300 border-tertiary-500 border-tertiary-700");
+
+/* Variants hover, focus, active */
+@source inline("hover:bg-primary-300 hover:bg-primary-500 hover:bg-primary-700");
+@source inline("hover:bg-secondary-300 hover:bg-secondary-500 hover:bg-secondary-700");
+@source inline("hover:bg-tertiary-300 hover:bg-tertiary-500 hover:bg-tertiary-700");
+@source inline("focus:bg-primary-300 focus:bg-primary-500 focus:bg-primary-700");
+@source inline("focus:bg-secondary-300 focus:bg-secondary-500 focus:bg-secondary-700");  
+@source inline("focus:bg-tertiary-300 focus:bg-tertiary-500 focus:bg-tertiary-700");
+
+/* Configuration des sources pour Tailwind */
+@source '../../../resources/views/layouts/front.blade.php';
+@source '../../../resources/views/layouts/front.blade.php';
+@source '../../../resources/views/front/**/*';
+@source '../../../resources/views/components/**/*';
+@source '../../../app/Filament/Resources/Pages/Schemas/PageForm.php';
+
+/* Configuration des fonts avec Tailwind v4 */
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Caveat', cursive;
+  /* color-schema-console-generated-start */
+  --color-primary-50: #fff2e6;
+  --color-primary-100: #fee6cd;
+  --color-primary-200: #fdcc9b;
+  --color-primary-300: #fdb368;
+  --color-primary-400: #fc9936;
+  --color-primary-500: #F87F04;
+  --color-primary-600: #c96603;
+  --color-primary-700: #974d02;
+  --color-primary-800: #643302;
+  --color-primary-900: #321a01;
+  --color-secondary-50: #e9fcfc;
+  --color-secondary-100: #d2f9f9;
+  --color-secondary-200: #a6f2f2;
+  --color-secondary-300: #79ecec;
+  --color-secondary-400: #4de6e6;
+  --color-secondary-500: #1ed0d0;
+  --color-secondary-600: #1ab3b3;
+  --color-secondary-700: #138686;
+  --color-secondary-800: #0d5959;
+  --color-secondary-900: #062d2d;
+  --color-tertiary-50: #e9e9fb;
+  --color-tertiary-100: #d4d4f7;
+  --color-tertiary-200: #a8a8f0;
+  --color-tertiary-300: #7d7de8;
+  --color-tertiary-400: #5252e0;
+  --color-tertiary-500: #2d2dda;
+  --color-tertiary-600: #1f1fad;
+  --color-tertiary-700: #171782;
+  --color-tertiary-800: #0f0f57;
+  --color-tertiary-900: #08082b;
+  --color-success-50: #e9fbe9;
+  --color-success-100: #d4f7d4;
+  --color-success-200: #a8f0a8;
+  --color-success-300: #7de87d;
+  --color-success-400: #52e052;
+  --color-success-500: #1eaa1e;
+  --color-success-600: #1fad1f;
+  --color-success-700: #178217;
+  --color-success-800: #0f570f;
+  --color-success-900: #082b08;
+  --color-error-50: #fce8e8;
+  --color-error-100: #f9d2d2;
+  --color-error-200: #f3a5a5;
+  --color-error-300: #ed7878;
+  --color-error-400: #e84a4a;
+  --color-error-500: #851111;
+  --color-error-600: #b51717;
+  --color-error-700: #871212;
+  --color-error-800: #5a0c0c;
+  --color-error-900: #2d0606;
+  --color-warning-50: #fcf2e9;
+  --color-warning-100: #f8e6d3;
+  --color-warning-200: #f2cca6;
+  --color-warning-300: #ebb37a;
+  --color-warning-400: #e4994e;
+  --color-warning-500: #b1661b;
+  --color-warning-600: #b1661b;
+  --color-warning-700: #854d14;
+  --color-warning-800: #59330d;
+  --color-warning-900: #2c1a07;
+  --color-info-50: #ebf2fa;
+  --color-info-100: #d7e6f4;
+  --color-info-200: #aeccea;
+  --color-info-300: #86b3df;
+  --color-info-400: #5e99d4;
+  --color-info-500: #2f70b2;
+  --color-info-600: #2b66a1;
+  --color-info-700: #204d79;
+  --color-info-800: #153351;
+  --color-info-900: #0b1a28;
+  /* color-schema-console-generated-end */
+}
+
+/* Configuration de base */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-sans);
+}
+
+
+/* Les utilitaires communes sont maintenant dans shared-utilities.css */
+
+/* Custom utilities spécifiques au front avec Tailwind */
+@layer utilities {
+    /* Classe utilitaire pour utiliser la font heading */
+    .font-heading {
+        font-family: var(--font-heading);
+    }
+    
+    /* Playwrite CU font classes */
+    .playwrite-cu {
+        font-family: "Playwrite CU", cursive;
+        font-optical-sizing: auto;
+        font-style: normal;
+    }
+    
+    .playwrite-cu-100 {
+        font-family: "Playwrite CU", cursive;
+        font-optical-sizing: auto;
+        font-weight: 100;
+        font-style: normal;
+    }
+    
+    .playwrite-cu-200 {
+        font-family: "Playwrite CU", cursive;
+        font-optical-sizing: auto;
+        font-weight: 200;
+        font-style: normal;
+    }
+    
+    .playwrite-cu-300 {
+        font-family: "Playwrite CU", cursive;
+        font-optical-sizing: auto;
+        font-weight: 300;
+        font-style: normal;
+    }
+    
+    .playwrite-cu-400 {
+        font-family: "Playwrite CU", cursive;
+        font-optical-sizing: auto;
+        font-weight: 400;
+        font-style: normal;
+    }
+    
+    /* Classes pour les boutons */
+    .btn-base {
+        @apply px-6 py-3 rounded-lg font-medium transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-4 cursor-pointer;
+    }
+
+    .fade-in-up {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    }
+    
+    .fade-in-up.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .fade-in-left {
+        opacity: 0;
+        transform: translateX(-30px);
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    }
+    
+    .fade-in-left.visible {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    .fade-in-right {
+        opacity: 0;
+        transform: translateX(30px);
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    }
+    
+    .fade-in-right.visible {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+}
+
+
+
+/* Configuration automatique pour prose - les titres utilisent Comfortaa par défaut */
+.prose {
+    --tw-prose-headings: var(--font-heading);
+}
+
+.form-input-art {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+.form-input-art:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px rgba(178, 64, 48, 0.1);
+}

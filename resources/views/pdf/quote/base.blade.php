@@ -21,7 +21,7 @@
                 <p>Charles Saint olive - Notilac</p>
                 <p>SIRET : 95388940900017</p>
                 <p>N°TVA : FR 41953889409</p>
-                <p>12 Chemin de la paserelle<br>69190 - TASSIN LA DEMI LUNE</p>
+                <p class="bg-blue-500 shadow-amber-500 shadow-2xl rounded-3xl">12 Chemin de la paserelle<br>69190 - TASSIN LA DEMI LUNE XXX</p>
             </div>
             <div>
                 <p class=" text-zinc-600 uppercase font-light text-xl">Client : </p>

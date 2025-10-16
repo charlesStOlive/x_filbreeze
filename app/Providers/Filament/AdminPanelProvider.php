@@ -47,9 +47,12 @@ class AdminPanelProvider extends PanelProvider
                 FilamentPeekPlugin::make()->disablePluginStyles(),
             ])
             ->colors([
-                'primary' => "#F87F04",
-                'redpdf' => Color::hex('#e30022')
-
+                'primary' => '#F87F04',
+                'secondary' => '#1ed0d0',
+                'success' => '#1eaa1e',
+                'error' => '#851111',
+                'warning' => '#b1661b',
+                'info' => '#2f70b2',
             ])
             ->maxContentWidth(Width::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
@@ -63,7 +66,7 @@ class AdminPanelProvider extends PanelProvider
 
             ->widgets([
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                // Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -79,6 +82,6 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->viteTheme('resources/css/filament/admin/theme.css');
+            ->viteTheme('resources/css/filament/admin/filament.css');
     }
 }

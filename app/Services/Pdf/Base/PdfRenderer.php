@@ -17,7 +17,7 @@ class PdfRenderer
         return View::make($template->getView(), array_merge(
             $template->getData($options),
             [
-                'cssPath' => ViteHelper::viteAsset('resources/css/pdf/theme.css'),
+                'cssPath' => ViteHelper::viteAsset('resources/css/pdf/pdf.css'),
             ]
         ))->render();
     }

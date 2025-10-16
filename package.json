@@ -2,19 +2,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "concurrently \"npm run dev:admin\" \"npm run dev:pdf:watch\"",
-        "dev:admin": "vite --config vite.config.js",
-        "dev:pdf": "vite --config vite.pdf.config.js",
-        "dev:pdf:watch": "vite build --config vite.pdf.config.js --watch --mode development",
-        "dev:admin-only": "vite --config vite.config.js",
-        "dev:pdf-only": "npm run dev:pdf:watch",
-        "build": "npm run build:admin && npm run build:pdf",
-        "build:admin": "vite build --config vite.config.js",
-        "build:pdf": "vite build --config vite.pdf.config.js",
-        "clean": "powershell -Command \"Remove-Item -Recurse -Force public/build, public/pdf, public/frontend -ErrorAction SilentlyContinue\"",
-        "build:tree": "node bin/build.js",
-        "dev:tree": "node bin/build.js --dev",
-        "watch:tree": "node bin/build.js --dev"
+        "build": "vite build",
+        "dev": "vite"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.9",

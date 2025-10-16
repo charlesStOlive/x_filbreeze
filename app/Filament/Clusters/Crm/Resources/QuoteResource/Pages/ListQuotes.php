@@ -26,6 +26,7 @@ class ListQuotes extends ListRecords
                 ->label('Nouveau devis')
                 ->createAnother(false)
                 ->successRedirectUrl(fn($record): string => QuoteResource::getUrl('edit', ['record' => $record]))
+                ->color('success'),
         ];
     }
 

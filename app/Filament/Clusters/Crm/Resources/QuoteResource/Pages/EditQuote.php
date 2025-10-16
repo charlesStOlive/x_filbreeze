@@ -43,8 +43,8 @@ class EditQuote extends EditRecord
     {
         return [
             // Bouton Save en premier
-            StateUtils::getStateSaveButton(),
-            QuoteResource::getDuplicateAction(),
+            StateUtils::getStateSaveButton()->color('success'),
+            QuoteResource::getDuplicateAction()->color('info'),
             ActionGroup::make([
                 StateAction::make('a_valide')
                     ->before(function ($record) {
@@ -100,8 +100,8 @@ class EditQuote extends EditRecord
     {
         return [
             // Le bouton Save est maintenant dans le header
-            StateUtils::getStateSaveButton(),
-            IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
+            StateUtils::getStateSaveButton()->color('success'),
+            IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden)->color('info'),
             $this->getCancelFormAction()
         ];
     }
@@ -215,6 +215,7 @@ class EditQuote extends EditRecord
                                 ->action(function ($record) {
                                     $record->cleanUnactive();
                                 })
+                                ->color('danger')
                                 ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0))
                         ])->buttonGroup(),
                     ]),
