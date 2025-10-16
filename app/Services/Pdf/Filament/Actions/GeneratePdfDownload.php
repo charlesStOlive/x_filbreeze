@@ -2,9 +2,10 @@
 
 namespace App\Services\Pdf\Filament\Actions;
 
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ViewField;
 use App\Services\Pdf\Base\BasePdfTemplate;
 use App\Services\Document\Filament\Actions\BaseDocumentAction;
@@ -41,7 +42,30 @@ class GeneratePdfDownload extends BaseDocumentAction
                                 if ($templateClass) {
                                     $set('template_options', $templateClass::getDefaultOptions());
                                 }
-                            }),
+                            })
+                            ->suffixAction(
+                                Action::make('preview')
+                                    ->icon('heroicon-o-eye')
+                                    ->label('Aperçu')
+                                    ->tooltip('Ouvrir l\'aperçu du template')
+                                    ->url(function (callable $get) use ($record) {
+                                        $template = $get('template');
+                                        if (!$template || !$record) {
+                                            return null;
+                                        }
+                                        
+                                        // Extraire le nom du template (après 'pdf_')
+                                        $templateName = str_replace('pdf_', '', $template);
+                                        
+                                        // Génerer l'URL avec le nom du template
+                                        return route('filament.admin.crm.resources.quotes.preview-pdf', [
+                                            'record' => $record->id,
+                                            'template' => $templateName
+                                        ]);
+                                    })
+                                    ->openUrlInNewTab()
+                                    ->disabled(fn(callable $get) => !$get('template'))
+                            ),
 
                         Group::make()
                             ->schema(function (callable $get) use ($record) {

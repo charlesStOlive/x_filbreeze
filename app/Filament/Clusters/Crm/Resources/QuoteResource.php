@@ -551,7 +551,7 @@ class QuoteResource extends Resource
         return [
             'index' => ListQuotes::route('/'),
             'edit' => EditQuote::route('/{record}/edit'),
-            'preview-pdf' => PreviewPdf::route('/{record}/preview-pdf'),
+            'preview-pdf' => PreviewPdf::route('/{record}/preview-pdf/{template?}'),
         ];
     }
 }

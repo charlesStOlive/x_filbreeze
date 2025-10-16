@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Livewire\EmailTemplateTester;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;

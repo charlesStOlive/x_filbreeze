@@ -167,7 +167,7 @@ abstract class BasePdfTemplate implements DocumentProducer
         }
 
         $template = new $templateClass($record, $options);
-        $html = app(PdfRenderer::class)->render($template, $options);
+        $html = app(PdfRenderer::class)->render($template, $options, true); // Hot reload pour les previews
 
         return ['html' => $html];
     }

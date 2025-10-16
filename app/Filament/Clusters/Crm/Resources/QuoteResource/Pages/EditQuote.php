@@ -67,7 +67,6 @@ class EditQuote extends EditRecord
                 GeneratePdfDownload::make('downloadPdf')
                     ->templates([
                         QuoteBasePdfTemplate::class,
-                        QuoteDetailedPdfTemplate::class,
                     ])
             ])->label('Produire')
                 ->icon('fas-file-export')

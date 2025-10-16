@@ -47,12 +47,12 @@ class AdminPanelProvider extends PanelProvider
                 FilamentPeekPlugin::make()->disablePluginStyles(),
             ])
             ->colors([
-                'primary' => '#F87F04',
-                'secondary' => '#1ed0d0',
-                'success' => '#1eaa1e',
-                'error' => '#851111',
-                'warning' => '#b1661b',
-                'info' => '#2f70b2',
+                'primary' => '#DB8E57',
+                'secondary' => '#55cec4',
+                'success' => '#33c233',
+                'error' => '#972121',
+                'warning' => '#b26e2b',
+                'info' => '#3e79b4',
             ])
             ->maxContentWidth(Width::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

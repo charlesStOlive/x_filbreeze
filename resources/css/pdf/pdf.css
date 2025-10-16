@@ -1,8 +1,8 @@
 @import "tailwindcss";
 @plugin '@tailwindcss/typography';
 
-@source "./resources/views/pdf/**/*.blade.php";
-@source "./app/Services/Pdf/**/*.php";
+@source "../../views/pdf/**/*.blade.php";
+@source "../../../app/Services/Pdf/**/*.php";
 
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
@@ -86,29 +86,7 @@
   .pdf-content {
     color: black;
   }
-
-  /* Force tous les éléments à l'intérieur de pdf-content */
   
-
-  /* Exceptions pour les couleurs spécifiques dans le PDF */
-  .pdf-content .text-primary, 
-  .pdf-content .text-primary:where(.dark, .dark *) {
-    color: var(--color-primary-base) !important;
-  }
-
-  .pdf-content .bg-primary,
-  .pdf-content .bg-primary:where(.dark, .dark *) {
-    background-color: var(--color-primary-base) !important;
-    color: white !important; 
-  }
-
-  
-
-  /* Force les liens en couleur primaire dans le PDF */
-  .pdf-content a,
-  .pdf-content a:where(.dark, .dark *) {
-    color: var(--color-primary-base) !important;
-  }
 
 }
 
