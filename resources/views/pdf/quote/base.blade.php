@@ -104,12 +104,12 @@
                         </div>
                     </div>
                 @else
-                <div class="pt-2 text-sm w-full grid grid-cols-6 text-right">
+                <div class="pt-2  w-full grid grid-cols-6 text-lg text-right">
                     <div class="col-span-3">
                         &nbsp;
                     </div>
                     <div class="col-span-2">
-                        Total HT
+                        Total HT 
                     </div>
                     <div class="col-span-1">
                         {{ number_format($quote->total_ht ?? 0, 2, ',', ' ') }} €
