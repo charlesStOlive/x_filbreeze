@@ -61,22 +61,6 @@ abstract class BaseDocumentAction extends Action
         $incompatibleTemplates = [];
 
         foreach ($this->templates as $templateClass) {
-            // Forcer le chargement de la classe si elle n'est pas déjà chargée
-            if (!class_exists($templateClass)) {
-                \Log::warning("Classe template non trouvée: {$templateClass}");
-                continue;
-            }
-            
-            // Debug logging - À supprimer après résolution
-            \Log::info('Template validation debug', [
-                'template_class' => $templateClass,
-                'expected_type' => $expectedType,
-                'is_string' => is_string($templateClass),
-                'class_exists' => class_exists($templateClass),
-                'class_parents' => class_parents($templateClass),
-                'is_subclass_of' => is_subclass_of($templateClass, $expectedType),
-            ]);
-            
             if (!is_subclass_of($templateClass, $expectedType)) {
                 $incompatibleTemplates[] = $templateClass;
             }
