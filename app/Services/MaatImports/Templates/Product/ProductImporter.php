@@ -10,6 +10,7 @@ use App\Enums\ProductType;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Text;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use App\Services\MaatImports\Base\BaseMaatImporter;
@@ -41,6 +42,12 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                 ->label('Créer automatiquement les gammes manquantes')
                 ->helperText('Si activé, les gammes inexistantes seront créées automatiquement. Sinon, les lignes avec des gammes inexistantes seront ignorées.')
                 ->default($this->getOption('create_missing_gamme')),
+            
+            
+            Text::make('Pour faire un Update la colonne ID est obligatoire')
+                ->color('info')
+                ->icon('heroicon-o-information-circle')
+
         ];
     }
 

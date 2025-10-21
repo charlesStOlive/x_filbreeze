@@ -7,6 +7,7 @@ use Throwable;
 use App\Models\Company;
 use App\Models\Product;
 use Illuminate\Support\Collection;
+use Filament\Schemas\Components\Text;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use App\Services\MaatImports\Base\BaseMaatImporter;
@@ -31,7 +32,11 @@ class CompanyProductsImporter extends BaseMaatImporter implements ToCollection, 
 
     public function getForm(): array
     {
-        return [];
+        return [
+            Text::make('Attention seul les infos contenus dans l\'excel seront conservés, le reste sera supprimé.')
+                ->color('info')
+                ->icon('heroicon-o-information-circle')
+        ];
     }
 
     public function collection(Collection $rows): void

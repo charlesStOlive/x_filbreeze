@@ -30,7 +30,7 @@ class CompanyProductsExporter extends BaseExcelTemplate
         ];
     }
 
-    public function getColumns(): array
+    public function getColumns(array $options = []): array
     {
         return [
             'code' => 'code',

@@ -25,24 +25,40 @@ class ProductMaatExporter extends BaseExcelTemplate
     {
         return [
             'set_euro_column' => true,
+            'include_id' => false,
         ];
     }
 
-    public function getColumns(): array
+    public function getColumns(array $options = []): array
     {
-        return [
+        $options = $this->getMergedOptions($options);
+        
+        $columns = [];
+        
+        if ($options['include_id']) {
+            $columns['id'] = 'ID';
+        }
+        
+        $columns = array_merge($columns, [
             'code' => 'code',
             'title' => 'title',
             'unit_price' => 'unit_price',
             'gamme' => 'gamme',
             'type' => 'type',
-        ];
+        ]);
+        
+        return $columns;
     }
 
     public function getForm(): array
     {
         return [
             Group::make([
+                Toggle::make('include_id')
+                    ->label('Ajouter les ID')
+                    ->helperText('Obligatoire si vous voulez faire un UPDATE')
+                    ->default($this->getOption('include_id'))
+                    ->live(),
                 Toggle::make('set_euro_column')
                     ->label('Activer format €')
                     ->default($this->getOption('set_euro_column'))
@@ -63,14 +79,22 @@ class ProductMaatExporter extends BaseExcelTemplate
 
         $products = Product::with(['gamme'])->get();
 
-        return $products->map(function (Product $product) {
-            return [
+        return $products->map(function (Product $product) use ($options) {
+            $data = [];
+            
+            if ($options['include_id']) {
+                $data['id'] = $product->id;
+            }
+            
+            $data = array_merge($data, [
                 'code' => $product->code,
                 'title' => $product->title,
                 'unit_price' => $product->unit_price,
                 'gamme' => $product->gamme?->slug,
                 'type' => $product->type?->value,
-            ];
+            ]);
+            
+            return $data;
         });
     }
 
@@ -78,8 +102,13 @@ class ProductMaatExporter extends BaseExcelTemplate
     {
         $options = $this->getMergedOptions($options);
 
-        return $options['set_euro_column']
-            ? ['C' => NumberFormat::FORMAT_CURRENCY_EUR] // colonne "unit_price"
-            : [];
+        if (!$options['set_euro_column']) {
+            return [];
+        }
+
+        // Si on inclut l'ID, la colonne unit_price se décale de A vers D au lieu de C
+        $unitPriceColumn = $options['include_id'] ? 'D' : 'C';
+        
+        return [$unitPriceColumn => NumberFormat::FORMAT_CURRENCY_EUR];
     }
 }

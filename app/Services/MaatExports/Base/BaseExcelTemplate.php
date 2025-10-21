@@ -44,7 +44,7 @@ abstract class BaseExcelTemplate implements DocumentProducer
         return $this->options[$key] ?? static::getDefaultOptions()[$key] ?? $default;
     }
 
-    abstract public function getColumns(): array;
+    abstract public function getColumns(array $options = []): array;
 
     abstract public function getFileName(array $options = []): string;
 
@@ -79,8 +79,10 @@ abstract class BaseExcelTemplate implements DocumentProducer
     {
         $options = $this->getMergedOptions($options);
 
+        $columns = $this->getColumns($options);
+        
         $rows = $this->getData($options)
-            ->map(fn($item) => collect($this->getColumns())->keys()->map(
+            ->map(fn($item) => collect($columns)->keys()->map(
                 fn($key) => data_get($item, $key)
             ));
 
@@ -90,7 +92,7 @@ abstract class BaseExcelTemplate implements DocumentProducer
         Excel::store(
             new FromCollectionExport(
                 rows: $rows,
-                headings: array_values($this->getColumns()),
+                headings: array_values($columns),
                 columnFormats: $this->getColumnFormats($options),
             ),
             $relativePath,
