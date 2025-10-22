@@ -4,8 +4,96 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "77dfcfbb4050519c632c8f03ad2d6d11",
+    "content-hash": "5a26f88d0eff2fccbd7c5858ff6a17ec",
     "packages": [
+        {
+            "name": "a909m/filament-statefusion",
+            "version": "v2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/A909M/Filament-StateFusion.git",
+                "reference": "5354367c59aa78496c6749e465e48f150b7581fd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/A909M/Filament-StateFusion/zipball/5354367c59aa78496c6749e465e48f150b7581fd",
+                "reference": "5354367c59aa78496c6749e465e48f150b7581fd",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "php": "^8.1",
+                "spatie/laravel-model-states": "^2.10",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.24",
+                "nunomaduro/collision": "^8.8",
+                "nunomaduro/larastan": "^3.7",
+                "orchestra/testbench": "^8.0|^9.0|^10.0",
+                "pestphp/pest": "^4.1",
+                "pestphp/pest-plugin-arch": "^4.0",
+                "phpstan/extension-installer": "^1.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "FilamentStateFusion": "A909M\\FilamentStateFusion\\Facades\\FilamentStateFusion"
+                    },
+                    "providers": [
+                        "A909M\\FilamentStateFusion\\FilamentStateFusionServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "A909M\\FilamentStateFusion\\": "src/",
+                    "A909M\\FilamentStateFusion\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "A909M",
+                    "email": "assemcc2022@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Filament StateFusion is a powerful FilamentPHP plugin that seamlessly integrates Spatie Laravel Model States into the Filament admin panel. This package provides an intuitive way to manage model states, transitions, and filtering within Filament, enhancing the user experience and developer productivity.",
+            "homepage": "https://github.com/a909m/filament-statefusion",
+            "keywords": [
+                "A909M",
+                "admin-panel",
+                "filament",
+                "filament-admin",
+                "filament-form",
+                "filament-infolist",
+                "filament-plugin",
+                "filament-statefusion",
+                "filament-table",
+                "filamentphp",
+                "laravel",
+                "spatie",
+                "stae-p",
+                "state-machine",
+                "state-management"
+            ],
+            "support": {
+                "issues": "https://github.com/a909m/filament-statefusion/issues",
+                "source": "https://github.com/a909m/filament-statefusion"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/A909M",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-09-28T17:05:26+00:00"
+        },
         {
             "name": "amphp/amp",
             "version": "v3.1.1",

@@ -2,7 +2,6 @@
 
 namespace App\Models\States\Invoice;
 
-use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
@@ -16,9 +15,9 @@ class Submited extends InvoiceState implements HasDescription, HasColor, HasIcon
         return 'Soumise';
     }
  
-    public function getColor(): array
+    public function getColor(): string
     {
-        return Color::Blue;
+        return 'info';
     }
  
     public function getIcon(): string

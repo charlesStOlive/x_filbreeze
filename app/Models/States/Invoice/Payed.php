@@ -2,7 +2,6 @@
 
 namespace App\Models\States\Invoice;
 
-use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
@@ -17,9 +16,9 @@ class Payed extends InvoiceState implements HasDescription, HasColor, HasIcon, H
         return __('Payé');
     }
  
-    public function getColor(): array
+    public function getColor(): string
     {
-        return Color::Green;
+        return 'success';
     }
  
     public function getIcon(): string

@@ -7,35 +7,32 @@ use Closure;
 use DateTime;
 use Filament\Forms;
 use App\Models\Invoice;
-use Filament\Support\Colors\Color;
 use Spatie\ModelStates\Transition;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
-use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
-use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+// use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
+// use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
+use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 use Filament\Support\Contracts\HasIcon;
 
 class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
-    private Invoice $invoice;
-    private DateTime $submited_at;
-
-    public function __construct(Invoice $invoice, DateTime $submited_at = null)
-    {
-        $this->invoice = $invoice;
-        $this->submited_at  = $submited_at ? $submited_at : now();
-    }
+    public function __construct(
+        private Invoice $invoice,
+        private ?array $data = null
+    ) {}
 
     public function getLabel(): string
     {
         return __('Soumettre');
     }
 
-    public function getColor(): array
+    public function getColor(): string
     {
-        return Color::Green;
+        return 'info';
     }
 
     public function getIcon(): string
@@ -47,7 +44,7 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
     public function handle(): Invoice
     {
         $this->invoice->state = new Submited($this->invoice);
-        $this->invoice->submited_at = $this->submited_at;
+        $this->invoice->submited_at = $this->data['submited_at'];
         $this->invoice->save();
         return $this->invoice;
     }
@@ -56,7 +53,7 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
     {
         return new self(
             invoice: $model,
-            submited_at: now(),
+            data: $formData,
         );
     }
 

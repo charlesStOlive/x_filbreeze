@@ -5,12 +5,14 @@ namespace App\Models\States\Invoice;
 
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
-use App\Filament\ModelStates\Contracts\FilamentSpatieState;
-use App\Filament\ModelStates\Concerns\ProvidesSpatieStateToFilament;
+// use App\Filament\ModelStates\Contracts\FilamentSpatieState;
+// use App\Filament\ModelStates\Concerns\ProvidesSpatieStateToFilament;
+use A909M\FilamentStateFusion\Concerns\StateFusionInfo;
+use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion;
 
-abstract class InvoiceState extends State implements FilamentSpatieState
+abstract class InvoiceState extends State implements HasFilamentStateFusion
 {
-    use ProvidesSpatieStateToFilament;
+    use StateFusionInfo;
 
     public $isSaveHidden = false;
     

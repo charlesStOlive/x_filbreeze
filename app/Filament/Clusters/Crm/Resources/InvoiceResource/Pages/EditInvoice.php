@@ -20,7 +20,7 @@ use App\Models\States\Invoice\Submited;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Section;
-use App\Filament\ModelStates\StateAction;
+use A909M\FilamentStateFusion\Actions\StateFusionAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Forms\Components\MarkdownEditor;
@@ -48,17 +48,17 @@ class EditInvoice extends EditRecord
         return [
             StateUtils::getStateSaveButton(),
             ActionGroup::make([
-                StateAction::make('state_submited')
+                StateFusionAction::make('state_submited')
                     ->transitionTo(Submited::class)
                     ->after(function ($record) {
                         return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
                     }),
-                StateAction::make('state_payed')
+                StateFusionAction::make('state_payed')
                     ->transitionTo(Payed::class)
                     ->after(function () {
                         return redirect()->to(InvoiceResource::getUrl('index'));
                     }),
-                StateAction::make('state_canceled')
+                StateFusionAction::make('state_canceled')
                     ->transitionTo(Canceled::class)
                     ->after(function () {
                         return redirect()->to(InvoiceResource::getUrl('index'));
@@ -93,17 +93,17 @@ class EditInvoice extends EditRecord
             StateUtils::getStateSaveButton(),
             IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
             ActionGroup::make([
-                StateAction::make('state_submited')
+                StateFusionAction::make('state_submited')
                     ->transitionTo(Submited::class)
                     ->after(function ($record) {
                         return redirect()->to(InvoiceResource::getUrl('edit', ['record' => $record]));
                     }),
-                StateAction::make('state_payed')
+                StateFusionAction::make('state_payed')
                     ->transitionTo(Payed::class)
                     ->after(function () {
                         return redirect()->to(InvoiceResource::getUrl('index'));
                     }),
-                StateAction::make('state_canceled')
+                StateFusionAction::make('state_canceled')
                     ->transitionTo(Canceled::class)
                     ->after(function () {
                         return redirect()->to(InvoiceResource::getUrl('index'));

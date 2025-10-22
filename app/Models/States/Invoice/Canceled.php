@@ -2,7 +2,6 @@
 
 namespace App\Models\States\Invoice;
 
-use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
@@ -18,9 +17,9 @@ class Canceled extends InvoiceState implements HasDescription, HasColor, HasIcon
         return __('Abandonné');
     }
 
-    public function getColor(): array
+    public function getColor(): string
     {
-        return Color::Red;
+        return 'danger';
     }
 
     public function getIcon(): string

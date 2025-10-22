@@ -32,11 +32,12 @@ use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Grouping\Group;
 
-use App\Filament\ModelStates\StateColumn;
+
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Columns\Summarizers\Sum;
+use A909M\FilamentStateFusion\Tables\Columns\StateFusionSelectColumn;
 use App\Filament\Components\Tables\DateColumn;
-use App\Filament\ModelStates\StateSelectFilter;
+use A909M\FilamentStateFusion\Tables\Filters\StateFusionSelectFilter;
 use App\Filament\Components\Tables\DateTimeColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -88,7 +89,7 @@ class InvoiceResource extends Resource
                     ->sortable()
                     ->description(fn($record): string => Str::limit($record->title, 35))
                     ->searchable(['code', 'title']),
-                StateColumn::make('state')
+                TextColumn::make('state')
                     ->badge(),
                 TextColumn::make('company.title')
                     ->sortable()
@@ -115,7 +116,7 @@ class InvoiceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                StateSelectFilter::make('state')
+                StateFusionSelectFilter::make('state')
                     ->multiple()->default(['draft', 'submited', 'payed'])
             ])
             ->recordActions([

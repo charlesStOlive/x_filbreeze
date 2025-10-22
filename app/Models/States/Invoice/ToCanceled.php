@@ -5,32 +5,31 @@ namespace App\Models\States\Invoice;
 use Closure;
 use Filament\Forms;
 use App\Models\Invoice;
-use Filament\Support\Colors\Color;
 use Spatie\ModelStates\Transition;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
-use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
-use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+// use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
+// use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
+use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 use Filament\Support\Contracts\HasIcon;
 
 class ToCanceled extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
-    private Invoice $invoice;
-
-    public function __construct(Invoice $invoice)
-    {
-        $this->invoice = $invoice;
-    }
+    public function __construct(
+        private Invoice $invoice,
+        private ?array $data = null
+    ) {}
 
     public function getLabel(): string
     {
         return __('Abandonner');
     }
  
-    public function getColor(): array
+    public function getColor(): string
     {
-        return Color::Red;
+        return 'red';
     }
 
     public function getIcon(): string
