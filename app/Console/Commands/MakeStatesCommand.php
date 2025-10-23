@@ -33,10 +33,11 @@ class MakeStatesCommand extends Command
                 break;
             }
 
-            $state = Str::studly($state);
-            $states[] = $state;
-            $this->createStateFile($model, $modelLowercase, $state);
-            $this->info("État '$state' créé avec succès.");
+            $stateName = Str::studly($state);
+            $stateLabel = $this->ask("Label pour l'état '$stateName'", $state);
+            $states[] = ['name' => $stateName, 'label' => $stateLabel];
+            $this->createStateFile($model, $modelLowercase, $stateName, $stateLabel);
+            $this->info("État '$stateName' créé avec succès.");
         }
 
         // Création des transitions
@@ -47,14 +48,14 @@ class MakeStatesCommand extends Command
 
             foreach ($states as $from) {
                 foreach ($states as $to) {
-                    if ($from !== $to) {
-                        $combinations[] = "$from -> $to";
+                    if ($from['name'] !== $to['name']) {
+                        $combinations[] = $from['name'] . " -> " . $to['name'];
                     }
                 }
             }
 
             foreach ($states as $to) {
-                $combinations[] = "To $to";
+                $combinations[] = "To " . $to['name'];
             }
 
             foreach ($combinations as $index => $combination) {
@@ -79,14 +80,16 @@ class MakeStatesCommand extends Command
                     $combination = $combinations[$choice];
 
                     if (str_starts_with($combination, 'To ')) {
-                        $to = str_replace('To ', '', $combination);
-                        $transitions[] = [null, $to];
-                        $this->createToTransitionFile($model, $modelLowercase, $to);
-                        $this->info("Transition 'To $to' créée avec succès.");
+                        $toStateName = str_replace('To ', '', $combination);
+                        $transitionLabel = $this->ask("Label pour la transition 'To $toStateName'", "Passer à " . strtolower($toStateName));
+                        $transitions[] = [null, $toStateName, $transitionLabel];
+                        $this->createToTransitionFile($model, $modelLowercase, $toStateName, $transitionLabel);
+                        $this->info("Transition 'To $toStateName' créée avec succès.");
                     } else {
                         [$from, $to] = explode(' -> ', $combination);
-                        $transitions[] = [$from, $to];
-                        $this->createFromToTransitionFile($model, $modelLowercase, $from, $to);
+                        $transitionLabel = $this->ask("Label pour la transition '$from -> $to'", "Passer de $from à $to");
+                        $transitions[] = [$from, $to, $transitionLabel];
+                        $this->createFromToTransitionFile($model, $modelLowercase, $from, $to, $transitionLabel);
                         $this->info("Transition '$from -> $to' créée avec succès.");
                     }
                 }
@@ -98,19 +101,21 @@ class MakeStatesCommand extends Command
         $this->info("Fichier {$model}State créé avec succès.");
     }
 
-    private function createStateFile(string $model, string $modelLowercase, string $state)
+    private function createStateFile(string $model, string $modelLowercase, string $state, string $stateLabel)
     {
         $stub = $this->files->get(base_path('stubs/state.stub'));
         $stateContent = str_replace([
             '{{ model }}',
             '{{ model_lowercase }}',
             '{{ state }}',
-            '{{ state_lowercase }}'
+            '{{ state_lowercase }}',
+            '{{ state_label }}'
         ], [
             $model,
             $modelLowercase,
             $state,
-            strtolower($state)
+            strtolower($state),
+            $stateLabel
         ], $stub);
 
         $path = app_path("Models/States/{$model}/{$state}.php");
@@ -119,17 +124,19 @@ class MakeStatesCommand extends Command
         $this->files->put($path, $stateContent);
     }
 
-    private function createToTransitionFile(string $model, string $modelLowercase, string $to)
+    private function createToTransitionFile(string $model, string $modelLowercase, string $to, string $transitionLabel)
     {
         $stub = $this->files->get(base_path('stubs/to_transition.stub'));
         $transitionContent = str_replace([
             '{{ model }}',
             '{{ model_lowercase }}',
-            '{{ to }}'
+            '{{ to }}',
+            '{{ transition_label }}'
         ], [
             $model,
             $modelLowercase,
-            $to
+            $to,
+            $transitionLabel
         ], $stub);
 
         $path = app_path("Models/States/{$model}/To{$to}.php");
@@ -138,22 +145,24 @@ class MakeStatesCommand extends Command
         $this->files->put($path, $transitionContent);
     }
 
-    private function createFromToTransitionFile(string $model, string $modelLowercase, string $from, string $to)
+    private function createFromToTransitionFile(string $model, string $modelLowercase, string $from, string $to, string $transitionLabel)
     {
         $stub = $this->files->get(base_path('stubs/from_to_transition.stub'));
         $transitionContent = str_replace([
             '{{ model }}',
             '{{ model_lowercase }}',
             '{{ from }}',
-            '{{ to }}'
+            '{{ to }}',
+            '{{ transition_label }}'
         ], [
             $model,
             $modelLowercase,
             $from,
-            $to
+            $to,
+            $transitionLabel
         ], $stub);
 
-        $path = app_path("Models/States/{$model}/Transitions/From{$from}To{$to}.php");
+        $path = app_path("Models/States/{$model}/{$from}To{$to}.php");
         $this->makeDirectory(dirname($path));
 
         $this->files->put($path, $transitionContent);
@@ -163,15 +172,16 @@ class MakeStatesCommand extends Command
     {
         $stub = $this->files->get(base_path('stubs/state_class.stub'));
 
-        $statesList = implode(",\n        ", array_map(fn($state) => "{$model}\\$state::class", $states));
-        $firstState = $states[0] ?? 'Draft';
+        $firstState = $states[0]['name'] ?? 'Draft';
 
         $transitionComments = [];
         foreach ($transitions as $transition) {
             if ($transition[0] === null) {
-                $transitionComments[] = "//->allowTransition(To{$transition[1]}::class)";
+                // To transition
+                $transitionComments[] = "->allowTransition({$transition[1]}::class, To{$transition[1]}::class)";
             } else {
-                $transitionComments[] = "//->allowTransition({{$transition[0]}::class, {$model}\\To{$transition[1]}::class)";
+                // From -> To transition  
+                $transitionComments[] = "->allowTransition({$transition[0]}::class, {$transition[1]}::class, {$transition[0]}To{$transition[1]}::class)";
             }
         }
         $transitionsBlock = implode("\n            ", $transitionComments);
@@ -179,13 +189,11 @@ class MakeStatesCommand extends Command
         $stateClassContent = str_replace([
             '{{ model }}',
             '{{ model_lowercase }}',
-            '{{ states }}',
             '{{ first_state_created }}',
             '{{ transitions }}'
         ], [
             $model,
             $modelLowercase,
-            $statesList,
             $firstState,
             $transitionsBlock
         ], $stub);

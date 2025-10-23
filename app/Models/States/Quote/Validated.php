@@ -2,7 +2,6 @@
 
 namespace App\Models\States\Quote;
 
-use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
@@ -18,9 +17,9 @@ class Validated extends QuoteState implements HasDescription, HasColor, HasIcon,
         return __('Validé');
     }
 
-    public function getColor(): array
+    public function getColor(): string|array
     {
-        return Color::Green;
+        return 'success';
     }
 
     public function getIcon(): string

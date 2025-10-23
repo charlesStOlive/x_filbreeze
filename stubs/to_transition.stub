@@ -4,28 +4,42 @@ namespace App\Models\States\{{ model }};
 
 use App\Models\{{ model }};
 use Closure;
-use DateTime;
 use Filament\Forms;
 use Spatie\ModelStates\Transition;
-use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
-use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
+use Filament\Support\Contracts\HasIcon;
+use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
+use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class To{{ to }} extends Transition implements FilamentSpatieTransition
+class To{{ to }} extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
-    private {{ model }} ${{ model_lowercase }};
-    private $other;
 
-    public function __construct({{ model }} ${{ model_lowercase }}, $other = null)
+    public function __construct(
+        private {{ model }} ${{ model_lowercase }},
+        private ?array $data = null
+    ) {}
+
+    public function getLabel(): string
     {
-        $this->{{ model_lowercase }} = ${{ model_lowercase }};
-        $this->other  = $other ? $other : null;
+        return __('{{ transition_label }}');
+    }
+ 
+    public function getColor(): string
+    {
+        return 'primary';
+    }
+
+    public function getIcon(): string
+    {
+        return 'heroicon-o-arrow-right';
     }
 
      public function handle(): {{ model }}
     {
         $this->{{ model_lowercase }}->state = new {{ to }}($this->{{ model_lowercase }});
-        $this->{{ model_lowercase }}->other = $this->other;
+        // Exemple: $this->{{ model_lowercase }}->validated_at = $this->data['validated_at'] ?? now();
         $this->{{ model_lowercase }}->save();
         return $this->{{ model_lowercase }};
     }
@@ -34,17 +48,17 @@ class To{{ to }} extends Transition implements FilamentSpatieTransition
     {
         return new self(
             {{ model_lowercase }}: $model,
-            other: null,
+            data: $formData,
         );
     }
 
     public function form(): array | Closure | null
     {
         return [
-            Forms\Components\DateTimePicker::make('other')
-                ->label('other')
-                ->default(now())
-                ->helperText(__('other...'))
+            // Forms\Components\DateTimePicker::make('validated_at')
+            //     ->label('Validé le')
+            //     ->default(now())
+            //     ->helperText(__('Date de validation'))
         ];
     }
 

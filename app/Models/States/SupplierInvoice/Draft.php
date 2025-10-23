@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Models\States\Quote;
+namespace App\Models\States\SupplierInvoice;
 
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-class Draft extends QuoteState implements HasDescription, HasColor, HasIcon, HasLabel
+class Draft extends SupplierInvoiceState implements HasDescription, HasColor, HasIcon, HasLabel
 {
     public static $name = 'draft';
     public $isSaveHidden = false;
@@ -29,6 +29,6 @@ class Draft extends QuoteState implements HasDescription, HasColor, HasIcon, Has
 
     public function getDescription(): ?string
     {
-        return 'Brouillon';
+        return __('Brouillon');
     }
 }

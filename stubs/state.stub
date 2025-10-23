@@ -2,7 +2,6 @@
 
 namespace App\Models\States\{{ model }};
 
-use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
@@ -11,16 +10,16 @@ use Filament\Support\Contracts\HasLabel;
 class {{ state }} extends {{ model }}State implements HasDescription, HasColor, HasIcon, HasLabel
 {
     public static $name = '{{ state_lowercase }}';
-    public $isSaveHidden = true;
+    public $isSaveHidden = false;
 
     public function getLabel(): string
     {
-        return __('{{ state_lowercase }}');
+        return __('{{ state_label }}');
     }
 
-    public function getColor(): array
+    public function getColor(): string
     {
-        return Color::Gray;
+        return 'gray';
     }
 
     public function getIcon(): string
@@ -30,6 +29,6 @@ class {{ state }} extends {{ model }}State implements HasDescription, HasColor, 
 
     public function getDescription(): ?string
     {
-        return '{{ state_lowercase }} description';
+        return __('{{ state_label }}');
     }
 }

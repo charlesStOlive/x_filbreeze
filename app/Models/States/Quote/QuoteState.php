@@ -4,12 +4,12 @@ namespace App\Models\States\Quote;
 
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
-use App\Filament\ModelStates\Contracts\FilamentSpatieState;
-use App\Filament\ModelStates\Concerns\ProvidesSpatieStateToFilament;
+use A909M\FilamentStateFusion\Concerns\StateFusionInfo;
+use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion;
 
-abstract class QuoteState extends State implements FilamentSpatieState
+abstract class QuoteState extends State implements HasFilamentStateFusion
 {
-    use ProvidesSpatieStateToFilament;
+    use StateFusionInfo;
 
     public $isSaveHidden = false;
 
@@ -19,6 +19,7 @@ abstract class QuoteState extends State implements FilamentSpatieState
             ->default(Draft::class)
             ->allowTransition(Draft::class, Validated::class, ToValidated::class)
             ->allowTransition(Draft::class, Canceled::class, ToCanceled::class)
+            ->allowTransition(Canceled::class, Draft::class, CanceledToDraft::class)
             ->allowTransition(Validated::class, Draft::class, ToDraft::class);
     }
 }

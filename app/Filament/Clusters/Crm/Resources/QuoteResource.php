@@ -33,11 +33,11 @@ use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Builder;
-use App\Filament\ModelStates\StateColumn;
 use Filament\Tables\Actions\CreateAction;
 use App\Services\Helpers\ProductFormHelper;
 use App\Filament\Components\Tables\DateColumn;
-use App\Filament\ModelStates\StateSelectFilter;
+use A909M\FilamentStateFusion\Tables\Columns\StateFusionSelectColumn;
+use A909M\FilamentStateFusion\Tables\Filters\StateFusionSelectFilter;
 use BackedEnum;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
@@ -48,7 +48,7 @@ class QuoteResource extends Resource
 {
     protected static ?string $model = Quote::class;
 
-    protected static string | BackedEnum | null $navigationIcon = 'fas-file-invoice';
+    protected static string | \BackedEnum | null $navigationIcon = 'fas-file-invoice';
 
     protected static ?string $cluster = Crm::class;
 
@@ -65,7 +65,7 @@ class QuoteResource extends Resource
                     ->sortable()
                     ->description(fn($record): string => Str::limit($record->title, 35))
                     ->searchable(['title', 'code']),
-                StateColumn::make('state')
+                TextColumn::make('state')
                     ->badge(),
                 TextColumn::make('company.title')
                     ->sortable()
@@ -86,7 +86,7 @@ class QuoteResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                StateSelectFilter::make('state')
+                StateFusionSelectFilter::make('state')
                     ->multiple()->default(['draft', 'validated'])
             ])
             ->recordActions([

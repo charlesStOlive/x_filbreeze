@@ -3,6 +3,7 @@
 namespace App\Models\States\{{ model }};
 
 use App\Models\{{ model }};
+use App\Filament\Contracts\HasRedirection;
 use Closure;
 use Filament\Forms;
 use Spatie\ModelStates\Transition;
@@ -12,7 +13,7 @@ use Filament\Support\Contracts\HasIcon;
 use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
 use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class {{ from }}To{{ to }} extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
+class {{ from }}To{{ to }} extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon, HasRedirection
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -60,6 +61,17 @@ class {{ from }}To{{ to }} extends Transition implements FilamentSpatieTransitio
             //     ->default(now())
             //     ->helperText(__('Date de validation'))
         ];
+    }
+
+    public function getRedirectUrl($model): ?string
+    {
+        // Exemple: rediriger vers la page d'édition après validation
+        // return route('filament.admin.resources.{{ model_lowercase }}s.edit', $model);
+        
+        // Ou rediriger vers la liste
+        // return route('filament.admin.resources.{{ model_lowercase }}s.index');
+        
+        return null; // Pas de redirection par défaut
     }
 
 }

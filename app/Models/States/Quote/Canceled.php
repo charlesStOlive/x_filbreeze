@@ -18,14 +18,14 @@ class Canceled extends QuoteState implements HasDescription, HasColor, HasIcon, 
         return __('Abandonné');
     }
 
-    public function getColor(): array
+    public function getColor(): string|array
     {
         return Color::Red;
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-x-mark';
+        return 'heroicon-o-x-mark';
     }
 
     public function getDescription(): ?string

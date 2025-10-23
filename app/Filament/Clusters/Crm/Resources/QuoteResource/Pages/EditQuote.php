@@ -2,33 +2,35 @@
 
 namespace App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
 
-use Filament\Actions\DeleteAction;
-use Filament\Forms\Form;
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\MarkdownEditor;
-use Filament\Forms\Components\Hidden;
-use Filament\Schemas\Components\Section;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
-use Filament\Schemas\Components\Grid;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Forms;
 use App\Models\Quote;
 use Filament\Infolists;
+use Filament\Forms\Form;
+use Filament\Actions\Action;
+use Filament\Schemas\Schema;
 use App\Filament\Utils\IaUtils;
 use App\Filament\Utils\PdfUtils;
+use Filament\Actions\ActionGroup;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Quote\Draft;
+use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
 use App\Models\States\Quote\Validated;
-use Filament\Actions\ActionGroup;
+use App\Models\States\Quote\QuoteState;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
-use App\Filament\ModelStates\StateAction;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\DatePicker;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Forms\Components\MarkdownEditor;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
+use A909M\FilamentStateFusion\Actions\StateFusionAction;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
 use App\Services\Pdf\Templates\Quote\QuoteBasePdfTemplate;
+use App\Filament\Overrides\Actions\StateFusionActionGroup;
 use App\Services\Pdf\Templates\Quote\QuoteDetailedPdfTemplate;
 use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 
@@ -45,23 +47,29 @@ class EditQuote extends EditRecord
             // Bouton Save en premier
             StateUtils::getStateSaveButton()->color('success'),
             QuoteResource::getDuplicateAction()->color('info'),
-            ActionGroup::make([
-                StateAction::make('a_valide')
-                    ->before(function ($record) {
-                        $record->fill($this->data);
-                    })
-                    ->transitionTo(Validated::class)
-                    ->after(function ($record) {
-                        return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
-                    })->disabled(fn($record) => !$record->is_retained)
-                    ->label(fn($record) => !$record->is_retained ? 'Activer dabord le devis' : 'Valider ce devis'),
-                StateAction::make('a_delete')
-                    ->transitionTo(Draft::class),
-            ])->label('Etats')
+            // ActionGroup::make([
+            //     StateFusionAction::make('a_valide')
+            //         ->before(function ($record) {
+            //             $record->fill($this->data);
+            //         })
+            //         ->transitionTo(Validated::class)
+            //         ->after(function ($record) {
+            //             return redirect()->to(QuoteResource::getUrl('edit', ['record' => $record]));
+            //         })->disabled(fn($record) => !$record->is_retained)
+            //         ->label(fn($record) => !$record->is_retained ? 'Activer dabord le devis' : 'Valider ce devis'),
+            //     StateFusionAction::make('a_delete')
+            //         ->transitionTo(Draft::class),
+            
+            // ])->label('Etats')
+            //     ->icon('fas-code-branch')
+            //     ->button()
+            //     ->color('primary'),
+            StateFusionActionGroup::generate('state', QuoteState::class)
+                ->label('Changer état')
                 ->icon('fas-code-branch')
                 ->button()
-                ->color('primary'),
-
+                ->color('primary')
+                ->tooltip('Cliquez pour changer l\'état du devis'),
             ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft'),
                 GeneratePdfDownload::make('downloadPdf')

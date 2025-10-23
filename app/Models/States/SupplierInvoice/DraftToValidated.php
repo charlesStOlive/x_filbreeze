@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\States\{{ model }};
+namespace App\Models\States\SupplierInvoice;
 
-use App\Models\{{ model }};
+use App\Models\SupplierInvoice;
 use Closure;
 use Filament\Forms;
 use Spatie\ModelStates\Transition;
@@ -12,18 +12,18 @@ use Filament\Support\Contracts\HasIcon;
 use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
 use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class {{ from }}To{{ to }} extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
+class DraftToValidated extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
     public function __construct(
-        private {{ model }} ${{ model_lowercase }},
+        private SupplierInvoice $supplierInvoice,
         private ?array $data = null
     ) {}
 
     public function getLabel(): string
     {
-        return __('{{ transition_label }}');
+        return __('Passer de Draft à Validated');
     }
  
     public function getColor(): string
@@ -36,18 +36,18 @@ class {{ from }}To{{ to }} extends Transition implements FilamentSpatieTransitio
         return 'heroicon-o-arrow-right';
     }
 
-     public function handle(): {{ model }}
+     public function handle(): SupplierInvoice
     {
-        $this->{{ model_lowercase }}->state = new {{ to }}($this->{{ model_lowercase }});
-        // Exemple: $this->{{ model_lowercase }}->validated_at = $this->data['validated_at'] ?? now();
-        $this->{{ model_lowercase }}->save();
-        return $this->{{ model_lowercase }};
+        $this->supplierInvoice->state = new Validated($this->supplierInvoice);
+        // Exemple: $this->supplierInvoice->validated_at = $this->data['validated_at'] ?? now();
+        $this->supplierInvoice->save();
+        return $this->supplierInvoice;
     }
 
     public static function fill($model, $formData): self
     {
         return new self(
-            {{ model_lowercase }}: $model,
+            supplierInvoice: $model,
             data: $formData,
         );
     }
