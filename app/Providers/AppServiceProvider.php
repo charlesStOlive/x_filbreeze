@@ -9,6 +9,7 @@ use Filament\Tables\Table;
 use App\Policies\RolePolicy;
 use Filament\Support\Assets\Js;
 use Filament\Support\Assets\Css;
+use Filament\Support\Assets\AlpineComponent;
 use App\Policies\PermissionPolicy;
 use Filament\Support\Colors\Color;
 use Spatie\Permission\Models\Role;
@@ -94,6 +95,7 @@ class AppServiceProvider extends ServiceProvider
             Js::make('diff-js', 'https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js'),
             Js::make('diff2html-js', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js'),
             Css::make('diff2html-css', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css'),
+            AlpineComponent::make('mermaid-diagram', __DIR__ . '/../../resources/js/dist/components/mermaid-diagram.js')->loadedOnRequest(),
         ]);
         FilamentColor::register([
             'indigo' => Color::Fuchsia,

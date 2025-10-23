@@ -16,6 +16,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Schemas\Components\Grid;
 use Filament\Actions\Action;
+use App\Filament\Infolists\Components\MermaidDiagramEntry;
 use Filament\Forms\Components\DatePicker;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\ListQuotes;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\EditQuote;
@@ -91,6 +92,20 @@ class QuoteResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('voir_schema')
+                    ->label('Voir le schéma')
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('info')
+                    ->modalHeading('Diagramme des États - Quote')
+                    ->modalDescription('Visualisation des états et transitions du modèle Quote')
+                    ->infolist([
+                        \App\Filament\Infolists\Components\MermaidDiagramEntry::make('states_diagram')
+                            ->modelClass(Quote::class)
+                            ->height('500px')
+                            ->theme('default')
+                            ->lazy()
+                    ])
+                    ->modalWidth('7xl'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

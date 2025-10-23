@@ -146,3 +146,9 @@ composer require thiagoalessio/tesseract_ocr
 
 ## Pour convertir des PDF avec imagick :
 Il faut installer GhostScript : https://github.com/dlemstra/Magick.NET/blob/main/docs/ConvertPDF.md
+
+
+https://filamentphp.com/docs/4.x/schemas/custom-components#! 
+https://filamentphp.com/docs/4.x/infolists/custom-entries 
+https://filamentphp.com/docs/4.x/advanced/assets#asynchronous-alpinejs-components
+https://livewire.laravel.com/docs/alpine

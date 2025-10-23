@@ -43,16 +43,9 @@ const defaultOptions = {
     }],
 }
 
+// Compile Mermaid diagram component
 compile({
     ...defaultOptions,
-    entryPoints: ['./resources/js/components/tree/filament-tree-component.js'],
-    outfile: './resources/js/dist/components/filament-tree-component.js',
-})
-
-// Compile CSS
-compile({
-    ...defaultOptions,
-    entryPoints: ['./resources/css/tree/tree-component-modern.css'],
-    outfile: './resources/css/dist/tree-component.css',
-    loader: { '.css': 'css' },
+    entryPoints: ['./resources/js/components/mermaid-diagram.js'],
+    outfile: './resources/js/dist/components/mermaid-diagram.js',
 })

@@ -403,5 +403,6 @@ $quote->state->getTransitionableStates();
 
 ---
 
-Documentation générée le 22 octobre 2025 
+Documentation générée le 22 octobre 2025
+ 
  

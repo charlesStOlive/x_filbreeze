@@ -2,53 +2,42 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
-use Filament\Tables\Columns\TextColumn;
 use Str;
-use Filament\Actions\EditAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Forms\Components\Select;
 use App\Models\Quote;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Builder\Block;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\MarkdownEditor;
-use Filament\Schemas\Components\Grid;
-use Filament\Actions\Action;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\ListInvoices;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\PreviewPdf;
-use Filament\Forms;
-use Filament\Tables;
-use Filament\Actions;
+use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Invoice;
-use Filament\Forms\Form;
+use App\Models\Product;
 use Filament\Tables\Table;
+use Filament\Actions\Action;
+use Filament\Schemas\Schema;
 use App\Filament\Clusters\Crm;
-use Filament\Infolists\Infolist;
+use Filament\Actions\EditAction;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Tables\Grouping\Group;
-
-
-use Filament\Tables\Actions\CreateAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Illuminate\Database\Eloquent\Builder;
+use App\Services\Helpers\ProductFormHelper;
+use Filament\Forms\Components\Builder\Block;
 use Filament\Tables\Columns\Summarizers\Sum;
-use A909M\FilamentStateFusion\Tables\Columns\StateFusionSelectColumn;
+use Filament\Forms\Components\MarkdownEditor;
 use App\Filament\Components\Tables\DateColumn;
-use A909M\FilamentStateFusion\Tables\Filters\StateFusionSelectFilter;
-use App\Filament\Components\Tables\DateTimeColumn;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Builder as FormBuilder;
+use App\Filament\Infolists\Components\MermaidDiagramEntry;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\RelationManagers;
-use App\Models\Product;
-use App\Models\Company;
-use App\Enums\ProductType;
-use App\Services\Helpers\ProductFormHelper;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Components\Builder as FormBuilder;
+use A909M\FilamentStateFusion\Tables\Filters\StateFusionSelectFilter;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\PreviewPdf;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
+use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\ListInvoices;
 
 class InvoiceResource extends Resource
 {
@@ -121,6 +110,26 @@ class InvoiceResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('voir_schema')
+                    ->label('Voir le schéma')
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('info')
+                    ->modalHeading('Diagramme des États - Invoice')
+                    ->modalDescription('Visualisation des états et transitions du modèle Invoice')
+                    ->infolist([
+                        \App\Filament\Infolists\Components\MermaidDiagramEntry::make('states_diagram')
+                            ->modelClass(Invoice::class)
+                            ->height('500px')
+                            ->theme('default')
+                            ->lazy()
+                    ])
+                    ->modalWidth('7xl'),
+                Action::make('test_mermaid')
+                    ->label('Test Mermaid')
+                    ->icon('heroicon-o-bug-ant')
+                    ->color('warning')
+                    ->url(fn (Invoice $record): string => InvoiceResource::getUrl('view', ['record' => $record]))
+                    ->openUrlInNewTab(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -697,8 +706,19 @@ class InvoiceResource extends Resource
         ];
     }
 
-
-
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                MermaidDiagramEntry::make('states_diagram')
+                    ->modelClass(Invoice::class)
+                    ->height('600px')
+                    ->theme('default')
+                    ->type('flowchart')     // Options: flowchart, graph, stateDiagram, journey, gantt
+                    ->direction('TB')       // Options: LR, RL, TB (TD), BT  
+                    ->lazy()
+            ]);
+    }
 
     public static function getEloquentQuery(): EloquentBuilder
     {
@@ -717,6 +737,7 @@ class InvoiceResource extends Resource
             'index' => ListInvoices::route('/'),
             'edit' => EditInvoice::route('/{record}/edit'),
             'preview-pdf' => PreviewPdf::route('/{record}/preview-pdf'),
+            'view' => Pages\ViewInvoice::route('/{record}'),
         ];
     }
 }
