@@ -4,9 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @mixin IdeHelperImageCloudinary
- */
+
 class ImageCloudinary extends Model
 {
     protected $fillable = [

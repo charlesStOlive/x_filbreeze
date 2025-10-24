@@ -26,11 +26,11 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Forms\Components\MarkdownEditor;
 use App\Filament\Clusters\Crm\Resources\QuoteResource;
-use A909M\FilamentStateFusion\Actions\StateFusionAction;
+use CharlesStOlive\FilamentStateFusionEnhanced\Actions\StateFusionAction;
 use Pboivin\FilamentPeek\Pages\Concerns\HasPreviewModal;
 use App\Services\Pdf\Filament\Actions\GeneratePdfDownload;
 use App\Services\Pdf\Templates\Quote\QuoteBasePdfTemplate;
-use App\Filament\Overrides\Actions\StateFusionActionGroup;
+use CharlesStOlive\FilamentStateFusionEnhanced\Actions\StateFusionActionGroup;
 use App\Services\Pdf\Templates\Quote\QuoteDetailedPdfTemplate;
 use App\Services\MsGraph\EmailDraft\Filament\Actions\GenerateMsGraphEmailDraft;
 

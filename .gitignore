@@ -27,3 +27,5 @@ public/pdf.hot
 # Exception: Garder les assets Tree compilés dans Git
 !public/js/tree-component.js
 !public/css/tree-component.css
+
+/packages

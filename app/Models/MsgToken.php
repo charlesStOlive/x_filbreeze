@@ -5,9 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @mixin IdeHelperMsgToken
- */
+
 class MsgToken extends Model
 {
     use HasFactory;

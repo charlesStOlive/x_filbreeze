@@ -12,16 +12,16 @@ use App\Services\MsGraph\MsGraphAuthService;
 use App\Services\MsGraph\MsGraphSubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-/**
- * @mixin IdeHelperMsgUserIn
- */
+
 class MsgUserIn extends Model
 {
     use HasFactory;
 
     protected $table = 'msg_user_ins';
     protected $guarded = ['id'];
-    protected $casts = [];
+    protected $casts = [
+        'expire_at' => 'datetime',
+    ];
 
     public function __construct(array $attributes = [])
     {

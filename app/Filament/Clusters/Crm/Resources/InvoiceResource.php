@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+
 use Str;
 use App\Models\Quote;
 use App\Models\Company;
@@ -116,7 +117,7 @@ class InvoiceResource extends Resource
                     ->color('info')
                     ->modalHeading('Diagramme des États - Invoice')
                     ->modalDescription('Visualisation des états et transitions du modèle Invoice')
-                    ->infolist([
+                    ->schema([
                         \App\Filament\Infolists\Components\MermaidDiagramEntry::make('states_diagram')
                             ->modelClass(Invoice::class)
                             ->height('500px')

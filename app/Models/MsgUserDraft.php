@@ -17,9 +17,7 @@ use App\Services\MsGraph\MsGraphSubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\SendsNotifications;
 
-/**
- * @mixin IdeHelperMsgUserDraft
- */
+
 class MsgUserDraft extends Model
 {
     use HasFactory, SendsNotifications;
@@ -27,7 +25,8 @@ class MsgUserDraft extends Model
     protected $table = 'msg_user_drafts';
     protected $guarded = ['id'];
     protected $casts = [
-        'data_email' => 'json'
+        'data_email' => 'json',
+        'expire_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])

@@ -98,7 +98,7 @@ class QuoteResource extends Resource
                     ->color('info')
                     ->modalHeading('Diagramme des États - Quote')
                     ->modalDescription('Visualisation des états et transitions du modèle Quote')
-                    ->infolist([
+                    ->schema([
                         \App\Filament\Infolists\Components\MermaidDiagramEntry::make('states_diagram')
                             ->modelClass(Quote::class)
                             ->height('500px')

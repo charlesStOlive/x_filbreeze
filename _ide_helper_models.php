@@ -13,6 +13,7 @@
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperCompany
  * @property int $id
  * @property string $title
  * @property string $slug
@@ -74,10 +75,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereType($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperCompany {}
+	class Company extends \Eloquent implements \Spatie\MediaLibrary\HasMedia {}
 }
 
 namespace App\Models{
@@ -114,10 +113,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Contact whereMemo($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Contact whereTel($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Contact whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperContact {}
+	class Contact extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -137,10 +134,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Gamme whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Gamme whereSlug($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Gamme whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperGamme {}
+	class Gamme extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -167,14 +162,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ImageCloudinary wherePublicId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ImageCloudinary whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ImageCloudinary whereUrl($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperImageCloudinary {}
+	class ImageCloudinary extends \Eloquent {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperInvoice
  * @property int $id
  * @property string|null $code
  * @property string|null $title
@@ -237,10 +231,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Invoice whereTva($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Invoice whereTxTva($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Invoice whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperInvoice {}
+	class Invoice extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -291,10 +283,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgEmailDraft whereSubject($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgEmailDraft whereTos($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgEmailDraft whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperMsgEmailDraft {}
+	class MsgEmailDraft extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -336,10 +326,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgEmailIn whereSubject($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgEmailIn whereTos($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgEmailIn whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperMsgEmailIn {}
+	class MsgEmailIn extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -363,10 +351,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgToken whereRefreshToken($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgToken whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgToken whereUserId($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperMsgToken {}
+	class MsgToken extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -377,7 +363,7 @@ namespace App\Models{
  * @property string|null $subscription_id
  * @property string|null $services_options
  * @property string|null $abn_secret
- * @property string|null $expire_at
+ * @property \Illuminate\Support\Carbon|null $expire_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property int|null $user_id
@@ -401,10 +387,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgUserDraft whereSubscriptionId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgUserDraft whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgUserDraft whereUserId($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperMsgUserDraft {}
+	class MsgUserDraft extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -415,7 +399,7 @@ namespace App\Models{
  * @property string|null $subscription_id
  * @property string|null $services_options
  * @property string|null $abn_secret
- * @property string|null $expire_at
+ * @property \Illuminate\Support\Carbon|null $expire_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property $services_options.e-in-a.mode
@@ -434,14 +418,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgUserIn whereServicesOptions($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgUserIn whereSubscriptionId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MsgUserIn whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperMsgUserIn {}
+	class MsgUserIn extends \Eloquent {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperProduct
  * @property int $id
  * @property string $code
  * @property string $title
@@ -464,14 +447,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereType($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUnitPrice($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperProduct {}
+	class Product extends \Eloquent {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperQuote
  * @property int $id
  * @property string|null $code
  * @property string|null $title
@@ -535,14 +517,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Quote whereValidatedAtQy($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Quote whereVersion($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Quote withRemainingAmount()
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperQuote {}
+	class Quote extends \Eloquent {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperSector
  * @property int $id
  * @property string $title
  * @property string $slug
@@ -572,14 +553,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Sector whereTxtIntro($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Sector whereTxtKpi($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Sector whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperSector {}
+	class Sector extends \Eloquent {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperSupplier
  * @property int $id
  * @property string $name
  * @property string $slug
@@ -611,14 +591,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Supplier wherePhone($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Supplier whereSlug($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Supplier whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperSupplier {}
+	class Supplier extends \Eloquent {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperSupplierInvoice
  * @property int $id
  * @property int $supplier_id
  * @property string|null $invoice_number
@@ -659,14 +638,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|SupplierInvoice whereTva($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|SupplierInvoice whereTxTva($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|SupplierInvoice whereUpdatedAt($value)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperSupplierInvoice {}
+	class SupplierInvoice extends \Eloquent implements \Spatie\MediaLibrary\HasMedia {}
 }
 
 namespace App\Models{
 /**
+ * @mixin IdeHelperUser
  * @property int $id
  * @property string $name
  * @property string $email
@@ -706,9 +684,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutPermission($permissions)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutRole($roles, $guard = null)
- * @mixin \Eloquent
  */
-	#[\AllowDynamicProperties]
-	class IdeHelperUser {}
+	class User extends \Eloquent implements \Filament\Models\Contracts\FilamentUser {}
 }
 

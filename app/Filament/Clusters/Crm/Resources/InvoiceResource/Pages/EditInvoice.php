@@ -20,7 +20,7 @@ use App\Models\States\Invoice\Submited;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Section;
-use A909M\FilamentStateFusion\Actions\StateFusionAction;
+use CharlesStOlive\FilamentStateFusionEnhanced\Actions\StateFusionAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Forms\Components\MarkdownEditor;

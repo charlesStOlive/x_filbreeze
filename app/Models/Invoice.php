@@ -6,7 +6,7 @@ use App\Models\Company;
 use App\Models\Contact;
 
 use App\Traits\HasTextExtraction;
-use App\Traits\HasMermaidStateDiagram;
+use CharlesStOlive\FilamentStateFusionEnhanced\Traits\HasMermaidStateDiagram;
 use Spatie\ModelStates\HasStates;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\States\Invoice\InvoiceState;

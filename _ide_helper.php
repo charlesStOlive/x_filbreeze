@@ -5,7 +5,7 @@
 
 /**
  * A helper file for Laravel, to provide autocomplete information to your IDE
- * Generated for Laravel 11.45.3.
+ * Generated for Laravel 11.46.1.
  *
  * This file should not be included in your code, only analyzed by your IDE!
  *
@@ -22429,6 +22429,14 @@ namespace Illuminate\Support\Facades {
             }
     }
 
+namespace A909M\FilamentStateFusion\Facades {
+    /**
+     * @see \A909M\FilamentStateFusion\FilamentStateFusion
+     */
+    class FilamentStateFusion {
+            }
+    }
+
 namespace AnourValar\EloquentSerialize\Facades {
     /**
      */
@@ -24614,43 +24622,6 @@ namespace Illuminate\Database\Eloquent\Relations {
             }
     }
 
-namespace Illuminate\Routing {
-    /**
-     */
-    class Route {
-        /**
-         * @see \Livewire\Features\SupportLazyLoading\SupportLazyLoading::registerRouteMacro()
-         * @param mixed $enabled
-         * @static
-         */
-        public static function lazy($enabled = true)
-        {
-            return \Illuminate\Routing\Route::lazy($enabled);
-        }
-
-        /**
-         * @see \Spatie\Permission\PermissionServiceProvider::registerMacroHelpers()
-         * @param mixed $roles
-         * @static
-         */
-        public static function role($roles = [])
-        {
-            return \Illuminate\Routing\Route::role($roles);
-        }
-
-        /**
-         * @see \Spatie\Permission\PermissionServiceProvider::registerMacroHelpers()
-         * @param mixed $permissions
-         * @static
-         */
-        public static function permission($permissions = [])
-        {
-            return \Illuminate\Routing\Route::permission($permissions);
-        }
-
-            }
-    }
-
 namespace Livewire\Features\SupportTesting {
     /**
      * @mixin \Illuminate\Testing\TestResponse
@@ -24938,6 +24909,48 @@ namespace Livewire\Features\SupportTesting {
         }
 
         /**
+         * @see \Filament\Actions\Testing\TestsActions::assertMountedActionModalSee()
+         * @param array|string $values
+         * @param mixed $escape
+         * @static
+         */
+        public static function assertMountedActionModalSee($values, $escape = true)
+        {
+            return \Livewire\Features\SupportTesting\Testable::assertMountedActionModalSee($values, $escape);
+        }
+
+        /**
+         * @see \Filament\Actions\Testing\TestsActions::assertMountedActionModalDontSee()
+         * @param array|string $values
+         * @param bool $escape
+         * @static
+         */
+        public static function assertMountedActionModalDontSee($values, $escape = true)
+        {
+            return \Livewire\Features\SupportTesting\Testable::assertMountedActionModalDontSee($values, $escape);
+        }
+
+        /**
+         * @see \Filament\Actions\Testing\TestsActions::assertMountedActionModalSeeHtml()
+         * @param array|string $values
+         * @static
+         */
+        public static function assertMountedActionModalSeeHtml($values)
+        {
+            return \Livewire\Features\SupportTesting\Testable::assertMountedActionModalSeeHtml($values);
+        }
+
+        /**
+         * @see \Filament\Actions\Testing\TestsActions::assertMountedActionModalDontSeeHtml()
+         * @param array|string $values
+         * @static
+         */
+        public static function assertMountedActionModalDontSeeHtml($values)
+        {
+            return \Livewire\Features\SupportTesting\Testable::assertMountedActionModalDontSeeHtml($values);
+        }
+
+        /**
          * @see \Filament\Actions\Testing\TestsActions::assertActionMounted()
          * @param \Filament\Actions\Testing\TestAction|array|string $actions
          * @return static
@@ -25006,6 +25019,16 @@ namespace Livewire\Features\SupportTesting {
         public static function parseNestedActions($actions, $arguments = [], $areRelativeToMountedActions = true)
         {
             return \Livewire\Features\SupportTesting\Testable::parseNestedActions($actions, $arguments, $areRelativeToMountedActions);
+        }
+
+        /**
+         * @see \Filament\Actions\Testing\TestsActions::getMountedActionModalHtml()
+         * @return string
+         * @static
+         */
+        public static function getMountedActionModalHtml()
+        {
+            return \Livewire\Features\SupportTesting\Testable::getMountedActionModalHtml();
         }
 
         /**
@@ -27052,6 +27075,17 @@ namespace Livewire\Features\SupportTesting {
         }
 
         /**
+         * @see \Filament\Tables\Testing\TestsColumns::toggleAllTableColumns()
+         * @param bool $condition
+         * @return static
+         * @static
+         */
+        public static function toggleAllTableColumns($condition = true)
+        {
+            return \Livewire\Features\SupportTesting\Testable::toggleAllTableColumns($condition);
+        }
+
+        /**
          * @see \Filament\Tables\Testing\TestsFilters::filterTable()
          * @param string $name
          * @param mixed $data
@@ -27211,6 +27245,43 @@ namespace Livewire\Features\SupportTesting {
         public static function assertTableColumnSummarizerExists($columnName, $summarizerId)
         {
             return \Livewire\Features\SupportTesting\Testable::assertTableColumnSummarizerExists($columnName, $summarizerId);
+        }
+
+            }
+    }
+
+namespace Illuminate\Routing {
+    /**
+     */
+    class Route {
+        /**
+         * @see \Livewire\Features\SupportLazyLoading\SupportLazyLoading::registerRouteMacro()
+         * @param mixed $enabled
+         * @static
+         */
+        public static function lazy($enabled = true)
+        {
+            return \Illuminate\Routing\Route::lazy($enabled);
+        }
+
+        /**
+         * @see \Spatie\Permission\PermissionServiceProvider::registerMacroHelpers()
+         * @param mixed $roles
+         * @static
+         */
+        public static function role($roles = [])
+        {
+            return \Illuminate\Routing\Route::role($roles);
+        }
+
+        /**
+         * @see \Spatie\Permission\PermissionServiceProvider::registerMacroHelpers()
+         * @param mixed $permissions
+         * @static
+         */
+        public static function permission($permissions = [])
+        {
+            return \Illuminate\Routing\Route::permission($permissions);
         }
 
             }
@@ -32514,6 +32585,7 @@ namespace  {
     class Validator extends \Illuminate\Support\Facades\Validator {}
     class View extends \Illuminate\Support\Facades\View {}
     class Vite extends \Illuminate\Support\Facades\Vite {}
+    class FilamentStateFusion extends \A909M\FilamentStateFusion\Facades\FilamentStateFusion {}
     class EloquentSerialize extends \AnourValar\EloquentSerialize\Facades\EloquentSerializeFacade {}
     class Debugbar extends \Barryvdh\Debugbar\Facades\Debugbar {}
     class PDF extends \Barryvdh\Snappy\Facades\SnappyPdf {}
