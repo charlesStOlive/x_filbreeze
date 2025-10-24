@@ -19,5 +19,6 @@ Route::prefix('states')->name('api.states.')->group(function () {
     Route::get('/{model}/states', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'states'])->name('states');
     Route::get('/{model}/transitions', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'transitions'])->name('transitions');
     Route::get('/{model}/mermaid-json', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'mermaidJson'])->name('mermaid-json');
+    Route::get('/{model}/{id}/mermaid-json-from-trait', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'mermaidJsonFromTrait'])->name('mermaid-json-from-trait');
     Route::post('/{model}/generate-docs', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'generateDocs'])->name('generate-docs');
 });

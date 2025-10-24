@@ -4,6 +4,12 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./packages/filament-state-fusion-enhanced"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "a909m/filament-statefusion": "^2.1",
@@ -30,7 +36,8 @@
         "spatie/laravel-model-states": "^2.9",
         "spatie/laravel-permission": "*",
         "spatie/laravel-settings": "^3.4",
-        "thiagoalessio/tesseract_ocr": "^2.13"
+        "thiagoalessio/tesseract_ocr": "^2.13",
+        "charlesstolive/filament-state-fusion-enhanced": "@dev"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",

@@ -710,13 +710,37 @@ class InvoiceResource extends Resource
     {
         return $schema
             ->components([
-                MermaidDiagramEntry::make('states_diagram')
-                    ->modelClass(Invoice::class)
-                    ->height('600px')
-                    ->theme('default')
-                    ->type('flowchart')     // Options: flowchart, graph, stateDiagram, journey, gantt
-                    ->direction('TB')       // Options: LR, RL, TB (TD), BT  
-                    ->lazy()
+                Section::make('Diagramme des États - API FilamentStateFusion')
+                    ->description('Utilise l\'API FilamentStateFusion pour récupérer les données')
+                    ->schema([
+                        MermaidDiagramEntry::make('states_diagram')
+                            ->modelClass(Invoice::class)
+                            ->height('500px')
+                            ->theme('default')
+                            ->type('flowchart')     // Options: flowchart, graph, stateDiagram, journey, gantt
+                            ->direction('TB')       // Options: LR, RL, TB (TD), BT  
+                            ->lazy()
+                    ])
+                    ->collapsible(),
+
+                Section::make('Diagramme des États - Trait HasMermaidStateDiagram')
+                    ->description('Utilise directement le trait HasMermaidStateDiagram du modèle Invoice')
+                    ->schema([
+                        MermaidDiagramEntry::make('states_diagram_trait')
+                            ->label('États et Transitions (Trait)')
+                            ->apiEndpoint(function (Invoice $record) {
+                                return route('api.states.mermaid-json-from-trait', [
+                                    'model' => 'Invoice',
+                                    'id' => $record->id ?? 'new'
+                                ]);
+                            })
+                            ->height('500px')
+                            ->theme('default')
+                            ->type('flowchart')
+                            ->direction('LR')       // Direction horizontale pour différencier
+                            ->lazy()
+                    ])
+                    ->collapsible()
             ]);
     }
 

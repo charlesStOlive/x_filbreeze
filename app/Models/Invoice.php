@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Contact;
 
 use App\Traits\HasTextExtraction;
+use App\Traits\HasMermaidStateDiagram;
 use Spatie\ModelStates\HasStates;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\States\Invoice\InvoiceState;
@@ -19,6 +20,7 @@ class Invoice extends Model
 {
     use HasFactory;
     use HasTextExtraction;
+    use HasMermaidStateDiagram;
     use HasStates;
 
 

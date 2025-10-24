@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use Filament\Pages\Page;
+use App\Models\Invoice;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use App\Filament\Infolists\Components\MermaidDiagramEntry;
+use Filament\Infolists\Concerns\InteractsWithInfolists;
+use Filament\Infolists\Contracts\HasInfolists;
+
+class InvoiceMermaidExample extends Page implements HasInfolists
+{
+    use InteractsWithInfolists;
+
+    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static string $view = 'filament.pages.invoice-mermaid-example';
+    protected static ?string $title = 'Exemple Mermaid avec Invoice';
+    protected static ?string $navigationLabel = 'Exemple Mermaid Invoice';
+    protected static ?string $navigationGroup = 'Développement';
+
+    public ?Invoice $invoice = null;
+
+    public function mount(): void
+    {
+        // Créer ou récupérer une Invoice pour l'exemple
+        $this->invoice = Invoice::first() ?? new Invoice();
+    }
+
+    public function mermaidDiagramInfolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->record($this->invoice)
+            ->schema([
+                Section::make('Diagramme des États - Via Trait HasMermaidStateDiagram')
+                    ->description('Cet exemple montre comment utiliser le trait HasMermaidStateDiagram directement sur un modèle Invoice.')
+                    ->schema([
+                        MermaidDiagramEntry::make('state_diagram')
+                            ->label('États et Transitions')
+                            ->apiEndpoint(function (Invoice $record) {
+                                return route('api.states.mermaid-json-from-trait', [
+                                    'model' => 'Invoice',
+                                    'id' => $record->id ?? 'new'
+                                ]);
+                            })
+                            ->type('flowchart')
+                            ->direction('TB')
+                            ->height('500px')
+                            ->theme('default'),
+                    ]),
+
+                Section::make('Données du Modèle')
+                    ->schema([
+                        TextEntry::make('id')
+                            ->label('ID')
+                            ->default('Nouvelle Invoice'),
+                        TextEntry::make('code')
+                            ->label('Code')
+                            ->default('Non défini'),
+                        TextEntry::make('state')
+                            ->label('État Actuel')
+                            ->badge()
+                            ->default('draft'),
+                    ]),
+
+                Section::make('Exemples d\'utilisation du Trait')
+                    ->description('Voici comment utiliser le trait HasMermaidStateDiagram dans votre code')
+                    ->schema([
+                        TextEntry::make('usage_examples')
+                            ->label('Exemples de Code')
+                            ->formatStateUsing(fn () => $this->getUsageExamples())
+                            ->html(),
+                    ]),
+            ]);
+    }
+
+    protected function getUsageExamples(): string
+    {
+        return '
+        <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg font-mono text-sm">
+            <div class="text-blue-600 dark:text-blue-400 font-semibold mb-2">Récupérer les données JSON :</div>
+            <div class="mb-4">
+                <code>$invoice = Invoice::first();</code><br/>
+                <code>$data = $invoice->getMermaidData();</code><br/>
+                <code>// Avec options personnalisées</code><br/>
+                <code>$data = $invoice->getMermaidData([\'type\' => \'flowchart\', \'direction\' => \'TB\']);</code>
+            </div>
+
+            <div class="text-blue-600 dark:text-blue-400 font-semibold mb-2">Générer la syntaxe Mermaid :</div>
+            <div class="mb-4">
+                <code>$syntax = $invoice->toMermaidSyntax();</code><br/>
+                <code>// Syntaxe simple en une ligne</code><br/>
+                <code>$simple = $invoice->toSimpleMermaid();</code>
+            </div>
+
+            <div class="text-blue-600 dark:text-blue-400 font-semibold mb-2">Afficher l\'état courant :</div>
+            <div class="mb-4">
+                <code>$current = $invoice->getCurrentStateMermaid();</code>
+            </div>
+
+            <div class="text-blue-600 dark:text-blue-400 font-semibold mb-2">Utilisation avec d\'autres modèles :</div>
+            <div>
+                <code>// Il suffit d\'ajouter le trait à n\'importe quel modèle avec des states</code><br/>
+                <code>use App\Traits\HasMermaidStateDiagram;</code><br/>
+                <code>class MyModel extends Model {</code><br/>
+                <code>&nbsp;&nbsp;&nbsp;&nbsp;use HasMermaidStateDiagram;</code><br/>
+                <code>}</code>
+            </div>
+        </div>';
+    }
+}

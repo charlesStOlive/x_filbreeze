@@ -1,37 +1,117 @@
-# États et Transitions - Modèle Invoice
+# États et Transitions - Invoice
 
-*Documentation générée automatiquement le 23/10/2025 à 09:08:46*
+> Documentation générée automatiquement le 2025-10-24T09:26:07.075923Z
 
-## Classe d'État
+## 📊 États disponibles
 
-**Classe :** `App\Models\States\Invoice\InvoiceState`
+### Abandonné
 
-## États Disponibles
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `Canceled` |
+| 🏷️ Label | Abandonné |
+| 🎨 Couleur | #EF4444 |
+| 🎯 Icône | `heroicon-o-x-mark` |
+| 📦 Classe | `App\Models\States\Invoice\Canceled` |
 
-| État | Classe | Label | Couleur | Icône | Description |
-|------|--------|-------|---------|-------|-------------|
-| Canceled | `App\Models\States\Invoice\Canceled` | Abandonné | danger | heroicon-o-x-mark | Abandonné |
-| Draft | `App\Models\States\Invoice\Draft` | Brouillon | gray | heroicon-o-pencil | Brouillon. |
-| Payed | `App\Models\States\Invoice\Payed` | Payé | success | heroicon-o-check | Enregistrement du paiement. |
-| Submited | `App\Models\States\Invoice\Submited` | Soumise | info | heroicon-o-paper-airplane | Facture soumise.X |
+### Brouillon
 
-## Transitions Disponibles
+Brouillon.
 
-| Transition | Classe | Label | Icône | Formulaire | Redirection |
-|------------|--------|-------|-------|------------|-------------|
-| ToCanceled | `App\Models\States\Invoice\ToCanceled` | Abandonner | heroicon-o-x-mark | Non | Non |
-| ToPayed | `App\Models\States\Invoice\ToPayed` | Payement reçus | heroicon-o-check | Oui | Non |
-| ToSubmited | `App\Models\States\Invoice\ToSubmited` | Soumettre | heroicon-o-paper-airplane | Oui | Non |
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `Draft` |
+| 🏷️ Label | Brouillon |
+| 🎨 Couleur | #6B7280 |
+| 🎯 Icône | `heroicon-o-pencil` |
+| 📦 Classe | `App\Models\States\Invoice\Draft` |
 
-### Détails des Transitions avec Formulaires
+### Payé
 
-#### Payement reçus (`ToPayed`)
+Enregistrement du paiement.
 
-**Champs du formulaire :**
-- **payed_at** : Payé le
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `Payed` |
+| 🏷️ Label | Payé |
+| 🎨 Couleur | #10B981 |
+| 🎯 Icône | `heroicon-o-check` |
+| 📦 Classe | `App\Models\States\Invoice\Payed` |
 
-#### Soumettre (`ToSubmited`)
+### Soumise
 
-**Champs du formulaire :**
-- **submited_at** : Validé le
+Facture soumise.X
 
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `Submited` |
+| 🏷️ Label | Soumise |
+| 🎨 Couleur | #3B82F6 |
+| 🎯 Icône | `heroicon-o-paper-airplane` |
+| 📦 Classe | `App\Models\States\Invoice\Submited` |
+
+## 🔄 Transitions disponibles
+
+### Soumettre
+
+**Draft** → **Submited**
+
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `ToSubmited` |
+| 🏷️ Label | Soumettre |
+| ⬅️ État source | Draft (`draft`) |
+| ➡️ État cible | Submited (`submited`) |
+| 📦 Classe | `App\Models\States\Invoice\ToSubmited` |
+
+### Payement reçus
+
+**Submited** → **Payed**
+
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `ToPayed` |
+| 🏷️ Label | Payement reçus |
+| ⬅️ État source | Submited (`submited`) |
+| ➡️ État cible | Payed (`payed`) |
+| 📦 Classe | `App\Models\States\Invoice\ToPayed` |
+
+### Abandonner
+
+**Draft** → **Canceled**
+
+| Propriété | Valeur |
+|-----------|--------|
+| 📛 Nom | `ToCanceled` |
+| 🏷️ Label | Abandonner |
+| ⬅️ État source | Draft (`draft`) |
+| ➡️ État cible | Canceled (`canceled`) |
+| 📦 Classe | `App\Models\States\Invoice\ToCanceled` |
+
+## 📈 Diagramme Mermaid
+
+```mermaid
+flowchart LR
+    canceled["Abandonné"]
+    draft["Brouillon<br/>Brouillon."]
+    payed["Payé<br/>Enregistrement du paiement."]
+    submited["Soumise<br/>Facture soumise.X"]
+
+    draft -->|"Soumettre"| submited
+    submited -->|"Payement reçus"| payed
+    draft -->|"Abandonner"| canceled
+```
+
+## ℹ️ Métadonnées
+
+| Propriété | Valeur |
+|-----------|--------|
+| Model | `App\Models\Invoice` |
+| Model name | `Invoice` |
+| Parser | `StateParserService` |
+| Version | `1.0.0` |
+| Generated at | `2025-10-24T09:26:07.075923Z` |
+
+---
+
+*Documentation générée par StateAnalysisService*

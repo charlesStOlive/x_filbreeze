@@ -11,6 +11,8 @@ class MermaidDiagramEntry extends Entry
 
     protected string | Closure | null $modelClass = null;
     
+    protected string | Closure | null $apiEndpoint = null;
+    
     protected string | Closure | null $height = '400px';
     
     protected string | Closure | null $theme = 'default';
@@ -37,6 +39,24 @@ class MermaidDiagramEntry extends Entry
     public function getModelClass(): ?string
     {
         return $this->evaluate($this->modelClass);
+    }
+
+    /**
+     * Set a custom API endpoint
+     */
+    public function apiEndpoint(string | Closure | null $apiEndpoint): static
+    {
+        $this->apiEndpoint = $apiEndpoint;
+
+        return $this;
+    }
+
+    /**
+     * Get the custom API endpoint
+     */
+    public function getCustomApiEndpoint(): ?string
+    {
+        return $this->evaluate($this->apiEndpoint);
     }
 
     /**
@@ -134,6 +154,13 @@ class MermaidDiagramEntry extends Entry
      */
     public function getApiEndpoint(): string
     {
+        // Use custom API endpoint if provided
+        $customEndpoint = $this->getCustomApiEndpoint();
+        if ($customEndpoint) {
+            return $customEndpoint;
+        }
+
+        // Default to model class based endpoint
         $modelClass = $this->getModelClass();
         
         if (!$modelClass) {

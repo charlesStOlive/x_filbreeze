@@ -289,4 +289,73 @@ class StatesAnalysisController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtenir les données Mermaid depuis le trait HasMermaidStateDiagram
+     */
+    public function mermaidJsonFromTrait(string $model, string $id): JsonResponse
+    {
+        try {
+            // Construire le nom de classe du modèle
+            $modelClass = "App\\Models\\{$model}";
+            
+            if (!class_exists($modelClass)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Le modèle {$model} n'existe pas"
+                ], 404);
+            }
+            
+            // Vérifier que le modèle utilise le trait HasMermaidStateDiagram
+            if (!in_array('App\\Traits\\HasMermaidStateDiagram', class_uses_recursive($modelClass))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Le modèle {$model} n'utilise pas le trait HasMermaidStateDiagram"
+                ], 400);
+            }
+            
+            // Créer une instance du modèle
+            if ($id === 'new' || !is_numeric($id)) {
+                // Nouvelle instance pour les diagrammes génériques
+                $instance = new $modelClass;
+            } else {
+                // Instance spécifique
+                $instance = $modelClass::find($id);
+                if (!$instance) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Aucun enregistrement trouvé avec l'ID {$id}"
+                    ], 404);
+                }
+            }
+            
+            // Récupérer les options depuis la requête
+            $request = request();
+            $options = [];
+            
+            if ($request->has('type')) {
+                $options['type'] = $request->get('type');
+            }
+            
+            if ($request->has('direction')) {
+                $options['direction'] = $request->get('direction');
+            }
+            
+            // Générer les données Mermaid depuis le trait
+            $data = $instance->getMermaidData($options);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => "Données Mermaid générées avec succès depuis le trait pour {$model}"
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la génération des données Mermaid depuis le trait',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
