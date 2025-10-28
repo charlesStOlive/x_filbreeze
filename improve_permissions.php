@@ -12,12 +12,18 @@
 class PermissionsImprover
 {
     private array $crmResources = [
-        'company', 'contact', 'invoice', 'quote', 
-        'sector', 'supplier', 'supplierinvoice'
+        'company',
+        'contact',
+        'invoice',
+        'quote',
+        'sector',
+        'supplier',
+        'supplierinvoice'
     ];
 
     private array $msgraphResources = [
-        'msginuser', 'msgdraftuser'
+        'msginuser',
+        'msgdraftuser'
     ];
 
     public function __construct()
@@ -109,7 +115,7 @@ class PermissionsImprover
     {
         $command = "php artisan permissions:add-resource {$resource} --actions=view,create,edit,delete";
         echo "   → Ajout {$resource}...\n";
-        
+
         // En mode simulation, on afficherait juste la commande
         if (defined('DRY_RUN') && DRY_RUN) {
             echo "     [DRY RUN] {$command}\n";
@@ -125,18 +131,18 @@ class PermissionsImprover
 
         $backupName = 'PermissionsBackup_' . date('Y_m_d_H_i_s');
         $command = "php artisan permissions:generate-seeder --file={$backupName}";
-        
+
         echo "📁 Nom du backup: {$backupName}\n";
         echo "💾 Création en cours...\n";
-        
+
         $this->runCommand($command);
-        
+
         echo "✅ Backup créé: database/seeders/{$backupName}.php\n";
     }
 
     private function cleanup(): void
     {
-        echo "🧹 Nettoyage des permissions obsolètes\n"; 
+        echo "🧹 Nettoyage des permissions obsolètes\n";
         echo "------------------------------------\n";
 
         echo "🔍 Analyse des permissions obsolètes (dry-run)...\n";
@@ -198,13 +204,13 @@ class PermissionsImprover
         echo "✅ Couverture étendue à toutes les resources\n";
         echo "✅ Permissions obsolètes nettoyées\n";
         echo "✅ Système de permissions optimisé\n\n";
-        
+
         echo "🎯 Prochaines étapes recommandées:\n";
         echo "   1. Tester les permissions sur les nouvelles resources\n";
         echo "   2. Assigner les rôles appropriés aux utilisateurs\n";
         echo "   3. Créer les tests automatisés\n";
         echo "   4. Documenter les nouveaux workflows\n\n";
-        
+
         echo "📚 Commandes utiles pour la suite:\n";
         echo "   • Voir toutes les permissions: php artisan permissions:sync --dry-run\n";
         echo "   • Créer un nouveau backup: php artisan permissions:generate-seeder\n";
@@ -214,12 +220,12 @@ class PermissionsImprover
     private function runCommand(string $command): void
     {
         echo "   🔧 {$command}\n";
-        
+
         // Exécuter la commande réelle
         $output = [];
         $returnCode = 0;
         exec($command . ' 2>&1', $output, $returnCode);
-        
+
         if ($returnCode === 0) {
             echo "   ✅ Succès\n";
         } else {
@@ -234,13 +240,13 @@ class PermissionsImprover
 // Exécution du script si lancé directement
 if (php_sapi_name() === 'cli') {
     $action = $argv[1] ?? 'menu';
-    
+
     // Mode dry-run pour les tests
     if (isset($argv[2]) && $argv[2] === '--dry-run') {
         define('DRY_RUN', true);
         echo "🧪 MODE DRY-RUN ACTIVÉ\n\n";
     }
-    
+
     $improver = new PermissionsImprover();
     $improver->run($action);
 }

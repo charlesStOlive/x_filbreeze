@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
 use Spatie\Permission\Models\Permission;
 
 class PermissionPolicy

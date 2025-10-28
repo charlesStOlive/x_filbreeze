@@ -25,7 +25,7 @@ use Filament\Tables\Grouping\Group;
 use YOS\FilamentExcel\Actions\Import;
 use Filament\Tables\Filters\SelectFilter;
 use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
-use App\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
 
 class ProductResource extends Resource
 {

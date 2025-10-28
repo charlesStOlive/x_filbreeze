@@ -18,7 +18,7 @@ use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
-use App\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;

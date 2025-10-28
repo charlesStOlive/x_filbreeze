@@ -29,3 +29,6 @@ public/pdf.hot
 !public/css/tree-component.css
 
 /packages
+
+# Configuration de déploiement (à garder en référence)
+PRODUCTION_CONFIG.md

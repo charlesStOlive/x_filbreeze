@@ -3,7 +3,7 @@
 namespace App\Filament\Clusters;
 
 use Filament\Clusters\Cluster;
-use App\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
 
 class MsGraph extends Cluster
 {

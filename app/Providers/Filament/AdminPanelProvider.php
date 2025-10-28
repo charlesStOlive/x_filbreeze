@@ -14,6 +14,7 @@ use App\Filament\Pages\UserSettings;
 use Filament\Http\Middleware\Authenticate;
 use Pboivin\FilamentPeek\FilamentPeekPlugin;
 use CharlesStOlive\FilamentStateFusionEnhanced\FilamentStateFusionEnhancedPlugin;
+use CharlesStOlive\FilamentPermissionManager\FilamentPermissionManagerPlugin;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -47,6 +48,10 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 FilamentStateFusionEnhancedPlugin::make(),
+                FilamentPermissionManagerPlugin::make()
+                    ->navigationGroup('Administration')
+                    ->permissionResource()
+                    ->roleResource(),
             ])
             ->colors([
                 'primary' => '#DB8E57',

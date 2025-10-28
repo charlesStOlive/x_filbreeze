@@ -41,20 +41,20 @@ class PermissionsCommandTester
 
         // Vérifier les tables de permissions
         $this->checkDatabase();
-        
+
         // Analyser les fichiers de permissions
         $this->analyzePermissionFiles();
-        
+
         // Vérifier l'utilisation dans les Resources Filament
         $this->analyzeFilamentResources();
-        
+
         echo "\n";
     }
 
     private function checkDatabase(): void
     {
         echo "🗄️  Base de données:\n";
-        
+
         try {
             // Note: Ce test nécessiterait une connexion DB réelle
             echo "   ✅ Tables permissions et roles présentes (supposé)\n";
@@ -67,7 +67,7 @@ class PermissionsCommandTester
     private function analyzePermissionFiles(): void
     {
         echo "📁 Fichiers de permissions:\n";
-        
+
         $files = [
             'app/Services/PermissionService.php' => 'Service principal de permissions',
             'config/permission.php' => 'Configuration Spatie Permission',
@@ -89,7 +89,7 @@ class PermissionsCommandTester
     private function analyzeFilamentResources(): void
     {
         echo "🎯 Resources Filament:\n";
-        
+
         $resourceDirs = [
             'app/Filament/Resources',
             'app/Filament/Clusters'
@@ -102,7 +102,7 @@ class PermissionsCommandTester
             if (is_dir($dir)) {
                 $resources = $this->scanForResources($dir);
                 $totalResources += count($resources);
-                
+
                 foreach ($resources as $resource) {
                     if ($this->hasPermissionMethods($resource)) {
                         $resourcesWithPermissions++;
@@ -119,7 +119,7 @@ class PermissionsCommandTester
     private function scanForResources(string $dir): array
     {
         $resources = [];
-        
+
         if (!is_dir($dir)) {
             return $resources;
         }
@@ -143,7 +143,7 @@ class PermissionsCommandTester
     private function hasPermissionMethods(string $filePath): bool
     {
         $content = file_get_contents($filePath);
-        
+
         $permissionMethods = [
             'canViewAny',
             'canCreate',
@@ -167,7 +167,7 @@ class PermissionsCommandTester
 
         foreach ($this->commands as $class => $command) {
             $classPath = "app/Console/Commands/{$class}.php";
-            
+
             if (file_exists($classPath)) {
                 echo "   ✅ {$command}: Fichier présent\n";
                 $this->testResults[$command]['available'] = true;
@@ -177,20 +177,20 @@ class PermissionsCommandTester
                 $this->testResults[$command]['available'] = false;
             }
         }
-        
+
         echo "\n";
     }
 
     private function analyzeCommandFeatures(string $filePath, string $command): void
     {
         $content = file_get_contents($filePath);
-        
+
         // Analyser les options de la commande
         preg_match('/protected \$signature = [\'"]([^\'"]+)[\'"]/', $content, $matches);
         if (isset($matches[1])) {
             $signature = $matches[1];
             $this->testResults[$command]['signature'] = $signature;
-            
+
             // Compter les options
             $optionsCount = substr_count($signature, '--');
             $this->testResults[$command]['options_count'] = $optionsCount;
@@ -198,7 +198,7 @@ class PermissionsCommandTester
 
         // Analyser les fonctionnalités spéciales
         $features = [];
-        
+
         if (strpos($content, 'dry-run') !== false) {
             $features[] = 'dry-run';
         }
@@ -211,7 +211,7 @@ class PermissionsCommandTester
         if (strpos($content, 'cluster') !== false) {
             $features[] = 'cluster-support';
         }
-        
+
         $this->testResults[$command]['features'] = $features;
     }
 
@@ -252,33 +252,32 @@ class PermissionsCommandTester
         echo "----------------------------\n";
 
         $servicePath = 'app/Services/PermissionService.php';
-        
+
         if (file_exists($servicePath)) {
             $content = file_get_contents($servicePath);
-            
+
             // Analyser les méthodes
             $methods = [];
             preg_match_all('/public static function (\w+)\(/', $content, $matches);
             if (isset($matches[1])) {
                 $methods = $matches[1];
             }
-            
+
             echo "   ✅ PermissionService disponible\n";
             echo "   📋 Méthodes trouvées: " . implode(', ', $methods) . "\n";
-            
+
             // Vérifier la logique des wildcards
             if (strpos($content, 'admin.*') !== false) {
                 echo "   ✅ Support des wildcards admin.*\n";
             }
-            
+
             if (strpos($content, 'explode') !== false && strpos($content, 'implode') !== false) {
                 echo "   ✅ Logique de parsing des permissions hiérarchiques\n";
             }
-            
         } else {
             echo "   ❌ PermissionService manquant\n";
         }
-        
+
         echo "\n";
     }
 
@@ -302,7 +301,7 @@ class PermissionsCommandTester
                 echo "   ❌ {$command} - Non disponible\n";
             }
         }
-        
+
         echo "\n🔄 Redondances détectées:\n";
         echo "   ⚠️  Quelques chevauchements mais usages légitimement différents\n";
         echo "   ✅ Toutes les commandes ont leur place dans l'écosystème\n\n";
