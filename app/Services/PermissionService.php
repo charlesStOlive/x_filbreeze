@@ -51,44 +51,4 @@ class PermissionService
 
         return false;
     }
-
-    /**
-     * Vérifie si l'utilisateur a un accès administrateur complet
-     */
-    public static function isAdmin(): bool
-    {
-        return Auth::check() && Auth::user()->can('admin.*');
-    }
-
-    /**
-     * Vérifie si l'utilisateur a accès au CRM
-     */
-    public static function canAccessCrm(): bool
-    {
-        return self::can('crm.view') || self::can('crm.*');
-    }
-
-    /**
-     * Vérifie si l'utilisateur peut gérer les utilisateurs
-     */
-    public static function canManageUsers(): bool
-    {
-        return self::can('users.*') || self::isAdmin();
-    }
-
-    /**
-     * Vérifie si l'utilisateur peut gérer les rôles
-     */
-    public static function canManageRoles(): bool
-    {
-        return self::can('roles.*') || self::isAdmin();
-    }
-
-    /**
-     * Vérifie si l'utilisateur peut gérer les permissions
-     */
-    public static function canManagePermissions(): bool
-    {
-        return self::can('permissions.*') || self::isAdmin();
-    }
 }
