@@ -18,7 +18,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Filament\Forms\Concerns\InteractsWithForms;
-use App\Services\LocaleService;
+use CharlesStOlive\FilamentPermissionManager\Services\LocaleService;
 
 class UserSettings extends Page implements HasForms
 {
