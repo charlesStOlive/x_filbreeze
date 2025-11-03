@@ -32,18 +32,14 @@ class MsgEmailNotification extends Controller
         // Traitement des notifications d'emails entrants
         $notificationData = $request->all();
         try {
-            Log::info('Processing incoming email notification', $notificationData);
-
             // Appel au service pour traiter la notification
             $this->notificationService->processEmailNotification($notificationData);
-
             return response()->json([
                 'status' => 'success',
                 'message' => 'Email processed successfully'
             ], 200);
         } catch (Exception $e) {
             Log::error('Failed to process incoming email: ' . $e->getMessage());
-
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to process incoming email'
@@ -56,7 +52,13 @@ class MsgEmailNotification extends Controller
      */
     public function handleDraft(Request $request)
     {
-        //\Log::info('MsgEmailNotification handleDraft start-----------------');
+        // Log de début avec toutes les données reçues
+        \Log::info('=== WEBHOOK DRAFT NOTIFICATION RECEIVED ===');
+        \Log::info('Request Headers:', $request->headers->all());
+        \Log::info('Request Body (All Data):', $request->all());
+        \Log::info('Request Method:', [$request->method()]);
+        \Log::info('Request URL:', [$request->fullUrl()]);
+
         // Validation d'abonnement
         if ($request->has('validationToken')) {
             return response($request->input('validationToken'))
@@ -64,6 +66,7 @@ class MsgEmailNotification extends Controller
         }
         // Traitement des notifications pour les brouillons
         $notificationData = $request->all();
+        \Log::info('Notification Data Extracted:', $notificationData);
         //
         if (isset($notificationData['value'][0]['resourceData']['id'])) {
             $messageId = $notificationData['value'][0]['resourceData']['id'];

@@ -1,66 +1,74 @@
-<?php 
+<?php
 
 namespace App\Filament\Components\Tables;
 
 use Filament\Tables\Columns\Column;
-use App\Services\EmailsProcessorRegisterServices;
 
 class MailServiceColumn extends Column
 {
     protected string $view = 'filament.tables.columns.mail-service-column';
-    protected string $serviceType;
 
-    /**
-     * Définit le type de service (`services_in` ou `services_draft`).
-     */
+    protected string $serviceType = 'email-draft';   // ex: 'email-draft', 'email-in'
+    protected string $openMode = 'view';             // 'view' | 'edit' | 'results'
+    protected string $modalWidth = 'xl';             // 'xs', 'sm', 'md', 'lg', 'xl', '2xl', etc.
+    protected string $buttonSize = 'w-24 h-24';      // Classes Tailwind pour la taille des boutons
+    protected bool $showMessage = false;             // Afficher le message de retour à côté de l'icône
+
     public function serviceType(string $type): static
     {
         $this->serviceType = $type;
         return $this;
     }
 
-    /**
-     * Transmet les données à la vue via `getState`.
-     */
-    public function getState(): mixed
+    public function openMode(string $mode = 'view'): static
     {
-        $record = $this->getRecord();
-        $services = EmailsProcessorRegisterServices::getAll($this->serviceType);
+        $this->openMode = in_array($mode, ['view', 'edit', 'results'], true) ? $mode : 'view';
+        return $this;
+    }
 
-        $data = [];
+    public function modalWidth(string $width): static
+    {
+        $this->modalWidth = $width;
+        return $this;
+    }
 
-        foreach ($services as $serviceKey => $service) {
-            $mode = $record->getAttribute("{$this->getName()}.{$serviceKey}.mode") ?? 'inactif';
-            if ($mode !== 'inactif') {
-                $options = $this->getOptions($serviceKey, $record, $service);
-                $data[] = [
-                    'label' => $service['label'],
-                    'mode' => ucfirst($mode),
-                    'options' => $options,
-                ];
-            }
-        }
+    public function buttonSize(string $size): static
+    {
+        $this->buttonSize = $size;
+        return $this;
+    }
 
-        return $data;
+    public function showMessage(bool $show = true): static
+    {
+        $this->showMessage = $show;
+        return $this;
+    }
+
+    /** Données injectées dans la vue de la colonne (v4) */
+    public function getViewData(): array
+    {
+        return array_merge(parent::getViewData(), [
+            'serviceType' => $this->serviceType,
+            'openMode'    => $this->openMode,
+            'modalWidth'  => $this->modalWidth,
+            'buttonSize'  => $this->buttonSize,
+            'showMessage' => $this->showMessage,
+        ]);
     }
 
     /**
-     * Récupère les options des services.
+     * L'état retourné par la colonne contient les informations nécessaires
+     * pour initialiser la cellule Livewire.
      */
-    protected function getOptions(string $serviceKey, $record, array $service): array
+    public function getState(): mixed
     {
-        $options = [];
-
-        foreach ($service['options'] as $optionKey => $option) {
-            if ($optionKey !== 'mode') {
-                $value = $record->getAttribute("{$this->getName()}.{$serviceKey}.{$optionKey}") ?? null;
-                $options[] = [
-                    'label' => $option['label'] ?? ucfirst($optionKey),
-                    'value' => $value,
-                ];
-            }
-        }
-
-        return $options;
+        return [
+            'record'      => $this->getRecord(), // Passer le record complet
+            'serviceType' => $this->serviceType,
+            'openMode'    => $this->openMode,
+            'modalWidth'  => $this->modalWidth,
+            'buttonSize'  => $this->buttonSize,
+            'showMessage' => $this->showMessage,
+        ];
     }
 }

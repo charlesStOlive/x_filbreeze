@@ -22,7 +22,8 @@ class EditMsgUser extends EditRecord
     }
 
 
-    protected function getFormActions (): array {
+    protected function getFormActions(): array
+    {
         return [];
     }
 
@@ -31,19 +32,20 @@ class EditMsgUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-             Action::make('testConnection')
+            Action::make('testConnection')
                 ->label('Simuler un email')
                 ->icon('heroicon-s-play')
                 ->color('primary')
                 ->schema([
                     TextInput::make('test_from')->label('From')->default('alexis.clement@suscillon.com'),
-                    TextInput::make('test_tos')->label('To')->helperText('Séparer les valeurs par une ",", la première valeur sera la cible MsgraphUser, elle doit exister !')->default(fn () => $this->record->email),
+                    TextInput::make('test_tos')->label('To')->helperText('Séparer les valeurs par une ",", la première valeur sera la cible MsgraphUser, elle doit exister !')->default(fn() => $this->record->email),
                     TextInput::make('test_bccs')->label('Cc')->helperText('Séparer les valeurs par une ",",'),
                     TextInput::make('subject')->label('Sujet')->default('Hello World !'),
-                    RichEditor::make('body')->label('body')->default('<p>Du contenu</p>'),
+                    RichEditor::make('body')->label('body')->default('<p>##corrige## Du contenu avec des erreurs de frappe !</p>')->helperText('Utilisez ##corrige## pour tester le service de correction, ou ##traduit:en## pour la traduction'),
                 ])
-                ->modalHeading('Créer un faux email')
-                ->modalSubmitActionLabel('Exécuter le test')
+                ->modalHeading('Simuler un email pour tester les services')
+                ->modalDescription('Cette fonction crée un email de test qui déclenchera les services configurés pour cet utilisateur. Utilisez ##corrige## dans le contenu pour tester la correction, ou ##traduit:en## pour la traduction.')
+                ->modalSubmitActionLabel('Lancer la simulation')
                 ->action(function (array $data, $livewire) {
                     $fromTemp = $data['test_from'];
                     $toTemp = $data['test_tos'];
@@ -68,8 +70,17 @@ class EditMsgUser extends EditRecord
                     $msgUser = $this->record;
 
                     MsgConnect::launchTestServices($msgUser, $dataEmail);
-                    // $emailAnalyser->analyse();
-                    $livewire->dispatch('refreshMsgEmailInsRelationManager');
+
+                    // Rafraîchir le RelationManager des brouillons (pas les emails entrants)
+                    $livewire->dispatch('refreshMsgEmailDraftsRelationManager');
+
+                    // Notifier le succès
+                    \Filament\Notifications\Notification::make()
+                        ->title('Simulation lancée')
+                        ->body('L\'email de test a été créé et les services configurés ont été déclenchés.')
+                        ->success()
+                        ->send();
+
                     return;
                 }),
         ];

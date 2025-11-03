@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\MsGraph;
+namespace App\Infrastructure\MsGraph;
 
 use Log;
 use Exception;
@@ -9,7 +9,7 @@ use App\Models\MsgToken;
 use App\Models\MsgUserDraft;
 use App\Models\MsgUserIn;
 
-class MsGraphAuthService
+class GraphAuthService
 {
     public static string $baseUrl = 'https://graph.microsoft.com/v1.0/';
 
@@ -37,7 +37,7 @@ class MsGraphAuthService
                 $this->storeToken($token->access_token, '', $token->expires_in);
             }
 
-            return $redirect ? redirect(config('msgraph.msgraphLandingUri')) : $token->access_token;
+            return $redirect ? redirect('/admin') : $token->access_token;
         } catch (Exception $e) {
             Log::error($e->getMessage());
             throw new Exception("Failed to connect: " . $e->getMessage());

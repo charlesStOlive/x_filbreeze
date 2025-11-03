@@ -5,7 +5,9 @@
 
 
 @source '../../../../app/Filament';
+@source '../../../../app/Livewire';
 @source '../../../../resources/views/filament';
+@source '../../../../resources/views/livewire';
 @source '../../../../vendor/solution-forest/filament-tree/resources/**/*.blade.php';
 
 /* Test CSS pour debug */

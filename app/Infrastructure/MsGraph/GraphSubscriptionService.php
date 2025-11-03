@@ -1,16 +1,15 @@
-<?php 
+<?php
 
-namespace App\Services\MsGraph;
+namespace App\Infrastructure\MsGraph;
 
 use Exception;
 use Log;
-use App\Services\MsGraph\MsGraphAuthService;
 
-class MsGraphSubscriptionService
+class GraphSubscriptionService
 {
-    protected MsGraphAuthService $authService;
+    protected GraphAuthService $authService;
 
-    public function __construct(MsGraphAuthService $authService)
+    public function __construct(GraphAuthService $authService)
     {
         $this->authService = $authService;
     }
@@ -49,9 +48,12 @@ class MsGraphSubscriptionService
     {
         $expirationDate = now()->addHours(24);
 
+        // Utiliser l'URL ngrok pour les webhooks en local, sinon l'URL normale
+        $baseUrl = config('msgraph.webhook_base_url', url(''));
+
         $notificationUrl = $isDraft
-            ? url('/api/email-draft-notifications')
-            : url('/api/email-notifications');
+            ? $baseUrl . '/api/email-draft-notifications'
+            : $baseUrl . '/api/email-notifications';
 
         $subscription = [
             'changeType' => 'created,updated',
@@ -108,5 +110,4 @@ class MsGraphSubscriptionService
             return ['success' => false, 'error' => 'Failed to revoke subscriptions.'];
         }
     }
-
 }

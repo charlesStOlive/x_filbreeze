@@ -1,10 +1,9 @@
-<?php 
+<?php
 
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\App;
-use App\Contracts\MsGraph\MsGraphEmailServiceInterface;
 use RuntimeException;
 
 class EmailsProcessorRegisterServices
@@ -36,8 +35,8 @@ class EmailsProcessorRegisterServices
                 'label' => $className::getLabel(),
                 'description' => $className::getDescription(),
                 'class' => $className,
-                'options' => $className::getServicesOptions(),
-                'results' => $className::getServicesResults(),
+                // Utiliser les nouvelles méthodes si elles existent, sinon les anciennes pour la compatibilité
+                'options' => method_exists($className, 'getDefaults') ? $className::getDefaults() : [],
             ];
         }
 

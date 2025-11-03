@@ -20,15 +20,8 @@ return [
     'clientSecret' => env('MSGRAPH_SECRET_ID'),
 
     /*
-    * Set the url to trigger the oauth process this url should call return MsGraph::connect();
+    * Note: OAuth redirects not needed for client_credentials flow (Application permissions)
     */
-    'redirectUri' => env('MSGRAPH_OAUTH_URL', 'connect'),
-
-    /*
-    * set the url to be redirected to once the token has been saved
-    */
-
-    'msgraphLandingUri' => env('MSGRAPH_LANDING_URL'),
 
     /*
     set the tenant authorize url
@@ -77,10 +70,16 @@ return [
     */
     'email-in' => [
         \App\Services\Processors\Emails\EmailInClientProcessor::class,
+        \App\Services\Processors\Emails\ContactLookupProcessor::class,
     ],
     'email-draft' => [
         \App\Services\Processors\Emails\DraftEmailProcessor::class,
         \App\Services\Processors\Emails\TradEmailProcessor::class,
     ],
+
+    /*
+    URL de base pour les webhooks (utiliser ngrok en local)
+    */
+    'webhook_base_url' => env('WEBHOOK_BASE_URL', null),
 
 ];

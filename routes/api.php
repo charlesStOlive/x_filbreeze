@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/email-notifications', [\App\Http\Controllers\MsgEmailNotification::class, 'handleIncoming']);
 Route::post('/email-draft-notifications', [\App\Http\Controllers\MsgEmailNotification::class, 'handleDraft']);
+// Routes pour Microsoft Graph webhooks
+Route::post('/msgraph/webhook', [\App\Http\Controllers\MsgEmailNotification::class, 'handleIncoming']);
 
 // Routes pour l'analyse des états
 Route::prefix('states')->name('api.states.')->group(function () {

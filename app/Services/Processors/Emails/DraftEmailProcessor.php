@@ -2,213 +2,193 @@
 
 namespace App\Services\Processors\Emails;
 
-use App\Services\Ia\MistralAgentService;
 use Exception;
-use App\Models\MsgUserDraft;
+use App\Services\Ia\MistralAgentService;
 use App\Models\MsgEmailDraft;
-use App\Dto\MsGraph\EmailMessageDTO;
-use App\Services\MsGraph\MsGraphEmailService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
+use App\Services\Processors\Emails\Support\PreflightResult;
+use App\Enums\EmailProcessing\ProcessorStatus;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 
-class DraftEmailProcessor  implements ShouldQueue
+class DraftEmailProcessor extends BaseEmailDraftProcessor
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    use EmailProcessorTrait; // Importation du trait
-
-    protected MsGraphEmailService $emailService;
-    protected MsgUserDraft $user;
-    protected EmailMessageDTO $emailData;
-    protected MsgEmailDraft $email;
-    /**
-     * Constructeur pour initialiser les propriétés.
-     */
-    public function __construct(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email, MsGraphEmailService|null $emailService = null)
-    {
-        $this->emailService = $emailService ? $emailService : $this->resolveEmailService();
-        $this->user = $user;
-        $this->emailData = $emailData;
-        $this->email = $email;
-    }
-
-    /**
-     * Clé du service.
-     */
     public static function getKey(): string
     {
         return 'd-cor';
     }
-
-    /**
-     * Label du service.
-     */
+    public static function getIcon(): string
+    {
+        return 'heroicon-o-pencil-square';
+    }
     public static function getLabel(): string
     {
         return 'Corriger le texte';
     }
-
-    /**
-     * Description du service.
-     */
     public static function getDescription(): string
     {
         return 'Lance une correction sur le texte';
     }
-
-    /**
-     * Vérifie si la classe doit être exécutée.
-     */
-    public function shouldResolve(): bool
+    public static function getDefaultTriggerCode(): string
     {
-        // Exemple de logique pour déterminer si l'exécution est requise
-        if ($this->emailData->regexCode !== 'corrige') {
-            $this->setError('erreur code : ' . $this->emailData->regexCode ?? 'NULL');
-            //$this->email->save(); necessaire ? 
-            return false;
-        } else {
-            $this->setResult('success', true);
-            $this->setResult('code', $this->emailData->regexCode);
-            $this->setResult('code_options', $this->emailData->regexCodeOption);
-            return $this->launchStartingState();
-        }
+        return 'corrige';
     }
 
-    /**
-     * Logique principale pour traiter les données directement.
-     */
-    public function resolve(): MsgEmailDraft
+    public static function getDefaults(): array
     {
-        // Logique principale
-        //\Log::info('Resolve---------');
-        $options = $this->getResult('code_options');
-        $update = false;
-        if($options['u'] ?? false) {
-            $update = true;
-        }
-        if(!$update) {
-            $newEmailData = clone $this->emailData;
-            $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
-            //\Log::info("body original");
-            //\Log::info($newEmailData->bodyOriginal);
-            $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
-            $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
-            //\Log::info("reponse de mistral");
-            //\Log::info($responseN);
-            $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');;
-            $responseD = $this->emailService->updateEmail($this->user, $this->email, [
-                'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
-            ]);
-        } else {
-            $this->emailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyOriginal);
-            $this->emailService->updateEmail($this->user, $this->email, [
-                'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
-            ]);
+        return [
+            'mode' => 'inactif',
+            'agent_id' => 'ag:3e2c948d:20241122:correction-ortho-de-mails:2bf76447',
+            'create_new_draft' => true,
+            'regex_code' => 'corrige',
+        ];
+    }
 
+    // --- UI pour ton builder ---
+    public static function getForm(): array
+    {
+        return [
+            TextInput::make('agent_id')
+                ->label('ID Agent Mistral')
+                ->helperText('Identifiant de l\'agent Mistral à utiliser pour la correction')
+                ->visible(fn($get) => in_array($get('mode'), ['actif', 'test'])),
+
+            Toggle::make('create_new_draft')
+                ->label('Créer un nouveau brouillon')
+                ->helperText('Si activé, crée un nouveau brouillon au lieu de modifier l\'original')
+                ->visible(fn($get) => in_array($get('mode'), ['actif', 'test'])),
+
+            TextInput::make('regex_code')
+                ->label('Code de déclenchement')
+                ->helperText('Code qui doit être présent dans l\'email pour déclencher la correction')
+                ->visible(fn($get) => in_array($get('mode'), ['actif', 'test'])),
+        ];
+    }
+
+    public static function getInfoList(): array
+    {
+        return [
+            TextEntry::make('agent_id')
+                ->label('ID Agent Mistral')
+                ->copyable()
+                ->copyMessage('Agent ID copié!')
+                ->icon('heroicon-o-cpu-chip'),
+
+            TextEntry::make('create_new_draft')
+                ->label('Créer un nouveau brouillon')
+                ->helperText('Si activé, crée un nouveau brouillon au lieu de modifier l\'original')
+                ->formatStateUsing(fn($state) => $state ? 'Oui' : 'Non'),
+
+            TextEntry::make('regex_code')
+                ->label('Code de déclenchement')
+                ->formatStateUsing(fn($state) => "## {$state} ##")
+                ->badge()
+                ->color('primary')
+                ->copyable()
+                ->copyMessage('Code de déclenchement copié!')
+                ->icon('heroicon-o-hashtag'),
+        ];
+    }
+
+    public static function getResultsInfoList(): array
+    {
+        return [
+            TextEntry::make('corrected_content')
+                ->label('Texte corrigé')
+                ->html()
+                ->limit(1000)
+                ->visible(fn($state) => !empty($state)),
+
+            TextEntry::make('create_new_draft')
+                ->label('Créer un nouveau brouillon')
+                ->helperText('Si activé, crée un nouveau brouillon au lieu de modifier l\'original')
+                ->formatStateUsing(fn($state) => $state ? 'Oui' : 'Non'),
+
+            TextEntry::make('agent_used')
+                ->label('Agent utilisé')
+                ->copyable()
+                ->copyMessage('Agent ID copié!')
+                ->icon('heroicon-o-cpu-chip')
+                ->visible(fn($state) => !empty($state)),
+        ];
+    }
+
+    // --- Phase 1 ---
+    public function preflight(): PreflightResult
+    {
+        if ($block = $this->guardAndCaptureCode()) {
+            $this->updateProcessorStatus(ProcessorStatus::Blocked, $block->reason);
+            $this->email->save();
+            return $block;
         }
-        
-        sleep(1);
-        $this->email->status = 'end';
-        // A venir
+
+        try {
+            $this->beginProcessor();
+            $this->startProcessingWithPlaceholder();
+        } catch (Exception $ex) {
+            $this->updateProcessorStatus(ProcessorStatus::Error, $ex->getMessage());
+            $this->email->has_error = true;
+            $this->email->save();
+            return PreflightResult::blocked('Préflight en échec');
+        }
+
+        return PreflightResult::ok();
+    }
+
+    // --- Phase 2 ---
+    protected function perform(): MsgEmailDraft
+    {
+        try {
+            $mode          = $this->getResult('mode', 'inactif');
+            $codeOptions   = $this->getResult('code_options', []);
+            $createNew     = (bool)$this->getServiceOption('create_new_draft', true);
+            $agentId       = $this->getServiceOption('agent_id', static::getDefaults()['agent_id']);
+            $updateExisting = ($codeOptions['u'] ?? false) || !$createNew;
+
+            $clean = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyHtml);
+
+            if ($mode === 'test') {
+                $corrected = (new MistralAgentService())->callAgent($agentId, $clean);
+                $this->finishProcessor(ProcessorStatus::Success, [
+                    'corrected_content' => $corrected,
+                    'processing_mode' => 'test',
+                    'agent_used'      => $agentId,
+                    'create_new_draft' => !$updateExisting,
+                ], 'Correction testée avec succès');
+                return $this->email;
+            }
+
+            $corrected = (new MistralAgentService())->callAgent($agentId, $clean);
+
+            if ($updateExisting) {
+                $this->updateBody($corrected);
+                $data = [
+                    'corrected_content' => $corrected,
+                    'processing_mode'   => 'update',
+                    'agent_used'        => $agentId,
+                    'create_new_draft' => !$updateExisting,
+                ];
+                $message = 'Email corrigé et mis à jour';
+            } else {
+                $newData = $this->emailData->with(['bodyHtml' => $corrected]);
+                $resp = $this->emailClient->createDraft($this->user, $newData);
+                $this->markOriginalProcessed('Terminé - Brouillon corrigé créé');
+
+                $data = [
+                    'new_draft_id'      => $resp['id'] ?? null,
+                    'corrected_content' => $corrected,
+                    'processing_mode'   => 'new_draft',
+                    'agent_used'        => $agentId,
+                    'create_new_draft' => !$updateExisting,
+                ];
+                $message = 'Nouveau brouillon corrigé créé';
+            }
+
+            $this->finishProcessor(ProcessorStatus::Success, $data, $message);
+        } catch (Exception $e) {
+            $this->finishProcessor(ProcessorStatus::Error, [], $e->getMessage());
+        }
+
         return $this->email;
     }
-
-    private function callMistralAgent(string $mistralPrompt): string
-    {
-        $mistralAgent = new MistralAgentService(); // Instanciation directe
-        $agentId = 'ag:3e2c948d:20241122:correction-ortho-de-mails:2bf76447';
-        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        //\Log::info('MIST>RAL RESPONSE');
-        //\Log::info($response);
-        return $response;
-    }
-
-    /**
-     * Méthode appelée automatiquement lorsqu'elle est mise en file d'attente.
-     */
-    public function handle()
-    {
-        //\Log::info('----Lancement du handle----');
-        $this->resolve()->save();
-        //\Log::info('----Fin du handle----');
-    }
-
-    /**
-     * Méthode statique pour lancer la queue après vérification.
-     */
-    public static function onQueue(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email)
-    {
-        //\Log::info('lancement de la queue');
-        try {
-            $processor = new self($user, $emailData, $email);
-            dispatch($processor);
-        } catch(Exception $ex) {
-            //\Log::info($ex->getMessage());
-        }
-        
-        
-    }
-
-    /**
-     * Retourne les options du service.
-     */
-    public static function getServicesOptions(): array
-    {
-        return [
-            'mode' => [
-                'type' => 'list',
-                'default' => 'inactif',
-                'label' => 'Mode',
-                'values' => [
-                    'inactif' => 'Inactif',
-                    'actif' => 'Actif',
-                    'test' => 'Test',
-                ],
-            ],
-            'code' => [
-                'type' => 'string',
-                'default' => 'slug',
-                'label' => 'Code',
-            ],
-        ];
-    }
-
-    /**
-     * Retourne les résultats spécifiques pour ce service.
-     */
-    public static function getServicesResults(): array
-    {
-        return [
-            'success' => [
-                'type' => 'boolean',
-                'default' => false,
-                'label' => 'Email Traité',
-                'hidden' => true,
-            ],
-            'reason' => [
-                'type' => 'boolean',
-                'default' => 'inc',
-                'label' => 'Raison',
-            ],
-            'code' => [
-                'type' => 'string',
-                'default' => 'inc',
-                'label' => 'Code identifié',
-            ],
-            'code_options' => [
-                'type' => 'array',
-                'default' => [],
-                'label' => 'Options',
-            ],
-            'errors' => [
-                'type' => 'array',
-                'default' => [],
-                'label' => 'Erreurs',
-            ],
-        ];
-    }
-
-    
 }

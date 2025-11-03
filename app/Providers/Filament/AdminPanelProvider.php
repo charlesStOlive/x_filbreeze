@@ -48,10 +48,6 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 FilamentStateFusionEnhancedPlugin::make(),
-                FilamentPermissionManagerPlugin::make()
-                    ->navigationGroup('Administration')
-                    ->permissionResource()
-                    ->roleResource(),
             ])
             ->colors([
                 'primary' => '#DB8E57',

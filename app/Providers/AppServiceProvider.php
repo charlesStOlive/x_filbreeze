@@ -46,6 +46,28 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('msgconnect', function () {
             return new MsgConnect; // Assurez-vous que le chemin est correct
         });
+
+        // Bindings pour la nouvelle architecture Email
+        $this->app->bind(
+            \App\Services\Email\Contracts\EmailClient::class,
+            \App\Infrastructure\MsGraph\GraphEmailClient::class
+        );
+
+        // Infrastructure MsGraph
+        $this->app->singleton(\App\Infrastructure\MsGraph\GraphAuthService::class);
+        $this->app->singleton(\App\Infrastructure\MsGraph\GraphEmailService::class);
+        $this->app->singleton(\App\Infrastructure\MsGraph\GraphSubscriptionService::class);
+
+        // Support & Domain services
+        $this->app->singleton(\App\Support\Email\HtmlToTextConverter::class);
+        $this->app->singleton(\App\Support\Email\RegexCodeExtractor::class);
+        $this->app->singleton(\App\Support\Email\RecipientParser::class);
+        $this->app->singleton(\App\Support\Email\AttachmentParser::class);
+        $this->app->singleton(\App\Infrastructure\MsGraph\Mappers\GraphMessageMapper::class);
+        $this->app->singleton(\App\Services\Email\Services\EmailStatusCalculator::class);
+
+        // Application services
+        $this->app->singleton(\App\Services\Email\EmailNotificationService::class);
     }
 
     /**

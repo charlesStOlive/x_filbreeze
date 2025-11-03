@@ -11,7 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Notifications\Notification;
-use App\Services\MsGraph\MsGraphAuthService;
+use App\Infrastructure\MsGraph\GraphAuthService;
 use App\Casts\MsGraph\DynamicEmailServicesCast;
 use App\Services\MsGraph\MsGraphSubscriptionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,16 +27,16 @@ class MsgUserDraft extends Model
     protected $casts = [
         'data_email' => 'json',
         'expire_at' => 'datetime',
+        'services_options' => 'json',
+        'services_results' => 'json',
     ];
 
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
 
-        $this->casts = array_merge(
-            $this->casts,
-            DynamicEmailServicesCast::generateCasts('email-draft', 'options', 'services_options')
-        );
+        // Les casts dynamiques ne sont plus nécessaires avec la nouvelle approche
+        // Les données JSON sont maintenant gérées directement via les méthodes helper
     }
 
     /**
@@ -74,7 +74,7 @@ class MsgUserDraft extends Model
      */
     public static function getApiMsgUsersIdsEmails()
     {
-        $authService = app(MsGraphAuthService::class);
+        $authService = app(GraphAuthService::class);
 
         if (!$authService->isConnected()) {
             $authService->connect(false);
@@ -93,7 +93,7 @@ class MsgUserDraft extends Model
 
     public static function getApiMsgUser($id)
     {
-        $authService = app(MsGraphAuthService::class);
+        $authService = app(GraphAuthService::class);
 
         if ($authService->isConnected()) {
             $users = $authService->guzzle('get', 'users');
@@ -109,7 +109,7 @@ class MsgUserDraft extends Model
      */
     public function subscribe()
     {
-        $authService = app(MsGraphAuthService::class);
+        $authService = app(GraphAuthService::class);
 
         if (!$authService->isConnected()) {
             $authService->connect(false);
@@ -148,7 +148,7 @@ class MsgUserDraft extends Model
         }
 
         try {
-            $authService = app(MsGraphAuthService::class);
+            $authService = app(GraphAuthService::class);
             if (!$authService->isConnected()) {
                 $authService->connect(false);
             }
@@ -182,7 +182,7 @@ class MsgUserDraft extends Model
     public function refreshSubscription()
     {
         try {
-            $authService = app(MsGraphAuthService::class);
+            $authService = app(GraphAuthService::class);
             if (!$authService->isConnected()) {
                 $authService->connect(false);
             }
@@ -224,5 +224,51 @@ class MsgUserDraft extends Model
 
         $this->user_id = $user->id;
         $this->save();
+    }
+
+    /**
+     * Récupère une option de service depuis les données JSON.
+     */
+    public function getServiceOption(string $serviceKey, string $optionKey, $default = null)
+    {
+        $servicesOptions = $this->services_options ?? [];
+        return $servicesOptions[$serviceKey][$optionKey] ?? $default;
+    }
+
+    /**
+     * Définit une option de service dans les données JSON.
+     */
+    public function setServiceOption(string $serviceKey, string $optionKey, $value): void
+    {
+        $servicesOptions = $this->services_options ?? [];
+        $servicesOptions[$serviceKey][$optionKey] = $value;
+        $this->services_options = $servicesOptions;
+    }
+
+    public function getServiceResult(string $serviceKey, ?string $resultKey = null, $default = null)
+    {
+        $servicesResults = $this->services_results ?? [];
+
+        // 🔹 Si on veut tout le bloc du service
+        if ($resultKey === null) {
+            return $servicesResults[$serviceKey] ?? $default;
+        }
+
+        // 🔹 Sinon on renvoie la clé précise
+        return $servicesResults[$serviceKey][$resultKey] ?? $default;
+    }
+
+    public function setServiceResult(string $serviceKey, ?string $resultKey, $value): void
+    {
+        $servicesResults = $this->services_results ?? [];
+
+        // 🔹 Si on veut remplacer tout le bloc
+        if ($resultKey === null) {
+            $servicesResults[$serviceKey] = is_array($value) ? $value : (array) $value;
+        } else {
+            $servicesResults[$serviceKey][$resultKey] = $value;
+        }
+
+        $this->services_results = $servicesResults;
     }
 }

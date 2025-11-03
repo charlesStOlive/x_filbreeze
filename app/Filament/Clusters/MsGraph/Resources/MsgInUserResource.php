@@ -17,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Forms\Components\TextInput;
 use App\Services\MsGraph\DynamicFormBuilder;
+use App\Services\MsGraph\ServiceFormBuilder;
 use App\Filament\Components\Tables\MailServiceColumn;
 use App\Filament\Clusters\MsGraph\Resources\MsgInUserResource\Pages;
 use App\Filament\Clusters\MsGraph\Resources\MsgInUserResource\RelationManagers\MsgEmailInsRelationManager;
@@ -51,7 +52,10 @@ class MsgInUserResource extends Resource
                 TextColumn::make('email')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('ms_id')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('subscription_id'),
-                MailServiceColumn::make('services_options')->label('Services')->serviceType('email-in'),
+                MailServiceColumn::make('services_options')
+                    ->label('Services')
+                    ->disabledClick()
+                    ->serviceType('email-in'),
                 //
             ])
             ->filters([
@@ -63,11 +67,11 @@ class MsgInUserResource extends Resource
                 Action::make('editServices')
                     ->label('Services')
                     ->icon('heroicon-s-cog-6-tooth')
-                    ->schema(fn($record) => DynamicFormBuilder::build($record, 'email-in','services_options',  ))
+                    ->schema(fn($record) => ServiceFormBuilder::buildResultsSchema('email-in', $record))
                     ->action(function (array $data, $record) {
-                        foreach ($data as $field => $value) {
-                            $record->{$field} = $value;
-                        }
+                        // Avec statePath, les données sont déjà structurées par service
+                        // Plus besoin de restructurer - sauvegarder directement
+                        $record->services_options = $data;
                         $record->save();
                     }),
                 Action::make('subscribe')

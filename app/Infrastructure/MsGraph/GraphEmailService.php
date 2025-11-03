@@ -1,18 +1,16 @@
 <?php
 
-namespace App\Services\MsGraph;
+namespace App\Infrastructure\MsGraph;
 
 use Exception;
 use App\Models\MsgEmailIn;
 use App\Models\MsgEmailDraft;
-use App\Dto\MsGraph\EmailMessageDTO;
-use App\Services\MsGraph\MsGraphAuthService;
 
-class MsGraphEmailService
+class GraphEmailService
 {
-    protected MsGraphAuthService $authService;
+    protected GraphAuthService $authService;
 
-    public function __construct(MsGraphAuthService $authService)
+    public function __construct(GraphAuthService $authService)
     {
         $this->authService = $authService;
     }

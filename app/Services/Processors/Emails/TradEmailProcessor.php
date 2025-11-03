@@ -2,218 +2,193 @@
 
 namespace App\Services\Processors\Emails;
 
-use App\Services\Ia\MistralAgentService;
 use Exception;
-use App\Models\MsgUserDraft;
+use App\Services\Ia\MistralAgentService;
 use App\Models\MsgEmailDraft;
-use App\Dto\MsGraph\EmailMessageDTO;
-use App\Services\MsGraph\MsGraphEmailService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
+use App\Services\Processors\Emails\Support\PreflightResult;
+use App\Enums\EmailProcessing\ProcessorStatus;
+use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 
-class TradEmailProcessor  implements ShouldQueue
+class TradEmailProcessor extends BaseEmailDraftProcessor
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    use EmailProcessorTrait; // Importation du trait
-
-    protected MsGraphEmailService $emailService;
-    protected MsgUserDraft $user;
-    protected EmailMessageDTO $emailData;
-    protected MsgEmailDraft $email;
-    /**
-     * Constructeur pour initialiser les propriétés.
-     */
-    public function __construct(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email, MsGraphEmailService|null $emailService = null)
-    {
-        $this->emailService = $emailService ? $emailService : $this->resolveEmailService();
-        $this->user = $user;
-        $this->emailData = $emailData;
-        $this->email = $email;
-    }
-
-    /**
-     * Clé du service.
-     */
     public static function getKey(): string
     {
         return 'd-trad';
     }
-
-    /**
-     * Label du service.
-     */
+    public static function getIcon(): string
+    {
+        return 'heroicon-o-language';
+    }
     public static function getLabel(): string
     {
-        return 'Traduire  le mail';
+        return 'Traduire le mail';
     }
-
-    /**
-     * Description du service.
-     */
     public static function getDescription(): string
     {
-        return 'Traduit le mail de la langue source vers le français et inversement';
+        return 'Traduit le mail de la langue source vers la langue cible';
+    }
+    public static function getDefaultTriggerCode(): string
+    {
+        return 'traduit';
     }
 
-    /**
-     * Vérifie si la classe doit être exécutée.
-     */
-    public function shouldResolve(): bool
+    public static function getDefaults(): array
     {
-        // Exemple de logique pour déterminer si l'exécution est requise
-        if ($this->emailData->regexCode !== 'traduit') {
-            $this->setError('Pas de code ou mauvais code : ' . $this->emailData->regexCode);
-            //$this->email->save(); necessaire ? 
-            return false;
-        } else {
-            $this->setResult('success', true);
-            $this->setResult('code', $this->emailData->regexCode);
-            $this->setResult('code_options', $this->emailData->regexCodeOption);
-            return $this->launchStartingState();
-        }
+        return [
+            'mode' => 'inactif',
+            'agent_id' => 'ag:3e2c948d:20241128:untitled-agent:863e968f',
+            'create_new_draft' => true,
+            'regex_code' => 'traduit',
+        ];
     }
 
-    /**
-     * Logique principale pour traiter les données directement.
-     */
-    public function resolve(): MsgEmailDraft
+    // --- UI pour ton builder ---
+    public static function getForm(): array
     {
-        // Logique principale
-        // \Log::info('Resolve---------');
-        $options = $this->getResult('code_options');
-        $update = false;
-        if($options['u'] ?? false) {
-            unset($options['u']);
-            $update = true;
-        }
-        $langKeyConfig = array_key_first($options);
-        $lang = $langKeyConfig ? $langKeyConfig : 'xx';
-        if(!$update) {
-            $newEmailData = clone $this->emailData;
-            $newEmailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($newEmailData->bodyOriginal);
-            //On ajoute le code langue au debut du texte : 
-            $newEmailData->bodyOriginal = sprintf('[%s]%s', $lang, $newEmailData->bodyOriginal);
-            // \Log::info("body original");
-            // \Log::info($newEmailData->bodyOriginal);
-            $newEmailData->bodyOriginal = $this->callMistralAgent($newEmailData->bodyOriginal);
-            $responseN = $this->emailService->createDraft($this->user, $newEmailData->getDataForNewEmail());
-            $newBody = $this->emailData->bodyOriginal = $this->insertInRegexKey('Terminé');
-            $responseD = $this->emailService->updateEmail($this->user, $this->email, [
-                'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
-            ]);
-        } else {
-            $this->emailData->bodyOriginal = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyOriginal);
-            $this->emailData->bodyOriginal = sprintf('[%s]%s', $lang, $this->emailData->bodyOriginal);
-            $this->emailData->bodyOriginal = $this->callMistralAgent($this->emailData->bodyOriginal);
-            $this->emailService->updateEmail($this->user, $this->email, [
-                'body' => ['contentType' => $this->emailData->contentType, 'content' => $this->emailData->bodyOriginal],
-            ]);
+        return [
+            TextInput::make('agent_id')
+                ->label('ID Agent Mistral')
+                ->helperText('Identifiant de l\'agent Mistral à utiliser pour la traduction')
+                ->visible(fn($get) => in_array($get('mode'), ['actif', 'test'])),
 
+            TextInput::make('regex_code')
+                ->label('Code de déclenchement')
+                ->helperText('Code qui doit être présent dans l\'email pour déclencher la traduction')
+                ->visible(fn($get) => in_array($get('mode'), ['actif', 'test'])),
+        ];
+    }
+
+    public static function getInfoList(): array
+    {
+        return [
+            TextEntry::make('agent_id')
+                ->label('ID Agent Mistral')
+                ->copyable()
+                ->copyMessage('Agent ID copié!')
+                ->icon('heroicon-o-cpu-chip'),
+
+            TextEntry::make('regex_code')
+                ->label('Code de déclenchement')
+                ->formatStateUsing(fn($state) => "## {$state} ##")
+                ->badge()
+                ->color('gray')
+                ->copyable()
+                ->copyMessage('Code de déclenchement copié!')
+                ->icon('heroicon-o-hashtag'),
+        ];
+    }
+
+    public static function getResultsInfoList(): array
+    {
+        return [
+            TextEntry::make('target_language')
+                ->label('Langue cible')
+                ->badge()
+                ->color('info')
+                ->icon('heroicon-o-language')
+                ->visible(fn($state) => !empty($state)),
+
+            TextEntry::make('translated_content')
+                ->label('Contenu traduit')
+                ->limit(1000)
+                ->tooltip(fn($state) => $state)
+                ->visible(fn($state) => !empty($state)),
+
+            TextEntry::make('processing_mode')
+                ->label('Mode de traitement')
+                ->badge()
+                ->color(fn($state) => match ($state) {
+                    'new_draft' => 'success',
+                    'update'    => 'warning',
+                    'test'      => 'info',
+                    default     => 'gray'
+                })
+                ->visible(fn($state) => !empty($state)),
+
+            TextEntry::make('new_draft_id')
+                ->label('ID nouveau brouillon')
+                ->copyable()
+                ->copyMessage('ID copié!')
+                ->icon('heroicon-o-document-duplicate')
+                ->visible(fn($state) => !empty($state)),
+        ];
+    }
+
+    // --- Phase 1 ---
+    public function preflight(): PreflightResult
+    {
+        if ($block = $this->guardAndCaptureCode()) {
+            $this->updateProcessorStatus(ProcessorStatus::Blocked, $block->reason);
+            $this->email->save();
+            return $block;
         }
-        
-        sleep(1);
-        $this->email->status = 'end';
-        // A venir
+
+        try {
+            $this->beginProcessor();
+            $this->startProcessingWithPlaceholder();
+        } catch (Exception $ex) {
+            $this->updateProcessorStatus(ProcessorStatus::Error, $ex->getMessage());
+            $this->email->has_error = true;
+            $this->email->save();
+            return PreflightResult::blocked('Préflight en échec');
+        }
+
+        return PreflightResult::ok();
+    }
+
+    // --- Phase 2 ---
+    protected function perform(): MsgEmailDraft
+    {
+        try {
+            $mode        = $this->getResult('mode', 'inactif');
+            $codeOptions = $this->getResult('code_options', []);
+            $lang        = array_key_first($codeOptions) ?: 'xx';
+            $update      = (bool)($codeOptions['u'] ?? false);
+            $agentId     = $this->getServiceOption('agent_id', static::getDefaults()['agent_id']);
+
+            $clean  = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyHtml);
+            $prompt = '[' . $lang . ']' . $clean;
+
+            if ($mode === 'test') {
+                $translated = (new MistralAgentService())->callAgent($agentId, $prompt);
+                $this->finishProcessor(ProcessorStatus::Success, [
+                    'target_language'   => $lang,
+                    'translated_content' => $translated,
+                    'processing_mode'   => 'test',
+                ], "Traduction testée vers {$lang}");
+                return $this->email;
+            }
+
+            $translated = (new MistralAgentService())->callAgent($agentId, $prompt);
+
+            if ($update) {
+                $this->updateBody($translated);
+                $data = [
+                    'target_language'    => $lang,
+                    'translated_content' => $translated,
+                    'processing_mode'    => 'update',
+                ];
+                $message = "Email traduit vers {$lang} et mis à jour";
+            } else {
+                $newEmailData = $this->emailData->with(['bodyHtml' => $translated]);
+                $resp = $this->emailClient->createDraft($this->user, $newEmailData);
+                $this->markOriginalProcessed('Terminé');
+
+                $data = [
+                    'new_draft_id'       => $resp['id'] ?? null,
+                    'target_language'    => $lang,
+                    'translated_content' => $translated,
+                    'processing_mode'    => 'new_draft',
+                ];
+                $message = "Nouveau brouillon traduit vers {$lang} créé";
+            }
+
+            $this->finishProcessor(ProcessorStatus::Success, $data, $message);
+        } catch (Exception $e) {
+            $this->finishProcessor(ProcessorStatus::Error, [], $e->getMessage());
+        }
+
         return $this->email;
     }
-
-    private function callMistralAgent(string $mistralPrompt): string
-    {
-        $mistralAgent = new MistralAgentService(); // Instanciation directe
-        $agentId = 'ag:3e2c948d:20241128:untitled-agent:863e968f';
-        $response = $mistralAgent->callAgent($agentId, $mistralPrompt);
-        //\Log::info('MISTRAL RESPONSE');
-        //\Log::info($response['choices'][0]['message']['content'] ?? '');
-        return $response;
-    }
-
-    /**
-     * Méthode appelée automatiquement lorsqu'elle est mise en file d'attente.
-     */
-    public function handle()
-    {
-        //\Log::info('----Lancement du handle----');
-        $this->resolve()->save();
-        //\Log::info('----Fin du handle----');
-    }
-
-    /**
-     * Méthode statique pour lancer la queue après vérification.
-     */
-    public static function onQueue(MsgUserDraft $user, EmailMessageDTO $emailData, MsgEmailDraft $email)
-    {
-        //\Log::info('lancement de la queue');
-        try {
-            $processor = new self($user, $emailData, $email);
-            dispatch($processor);
-        } catch(Exception $ex) {
-            //\Log::info($ex->getMessage());
-        }
-        
-        
-    }
-
-    /**
-     * Retourne les options du service.
-     */
-    public static function getServicesOptions(): array
-    {
-        return [
-            'mode' => [
-                'type' => 'list',
-                'default' => 'inactif',
-                'label' => 'Mode',
-                'values' => [
-                    'inactif' => 'Inactif',
-                    'actif' => 'Actif',
-                    'test' => 'Test',
-                ],
-            ],
-            'code' => [
-                'type' => 'string',
-                'default' => 'slug',
-                'label' => 'Code',
-            ],
-        ];
-    }
-
-    /**
-     * Retourne les résultats spécifiques pour ce service.
-     */
-    public static function getServicesResults(): array
-    {
-        return [
-            'success' => [
-                'type' => 'boolean',
-                'default' => false,
-                'label' => 'Email Traité',
-                'hidden' => true,
-            ],
-            'reason' => [
-                'type' => 'boolean',
-                'default' => 'inc',
-                'label' => 'Raison',
-            ],
-            'code' => [
-                'type' => 'string',
-                'default' => 'inc',
-                'label' => 'Code identifié',
-            ],
-            'code_options' => [
-                'type' => 'array',
-                'default' => [],
-                'label' => 'Options',
-            ],
-            'errors' => [
-                'type' => 'array',
-                'default' => [],
-                'label' => 'Erreurs',
-            ],
-        ];
-    }
-
-    
 }

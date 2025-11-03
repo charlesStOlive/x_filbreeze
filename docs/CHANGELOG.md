@@ -1,4 +1,56 @@
-# 📋 Notes de Version - Système de Permissions
+# 📋 Notes de Version - X-Filbreeze
+
+## Version 3.0 - 5 Novembre 2025
+
+### 🔄 Simplification du Système de Statuts d'Emails
+
+#### ❌ Suppression de l'État "Partial"
+
+- **État `EmailStatus::Partial` supprimé** : Logique de statuts simplifiée
+- **Règle unifiée** : Tous les emails avec services terminés passent à `End`
+- **Plus de confusion** entre "partiellement terminé" et "terminé"
+
+#### 🐛 Correction des Services Bloqués
+
+- **Fix majeur** : Les emails avec tous les services bloqués lors du preflight passent maintenant à `End`
+- **Logique dans MsGraphNotificationService** : Recalcul automatique du statut après les preflight
+- **Cohérence** : Même comportement que les services qui réussissent
+
+#### 🎨 Améliorations de l'Interface Utilisateur
+
+- **MailServiceColumn configurables** :
+  - `modalWidth()` : Contrôle de la taille des modals (xs à 2xl)
+  - `buttonSize()` : Dimensions personnalisables des boutons 
+  - `showMessage()` : Affichage des messages de retour dans les boutons
+- **Design amélioré** :
+  - Bordures colorées selon le statut (vert/bleu/gris)
+  - Icônes de statut positionnées dans les coins
+  - Support des messages tronqués avec tooltip
+- **Flexibilité** : Configuration adaptée à différents contextes d'affichage
+
+### 📊 Nouvelle Logique de Statuts
+
+**Avant** (complexe) :
+```php
+$hasSuccess = in_array(ProcessorStatus::Success->value, $statuses, true);
+$hasBlocked = in_array(ProcessorStatus::Blocked->value, $statuses, true);
+$status = ($hasSuccess && $hasBlocked) ? Partial : End;
+```
+
+**Après** (simplifié) :
+```php
+if (active_jobs > 0) return Processing;
+if (has_error) return Error;
+return End; // Dans tous les autres cas
+```
+
+### 🔧 Modifications Techniques
+
+- **BaseEmailDraftProcessor::recomputeEmailStatus()** : Logique simplifiée
+- **MsGraphNotificationService** : Recalcul automatique des statuts
+- **Suppression de code redondant** : Nettoyage des anciennes conditions
+
+---
 
 ## Version 2.0 - 21 Août 2025
 
