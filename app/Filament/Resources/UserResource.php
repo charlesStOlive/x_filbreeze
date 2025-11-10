@@ -2,34 +2,39 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\CheckboxList;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\UserResource\Pages\ListUsers;
-use App\Filament\Resources\UserResource\Pages\CreateUser;
-use App\Filament\Resources\UserResource\Pages\EditUser;
-use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
-use App\Models\User;
-use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
 use Filament\Forms;
-use Filament\Resources\Resource;
+use App\Models\User;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Hash;
+use Filament\Schemas\Schema;
+use Filament\Actions\EditAction;
+use Filament\Resources\Resource;
+use Filament\Actions\DeleteAction;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
+use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Select;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Infolists\Components\TextEntry;
+use App\Filament\Resources\UserResource\Pages;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\UserResource\Pages\EditUser;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Filament\Resources\UserResource\Pages\CreateUser;
+use App\Filament\Resources\UserResource\RelationManagers;
+use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Traits\HasFilamentAuthorization;
 
 class UserResource extends Resource
 {
+    use HasFilamentAuthorization;
+
     protected static ?string $model = User::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
@@ -42,24 +47,26 @@ class UserResource extends Resource
 
     protected static ?string $modelLabel = 'Utilisateur';
 
-    public static function canViewAny(): bool
-    {
-        return PermissionService::can('users.view');
-    }
-
-    public static function canCreate(): bool
-    {
-        return PermissionService::can('users.create');
-    }
-
     public static function canEdit($record): bool
     {
-        return PermissionService::can('users.edit');
+        // Vérifier si l'enregistrement est un Super Admin
+        if ($record && $record->hasRole('Super Admin')) {
+            // Seul un Super Admin peut éditer un Super Admin
+            return auth()->user()->hasRole('Super Admin') && parent::canEdit($record);
+        }
+
+        return parent::canEdit($record);
     }
 
     public static function canDelete($record): bool
     {
-        return PermissionService::can('users.delete');
+        // Vérifier si l'enregistrement est un Super Admin
+        if ($record && $record->hasRole('Super Admin')) {
+            // Seul un Super Admin peut supprimer un Super Admin
+            return auth()->user()->hasRole('Super Admin') && parent::canDelete($record);
+        }
+
+        return parent::canDelete($record);
     }
 
     public static function form(Schema $schema): Schema
@@ -96,22 +103,112 @@ class UserResource extends Resource
                     ->dehydrated(false)
                     ->minLength(8)
                     ->revealable(),
+
+                // Avertissement pour les Super Admin
+                TextEntry::make('super_admin_warning')
+                    ->label('')
+                    ->state('⚠️ Cet utilisateur est Super Admin et dispose de TOUS les droits via Gate::before()')
+                    ->visible(fn($record) => $record && $record->hasRole('Super Admin'))
+                    ->columnSpanFull(),
+
                 Select::make('roles')
                     ->label('Rôles')
                     ->multiple()
                     ->relationship('roles', 'name')
                     ->preload()
-                    ->searchable(),
+                    ->searchable()
+                    ->options(function () {
+                        // Si l'utilisateur connecté est Super Admin, afficher tous les rôles
+                        if (auth()->user()->hasRole('Super Admin')) {
+                            return \Spatie\Permission\Models\Role::all()->pluck('name', 'id');
+                        }
+
+                        // Sinon, afficher tous les rôles sauf Super Admin
+                        return \Spatie\Permission\Models\Role::where('name', '!=', 'Super Admin')
+                            ->pluck('name', 'id');
+                    })
+                    ->disabled(function ($record) {
+                        // Empêcher la modification des rôles des Super Admin par des non-Super Admin
+                        if ($record && $record->hasRole('Super Admin')) {
+                            return !auth()->user()->hasRole('Super Admin');
+                        }
+                        return false;
+                    }),
                 CheckboxList::make('permissions')
                     ->label('Permissions directes')
                     ->relationship('permissions', 'name')
                     ->columns(2)
-                    ->searchable(),
+                    ->searchable()
+                    ->options(function () {
+                        // Si l'utilisateur connecté est Super Admin, afficher toutes les permissions
+                        if (auth()->user()->hasRole('Super Admin')) {
+                            return \Spatie\Permission\Models\Permission::all()
+                                ->pluck('name', 'id')
+                                ->sort()
+                                ->toArray();
+                        }
+
+                        // Récupérer toutes les permissions existantes avec leurs IDs
+                        $allPermissions = \Spatie\Permission\Models\Permission::all()->keyBy('name');
+
+                        // Récupérer les permissions de l'utilisateur connecté (via rôles + permissions directes)
+                        $userPermissions = collect();
+
+                        // Permissions via les rôles
+                        $userPermissions = $userPermissions->merge(
+                            auth()->user()->getPermissionsViaRoles()->pluck('name')
+                        );
+
+                        // Permissions directes
+                        $userPermissions = $userPermissions->merge(
+                            auth()->user()->getDirectPermissions()->pluck('name')
+                        );
+
+                        // Permissions que l'utilisateur peut gérer
+                        $managablePermissions = collect();
+
+                        foreach ($userPermissions->unique() as $userPermission) {
+                            // Si c'est une permission wildcard (se termine par *)
+                            if (str_ends_with($userPermission, '*')) {
+                                // Récupérer le préfixe (ex: "user.*" -> "user.")
+                                $prefix = str_replace('*', '', $userPermission);
+
+                                // Ajouter toutes les permissions qui commencent par ce préfixe
+                                $matchingPermissions = $allPermissions->filter(function ($permission, $name) use ($prefix) {
+                                    return str_starts_with($name, $prefix);
+                                });
+
+                                $managablePermissions = $managablePermissions->merge($matchingPermissions);
+                            } else {
+                                // Permission exacte
+                                if ($allPermissions->has($userPermission)) {
+                                    $managablePermissions->put($userPermission, $allPermissions->get($userPermission));
+                                }
+                            }
+                        }
+
+                        // Retourner les permissions uniques triées par ordre alphabétique
+                        return $managablePermissions->unique()
+                            ->sortBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->disabled(function ($record) {
+                        // Empêcher la modification des permissions des Super Admin par des non-Super Admin
+                        if ($record && $record->hasRole('Super Admin')) {
+                            return !auth()->user()->hasRole('Super Admin');
+                        }
+                        return false;
+                    }),
             ]);
     }
 
     public static function table(Table $table): Table
     {
+        \Log::info("UserResource::table() called", [
+            'user_id' => auth()->id()
+        ]);
+
         return $table
             ->columns([
                 TextColumn::make('name')
@@ -125,6 +222,7 @@ class UserResource extends Resource
                 TextColumn::make('roles.name')
                     ->label('Rôles')
                     ->badge()
+                    ->color(fn(string $state): string => $state === 'Super Admin' ? 'danger' : 'primary')
                     ->separator(','),
                 TextColumn::make('created_at')
                     ->label('Créé le')
@@ -145,12 +243,43 @@ class UserResource extends Resource
                     ->preload(),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(function ($record) {
+                        $canEdit = static::canEdit($record);
+                        \Log::info("UserResource EditAction direct visible() debug", [
+                            'record_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'canEdit_result' => $canEdit,
+                            'method_called' => 'static::canEdit'
+                        ]);
+                        return $canEdit;
+                    }),
+                DeleteAction::make()
+                    ->visible(function ($record) {
+                        $canDelete = static::canDelete($record);
+                        \Log::info("UserResource DeleteAction direct visible() debug", [
+                            'record_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'canDelete_result' => $canDelete,
+                            'method_called' => 'static::canDelete'
+                        ]);
+                        return $canDelete;
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->action(function ($records) {
+                            // Filtrer les Super Admin si l'utilisateur n'est pas Super Admin
+                            $recordsToDelete = $records->filter(function ($record) {
+                                if ($record->hasRole('Super Admin')) {
+                                    return auth()->user()->hasRole('Super Admin');
+                                }
+                                return true;
+                            });
+
+                            $recordsToDelete->each->delete();
+                        }),
                 ]),
             ]);
     }

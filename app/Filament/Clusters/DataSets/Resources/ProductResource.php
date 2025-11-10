@@ -25,35 +25,17 @@ use Filament\Tables\Grouping\Group;
 use YOS\FilamentExcel\Actions\Import;
 use Filament\Tables\Filters\SelectFilter;
 use App\Filament\Clusters\DataSets\Resources\ProductResource\Pages;
-use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Traits\HasFilamentAuthorization;
 
 class ProductResource extends Resource
 {
+    use HasFilamentAuthorization;
+
     protected static ?string $model = Product::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-cube';
 
     protected static ?string $cluster = DataSets::class;
-
-    public static function canViewAny(): bool
-    {
-        return PermissionService::can('products.view');
-    }
-
-    public static function canCreate(): bool
-    {
-        return PermissionService::can('products.create');
-    }
-
-    public static function canEdit($record): bool
-    {
-        return PermissionService::can('products.edit');
-    }
-
-    public static function canDelete($record): bool
-    {
-        return PermissionService::can('products.delete');
-    }
 
     public static function getLabel(): string
     {

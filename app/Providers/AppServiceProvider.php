@@ -6,11 +6,9 @@ use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
 use App\Models\User;
 use Illuminate\View\View;
 use Filament\Tables\Table;
-use App\Policies\RolePolicy;
 use Filament\Support\Assets\Js;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\AlpineComponent;
-use App\Policies\PermissionPolicy;
 use Filament\Support\Colors\Color;
 use Spatie\Permission\Models\Role;
 use Filament\View\PanelsRenderHook;
@@ -50,11 +48,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::policy(Role::class, RolePolicy::class);
-        Gate::policy(Permission::class, PermissionPolicy::class);
-        Gate::before(function (User $user, string $ability) {
-            return $user->hasRole('admin') ? true : null;
-        });
+        
         Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
         Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
         FilamentView::registerRenderHook(
