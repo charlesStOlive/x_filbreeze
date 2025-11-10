@@ -1,0 +1,147 @@
+/* MsGraph Filament Plugin Styles */
+
+/* Mail Service Cell Component */
+.mail-service-cell {
+    @apply p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700;
+}
+
+.mail-service-cell .service-button {
+    @apply relative p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-md;
+}
+
+.mail-service-cell .service-button.border-success-500 {
+    @apply border-success-500 dark:border-success-400;
+}
+
+.mail-service-cell .service-button.border-info-500 {
+    @apply border-info-500 dark:border-info-400;
+}
+
+.mail-service-cell .service-button.border-gray-400 {
+    @apply border-gray-400 dark:border-gray-500;
+}
+
+.mail-service-cell .service-button.bg-success-500 {
+    @apply bg-success-500 dark:bg-success-600 text-white;
+}
+
+.mail-service-cell .service-button.bg-info-500 {
+    @apply bg-info-500 dark:bg-info-600 text-white;
+}
+
+.mail-service-cell .service-button.bg-danger-500 {
+    @apply bg-danger-500 dark:bg-danger-600 text-white;
+}
+
+.mail-service-cell .service-button.bg-gray-500 {
+    @apply bg-gray-500 dark:bg-gray-600 text-white;
+}
+
+/* Icon positioning */
+.mail-service-cell .service-icon-top-left {
+    @apply absolute top-2 left-2 w-4 h-4 text-white;
+}
+
+.mail-service-cell .service-icon-bottom-right {
+    @apply absolute bottom-2 right-2 w-4 h-4 text-white;
+}
+
+.mail-service-cell .service-icon-main {
+    @apply w-8 h-8 mb-2;
+}
+
+/* Service status badges */
+.service-status-badge {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.service-status-badge.success {
+    @apply bg-success-100 text-success-800 dark:bg-success-800 dark:text-success-200;
+}
+
+.service-status-badge.warning {
+    @apply bg-warning-100 text-warning-800 dark:bg-warning-800 dark:text-warning-200;
+}
+
+.service-status-badge.danger {
+    @apply bg-danger-100 text-danger-800 dark:bg-danger-800 dark:text-danger-200;
+}
+
+.service-status-badge.gray {
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200;
+}
+
+/* Service grid layout */
+.services-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+}
+
+/* Modal adjustments for service forms */
+.msgraph-service-modal .fi-modal-content {
+    @apply max-w-4xl;
+}
+
+/* Processing status indicators */
+.processing-indicator {
+    @apply inline-flex items-center;
+}
+
+.processing-indicator.processing {
+    @apply text-info-600 dark:text-info-400;
+}
+
+.processing-indicator.success {
+    @apply text-success-600 dark:text-success-400;
+}
+
+.processing-indicator.error {
+    @apply text-danger-600 dark:text-danger-400;
+}
+
+.processing-indicator.blocked {
+    @apply text-warning-600 dark:text-warning-400;
+}
+
+/* Email status colors */
+.email-status-idle {
+    @apply text-gray-500 dark:text-gray-400;
+}
+
+.email-status-processing {
+    @apply text-info-600 dark:text-info-400;
+}
+
+.email-status-end {
+    @apply text-success-600 dark:text-success-400;
+}
+
+.email-status-error {
+    @apply text-danger-600 dark:text-danger-400;
+}
+
+/* Service configuration forms */
+.service-config-form .fi-fo-field-wrp {
+    @apply mb-4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .services-grid {
+        @apply grid-cols-1;
+    }
+    
+    .mail-service-cell .service-button {
+        @apply p-3 text-sm;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .mail-service-cell {
+        @apply bg-gray-900 border-gray-600;
+    }
+    
+    .service-button {
+        @apply border-gray-600;
+    }
+}

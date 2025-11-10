@@ -7,7 +7,7 @@ Cette réorganisation améliore la cohérence architecturale en séparant claire
 ## Structure AVANT
 
 ```
-app/Services/MsGraph/                    
+Services/MsGraph/                    
 ├── MsGraphAuthService.php              <- Infrastructure ❌
 ├── MsGraphEmailService.php             <- Infrastructure ❌  
 ├── MsGraphSubscriptionService.php      <- Infrastructure ❌
@@ -17,14 +17,14 @@ app/Services/MsGraph/
 ## Structure APRÈS
 
 ```
-app/Infrastructure/MsGraph/              <- Couche Infrastructure
+Infrastructure/MsGraph/              <- Couche Infrastructure
 ├── GraphAuthService.php                <- ex MsGraphAuthService
 ├── GraphEmailService.php               <- ex MsGraphEmailService
 ├── GraphSubscriptionService.php        <- ex MsGraphSubscriptionService
 ├── GraphEmailClient.php                <- Port adapter 
 └── Mappers/GraphMessageMapper.php      <- Data transformation
 
-app/Services/Email/                      <- Couche Application
+Services/Email/                      <- Couche Application
 └── EmailNotificationService.php        <- ex MsGraphNotificationService
 ```
 

@@ -2,7 +2,7 @@
 
 Ce dossier contient toute la documentation du projet x_filbreeze avec un focus sur le système de permissions wildcard.
 
-## � Système de Gestion d'États (Model States)
+##  Système de Gestion d'États (Model States)
 
 ### 📖 [MODEL_STATES_GUIDE.md](./MODEL_STATES_GUIDE.md)
 **Guide complet** du système d'états basé sur Spatie Laravel Model States + FilamentStateFusion.
@@ -24,7 +24,7 @@ Ce dossier contient toute la documentation du projet x_filbreeze avec un focus s
 - Personnalisations avancées (formulaires, redirections, couleurs)
 - Utilisation programmatique et points d'attention
 
-## �🔐 Système de Permissions v2.0
+## 🔐 Système de Permissions v2.0
 
 ### 📖 [PERMISSIONS_DOCUMENTATION.md](./PERMISSIONS_DOCUMENTATION.md)
 **Documentation complète** du système de permissions wildcard avec structure hiérarchique.
@@ -62,7 +62,7 @@ Exemples de commandes personnalisées et extensions du système.
 - Gestion des permissions par module
 - Idées d'extensions
 
-### � [CHANGELOG.md](./CHANGELOG.md)
+###  [CHANGELOG.md](./CHANGELOG.md)
 **Historique détaillé** des versions et changements.
 
 **Contenu :**
@@ -70,7 +70,7 @@ Exemples de commandes personnalisées et extensions du système.
 - Version 1.1 : Nettoyage automatique
 - Nouvelles fonctionnalités et améliorations
 
-## �🚀 Démarrage Rapide
+## 🚀 Démarrage Rapide
 
 ### Commandes Essentielles
 

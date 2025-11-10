@@ -3,9 +3,10 @@
 namespace App\Services\Processors\Emails;
 
 use Exception;
-use App\Models\MsgEmailIn;
-use App\Services\Processors\Emails\Support\PreflightResult;
-use App\Enums\EmailProcessing\ProcessorStatus;
+use CharlesStOlive\MsGraphFilament\Models\MsgEmailIn;
+use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
+use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
+use CharlesStOlive\MsGraphFilament\Processors\BaseEmailInProcessor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
@@ -173,7 +174,7 @@ class EmailInClientProcessor extends BaseEmailInProcessor
             // Vérification des destinataires acceptés
             $acceptedList = array_map('trim', explode("\n", $acceptedRecipients));
             $emailRecipients = array_merge($this->emailData->toEmails, $this->emailData->ccEmails, $this->emailData->bccEmails);
-            
+
             $hasValidRecipient = false;
             foreach ($emailRecipients as $recipient) {
                 if (in_array($recipient, $acceptedList)) {
@@ -212,7 +213,6 @@ class EmailInClientProcessor extends BaseEmailInProcessor
                 'newfolder' => $newFolder,
                 'processing_mode' => 'moved',
             ], "Email classé dans le dossier client : {$clientIdentified}");
-
         } catch (Exception $e) {
             $this->finishProcessor(ProcessorStatus::Error, [
                 'reason' => $e->getMessage(),

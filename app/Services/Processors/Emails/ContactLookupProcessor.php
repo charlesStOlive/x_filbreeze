@@ -2,17 +2,19 @@
 
 namespace App\Services\Processors\Emails;
 
-use App\Models\MsgUserIn;
-use App\Models\MsgEmailIn;
-use App\Services\Email\Dto\EmailMessageDTO;
-use App\Services\Email\Contracts\EmailClient;
-use App\Services\Processors\Emails\Support\PreflightResult;
-use App\Enums\EmailProcessing\ProcessorStatus;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
+
 use Filament\Forms\Components\Select;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\TextInput;
+use CharlesStOlive\MsGraphFilament\Services\Email\Dto\EmailMessageDTO;
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\TextEntry;
+use CharlesStOlive\MsGraphFilament\Services\Email\Contracts\EmailClient;
+use CharlesStOlive\MsGraphFilament\Models\MsgUserIn;
+use CharlesStOlive\MsGraphFilament\Models\MsgEmailIn;
+use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
+use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
+use CharlesStOlive\MsGraphFilament\Processors\BaseEmailInProcessor;
 
 /**
  * Processeur EmailIn qui vérifie si l'expéditeur est dans la base contacts
@@ -22,10 +24,8 @@ use Filament\Infolists\Components\IconEntry;
  * - Pas de queue (preflight-only)
  * - Analyse directe des contacts
  */
-class ContactLookupProcessor extends AbstractBaseEmailProcessor
+class ContactLookupProcessor extends BaseEmailInProcessor
 {
-    protected MsgUserIn $user;
-    protected MsgEmailIn $email;
 
     public function __construct(
         MsgUserIn $user,
@@ -33,10 +33,9 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
         MsgEmailIn $email,
         ?EmailClient $emailClient = null
     ) {
+        parent::__construct($user, $emailData, $email, $emailClient);
         $this->user = $user;
         $this->email = $email;
-        $this->emailData = $emailData;
-        $this->emailClient = $emailClient ?: app(EmailClient::class);
     }
 
     // --- Configuration du processeur ---
@@ -137,12 +136,12 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
             TextEntry::make('contact_found')
                 ->label('Contact trouvé')
                 ->badge()
-                ->color(fn (?bool $state): string => $state ? 'success' : 'danger')
-                ->formatStateUsing(fn (?bool $state): string => $state ? 'Oui' : 'Non'),
+                ->color(fn(?bool $state): string => $state ? 'success' : 'danger')
+                ->formatStateUsing(fn(?bool $state): string => $state ? 'Oui' : 'Non'),
 
             TextEntry::make('client_name')
                 ->label('Client')
-                ->visible(fn ($record) => !empty($record)),
+                ->visible(fn($record) => !empty($record)),
 
             TextEntry::make('target_folder')
                 ->label('Dossier cible'),
@@ -151,26 +150,11 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
                 ->label('Déplacé vers')
                 ->badge()
                 ->color('success')
-                ->visible(fn (?string $state): bool => !empty($state)),
+                ->visible(fn(?string $state): bool => !empty($state)),
         ];
     }
 
-    // --- Méthodes d'accès aux données ---
-    protected function getServiceOption(string $key, mixed $default = null): mixed
-    {
-        return $this->user->getServiceOption(static::getKey(), $key, $default);
-    }
-
-    protected function getResult(string $key, mixed $default = null): mixed
-    {
-        return $this->email->getServiceResult(static::getKey(), $key, $default);
-    }
-
-    protected function setResult(string $key, mixed $value): void
-    {
-        $this->email->setServiceResult(static::getKey(), $key, $value);
-    }
-
+    // --- Méthodes d'accès aux données spécifiques ---
     protected function getUser()
     {
         return $this->user;
@@ -185,7 +169,7 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
     public function preflight(): PreflightResult
     {
         // Guards communs (mode inactif, etc.)
-        $blockResult = $this->guardAndCaptureCode();
+        $blockResult = $this->guardForIncomingEmail();
         if ($blockResult) {
             return $blockResult;
         }
@@ -208,19 +192,19 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
                 $fallbackFolder = 'Inconnus';
                 $this->setResult('target_folder', $fallbackFolder);
                 $this->setResult('client_name', null);
-                
+
                 $mode = $this->getServiceOption('mode', 'inactif');
                 if ($mode !== 'test') {
                     $this->moveEmailToFolder($fallbackFolder);
                 }
-                
+
                 return PreflightResult::success('Email classé dans le dossier de repli');
             }
 
             // Contact trouvé, déterminer le dossier client
             $clientSlug = $this->getClientSlug($contact);
             $this->setResult('client_name', $contact->name ?? $contact->raison_sociale ?? 'Client');
-            
+
             $folderPrefix = $this->getServiceOption('target_folder_prefix', 'Clients/');
             $targetFolder = $folderPrefix . $clientSlug;
             $this->setResult('target_folder', $targetFolder);
@@ -240,7 +224,6 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
             }
 
             return PreflightResult::success("Email classé dans le dossier client : {$targetFolder}");
-
         } catch (\Exception $e) {
             return PreflightResult::error('Erreur lors de l\'analyse : ' . $e->getMessage());
         }
@@ -256,29 +239,29 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
     protected function findContact(string $email): ?object
     {
         // Chercher dans la table contacts avec le champ email (en dur)
-        
+
         // Exemple avec un modèle Contact fictif - adapter selon votre DB
         if (class_exists(\App\Models\Contact::class)) {
             return \App\Models\Contact::where('email', $email)->first();
         }
-        
+
         // Si pas de modèle Contact, essayer avec d'autres tables
         // Par exemple chercher dans une table clients
         if (class_exists(\App\Models\Client::class)) {
             return \App\Models\Client::where('email', $email)->first();
         }
-        
+
         return null;
     }
 
     protected function getClientSlug($contact): string
     {
         $slugField = $this->getServiceOption('client_slug_field', 'slug');
-        
-        return $contact->{$slugField} ?? 
-               $contact->slug ?? 
-               $contact->code ?? 
-               str()->slug($contact->name ?? $contact->raison_sociale ?? 'client');
+
+        return $contact->{$slugField} ??
+            $contact->slug ??
+            $contact->code ??
+            str()->slug($contact->name ?? $contact->raison_sociale ?? 'client');
     }
 
     protected function ensureFolderExists(string $folderPath): bool
@@ -293,8 +276,16 @@ class ContactLookupProcessor extends AbstractBaseEmailProcessor
         // Logique pour déplacer l'email vers le dossier spécifié
         // Utiliser l'EmailClient pour faire l'opération sur Exchange/Outlook
         // $this->emailClient->moveEmail($this->user, $this->email, $folderPath);
-        
+
         // Pour l'instant, on stocke juste l'information
         $this->setResult('moved_to_folder', $folderPath);
+    }
+
+    /**
+     * Cette méthode n'est pas utilisée car ce processeur ne fait que du preflight.
+     */
+    protected function perform()
+    {
+        // Rien à faire, toute la logique est dans preflight()
     }
 }

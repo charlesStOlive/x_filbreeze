@@ -77,7 +77,7 @@ return End; // Dans tous les autres cas
 - **Nettoyage sécurisé** : Confirmation requise avant retrait des permissions des rôles/utilisateurs
 - **Mode simulation** : Option `--dry-run` pour tester sans risque
 
-### � Nouvelles Commandes
+###  Nouvelles Commandes
 
 #### `permissions:generate-seeder`
 ```bash
@@ -125,21 +125,21 @@ php artisan permissions:generate-seeder [--file=nom] [--cluster=nom] [--role=nom
 - `roles.*` : Gestion des rôles
 - `activity-log.*` : Journaux d'activité
 
-### � Améliorations du Service
+###  Améliorations du Service
 
 #### PermissionService
 - **Support wildcard étendu** : Gestion des permissions hiérarchiques
 - **Optimisation des vérifications** : Logique améliorée pour les clusters
 - **Compatibilité** : Fonctionne avec ancienne et nouvelle structure
 
-### �🛡️ Protections Renforcées
+### 🛡️ Protections Renforcées
 
 - **Exclusion automatique** des permissions système (`s_*`)
 - **Retrait sécurisé** des permissions des rôles avant suppression
 - **Confirmations multiples** pour éviter les suppressions accidentelles
 - **Resynchronisation automatique** du rôle admin après nettoyage
 
-### � Documentation Complète
+###  Documentation Complète
 
 #### Nouveaux Documents
 - **SEEDER_GENERATION.md** : Guide complet des seeders

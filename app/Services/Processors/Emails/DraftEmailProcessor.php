@@ -4,9 +4,10 @@ namespace App\Services\Processors\Emails;
 
 use Exception;
 use App\Services\Ia\MistralAgentService;
-use App\Models\MsgEmailDraft;
-use App\Services\Processors\Emails\Support\PreflightResult;
-use App\Enums\EmailProcessing\ProcessorStatus;
+use CharlesStOlive\MsGraphFilament\Models\MsgEmailDraft;
+use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
+use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
+use CharlesStOlive\MsGraphFilament\Processors\BaseEmailDraftProcessor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;

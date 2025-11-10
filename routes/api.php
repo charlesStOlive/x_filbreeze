@@ -8,10 +8,7 @@ use Illuminate\Support\Facades\Route;
 // })->middleware('auth:sanctum');
 
 
-Route::post('/email-notifications', [\App\Http\Controllers\MsgEmailNotification::class, 'handleIncoming']);
-Route::post('/email-draft-notifications', [\App\Http\Controllers\MsgEmailNotification::class, 'handleDraft']);
-// Routes pour Microsoft Graph webhooks
-Route::post('/msgraph/webhook', [\App\Http\Controllers\MsgEmailNotification::class, 'handleIncoming']);
+// Microsoft Graph routes are now handled by the MsGraphFilament plugin
 
 // Routes pour l'analyse des états
 Route::prefix('states')->name('api.states.')->group(function () {

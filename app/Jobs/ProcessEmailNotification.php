@@ -8,7 +8,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use App\Facades\MsgConnect;
+use CharlesStOlive\MsGraphFilament\Services\Email\EmailNotificationService;
 
 class ProcessEmailNotification implements ShouldQueue
 {
@@ -21,8 +21,8 @@ class ProcessEmailNotification implements ShouldQueue
         $this->notificationData = $notificationData;
     }
 
-    public function handle()
+    public function handle(EmailNotificationService $notificationService)
     {
-        MsgConnect::processEmailNotification($this->notificationData);
+        $notificationService->processEmailNotification($this->notificationData);
     }
 }
