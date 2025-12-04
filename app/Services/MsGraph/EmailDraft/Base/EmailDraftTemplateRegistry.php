@@ -48,7 +48,7 @@ class EmailDraftTemplateRegistry
     {
         $types = config('templates-email-draft.types', []);
         $class = get_class($record);
-        \Log::info($types);
+        // \Log::info($types);
 
 
         return $types[$class]

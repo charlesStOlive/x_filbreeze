@@ -12,7 +12,7 @@ class PdfRenderer
 {
     public function render(BasePdfTemplate $template, array $options = [], bool $hotReload = false): string
     {
-        Log::info('Rendering PDF with template: ' . get_class($template));
+        // Log::info('Rendering PDF with template: ' . get_class($template));
         
         return View::make($template->getView(), array_merge(
             $template->getData($options),

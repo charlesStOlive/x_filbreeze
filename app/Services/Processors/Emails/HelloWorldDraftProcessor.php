@@ -148,7 +148,7 @@ class HelloWorldDraftProcessor extends BaseEmailDraftProcessor
             // Mode actif - mettre à jour le brouillon
             $this->updateBody($newContent);
 
-            // Marquer le draft comme terminé
+            // Marquer le draft comme terminé (catégorie WORKING_END)
             $this->markDraftAsCompleted();
 
             $this->finishProcessor(ProcessorStatus::Success, [

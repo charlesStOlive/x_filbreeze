@@ -205,9 +205,9 @@ class UserResource extends Resource
 
     public static function table(Table $table): Table
     {
-        \Log::info("UserResource::table() called", [
-            'user_id' => auth()->id()
-        ]);
+        // \Log::info("UserResource::table() called", [
+            // 'user_id' => auth()->id()
+        // ]);
 
         return $table
             ->columns([
@@ -246,23 +246,23 @@ class UserResource extends Resource
                 EditAction::make()
                     ->visible(function ($record) {
                         $canEdit = static::canEdit($record);
-                        \Log::info("UserResource EditAction direct visible() debug", [
-                            'record_id' => $record->id,
-                            'user_id' => auth()->id(),
-                            'canEdit_result' => $canEdit,
-                            'method_called' => 'static::canEdit'
-                        ]);
+                        // \Log::info("UserResource EditAction direct visible() debug", [
+                            // 'record_id' => $record->id,
+                            // 'user_id' => auth()->id(),
+                            // 'canEdit_result' => $canEdit,
+                            // 'method_called' => 'static::canEdit'
+                        // ]);
                         return $canEdit;
                     }),
                 DeleteAction::make()
                     ->visible(function ($record) {
                         $canDelete = static::canDelete($record);
-                        \Log::info("UserResource DeleteAction direct visible() debug", [
-                            'record_id' => $record->id,
-                            'user_id' => auth()->id(),
-                            'canDelete_result' => $canDelete,
-                            'method_called' => 'static::canDelete'
-                        ]);
+                        // \Log::info("UserResource DeleteAction direct visible() debug", [
+                            // 'record_id' => $record->id,
+                            // 'user_id' => auth()->id(),
+                            // 'canDelete_result' => $canDelete,
+                            // 'method_called' => 'static::canDelete'
+                        // ]);
                         return $canDelete;
                     }),
             ])

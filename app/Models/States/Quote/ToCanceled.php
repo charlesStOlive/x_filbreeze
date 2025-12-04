@@ -48,14 +48,14 @@ class ToCanceled extends Transition implements FilamentSpatieTransition, HasColo
 
     public function getRedirectUrl(\Illuminate\Database\Eloquent\Model $record): ?string
     {
-        \Log::info('ToCanceled: getRedirectUrl appelée', [
-            'record_id' => $record->id,
-            'record_type' => get_class($record)
-        ]);
+        // \Log::info('ToCanceled: getRedirectUrl appelée', [
+            // 'record_id' => $record->id,
+            // 'record_type' => get_class($record)
+        // ]);
         
         // Redirige vers l'index des devis après annulation
         $url = QuoteResource::getUrl('index');
-        \Log::info('ToCanceled: URL générée', ['url' => $url]);
+        // \Log::info('ToCanceled: URL générée', ['url' => $url]);
         
         return $url;
     }

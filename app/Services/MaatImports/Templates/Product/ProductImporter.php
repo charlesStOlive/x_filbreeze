@@ -55,7 +55,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
     {
         $options = $this->getMergedOptions();
 
-        \Log::info('Import Products', ['options' => $options]);
+        // \Log::info('Import Products', ['options' => $options]);
 
         foreach ($rows as $index => $r) {
             $line = $index + 2;
@@ -124,7 +124,7 @@ class ProductImporter extends BaseMaatImporter implements ToCollection, WithHead
                     'error' => $e->getMessage(),
                 ];
             }
-            \Log::info($this->errors);
+            // \Log::info($this->errors);
         }
     }
 

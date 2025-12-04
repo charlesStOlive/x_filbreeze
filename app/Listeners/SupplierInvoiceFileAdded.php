@@ -16,7 +16,7 @@ class SupplierInvoiceFileAdded
     public function handle(MediaHasBeenAddedEvent|Media $event): void
     {
         if ($event instanceof MediaHasBeenAddedEvent) {
-            Log::info('MediaHasBeenAdded event déclenché');
+            // Log::info('MediaHasBeenAdded event déclenché');
             $file = $event->media;
             $invoice = $event->media->model;
 
@@ -32,7 +32,7 @@ class SupplierInvoiceFileAdded
         }
 
         if ($event instanceof Media) { // Traite l'événement `eloquent.deleted`
-            Log::info("Le fichier media avec l'ID {$event->id} a été supprimé.");
+            // Log::info("Le fichier media avec l'ID {$event->id} a été supprimé.");
             // $invoice = $event->model;
 
             // if ($invoice instanceof \App\Models\SupplierInvoice) {

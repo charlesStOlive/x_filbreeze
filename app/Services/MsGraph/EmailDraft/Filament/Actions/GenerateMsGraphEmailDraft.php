@@ -62,13 +62,13 @@ class GenerateMsGraphEmailDraft extends BaseDocumentAction
                         ->afterStateUpdated(function ($state, callable $set, callable $get) use ($record) {
                             $templateClass = collect($this->getTemplatesForRecord($record))
                                 ->first(fn($cls) => $cls::key() === $state);
-                            \Log::info('template class: ' . $templateClass);
+                            // \Log::info('template class: ' . $templateClass);
 
                             if ($templateClass) {
                                 $template = new $templateClass($record);
                                 $options = $templateClass::getDefaultOptions();
                                 $rendered = app(EmailDraftRenderer::class)->render($template, $options);
-                                \Log::info(method_exists($templateClass, 'getDefaultAttachments') ? $templateClass::getDefaultAttachments() : []);
+                                // \Log::info(method_exists($templateClass, 'getDefaultAttachments') ? $templateClass::getDefaultAttachments() : []);
                                 $set('to', $template->getDefaultTo());
                                 $set('subject', $rendered['subject']);
                                 $set('template_options', $options);
