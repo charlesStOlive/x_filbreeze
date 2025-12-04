@@ -39,7 +39,6 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
         return [
             'mode' => 'inactif',
             'agent_id' => 'ag:3e2c948d:20241128:untitled-agent:863e968f',
-            'create_new_draft' => true,
             'regex_code' => 'traduit',
         ];
     }
@@ -117,24 +116,10 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
     }
 
     // --- Phase 1 ---
-    public function preflight(): PreflightResult
+    protected function validateDraftBeforeQueue(): PreflightResult
     {
-        if ($block = $this->guardAndCaptureCode()) {
-            $this->updateProcessorStatus(ProcessorStatus::Blocked, $block->reason);
-            $this->email->save();
-            return $block;
-        }
-
-        try {
-            $this->beginProcessor();
-            $this->startProcessingWithPlaceholder();
-        } catch (Exception $ex) {
-            $this->updateProcessorStatus(ProcessorStatus::Error, $ex->getMessage());
-            $this->email->has_error = true;
-            $this->email->save();
-            return PreflightResult::blocked('Préflight en échec');
-        }
-
+        // Validation OK : marquer le draft comme en cours de traitement
+        $this->markDraftAsProcessing();
         return PreflightResult::ok();
     }
 
@@ -145,7 +130,7 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
             $mode        = $this->getResult('mode', 'inactif');
             $codeOptions = $this->getResult('code_options', []);
             $lang        = array_key_first($codeOptions) ?: 'xx';
-            $update      = (bool)($codeOptions['u'] ?? false);
+            $createNew   = (bool)($codeOptions['n'] ?? false); // [n] = créer nouveau brouillon
             $agentId     = $this->getServiceOption('agent_id', static::getDefaults()['agent_id']);
 
             $clean  = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyHtml);
@@ -157,24 +142,20 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
                     'target_language'   => $lang,
                     'translated_content' => $translated,
                     'processing_mode'   => 'test',
+                    'create_new_draft'  => $createNew,
                 ], "Traduction testée vers {$lang}");
                 return $this->email;
             }
 
             $translated = (new MistralAgentService())->callAgent($agentId, $prompt);
 
-            if ($update) {
-                $this->updateBody($translated);
-                $data = [
-                    'target_language'    => $lang,
-                    'translated_content' => $translated,
-                    'processing_mode'    => 'update',
-                ];
-                $message = "Email traduit vers {$lang} et mis à jour";
-            } else {
+            if ($createNew) {
+                // Option [n] : Créer un nouveau brouillon
                 $newEmailData = $this->emailData->with(['bodyHtml' => $translated]);
                 $resp = $this->emailClient->createDraft($this->user, $newEmailData);
-                $this->markOriginalProcessed('Terminé');
+
+                // Marquer le draft original comme terminé
+                $this->markDraftAsCompleted();
 
                 $data = [
                     'new_draft_id'       => $resp['id'] ?? null,
@@ -183,6 +164,19 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
                     'processing_mode'    => 'new_draft',
                 ];
                 $message = "Nouveau brouillon traduit vers {$lang} créé";
+            } else {
+                // Par défaut : Update du brouillon existant
+                $this->updateBody($translated);
+
+                // Marquer le draft comme terminé
+                $this->markDraftAsCompleted();
+
+                $data = [
+                    'target_language'    => $lang,
+                    'translated_content' => $translated,
+                    'processing_mode'    => 'update',
+                ];
+                $message = "Email traduit vers {$lang} et mis à jour";
             }
 
             $this->finishProcessor(ProcessorStatus::Success, $data, $message);
