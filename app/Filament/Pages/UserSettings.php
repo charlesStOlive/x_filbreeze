@@ -91,7 +91,7 @@ class UserSettings extends Page implements HasForms
                     ->schema([
                         Select::make('timezone')
                             ->label('Fuseau horaire')
-                            ->options(LocaleService::getPopularEuropeanTimezones())
+                            ->options(LocaleService::getPopularTimezones())
                             ->searchable()
                             ->required()
                             ->default('Europe/Paris')

@@ -9,10 +9,10 @@
 @source '../../../../resources/views/filament';
 @source '../../../../resources/views/livewire';
 @source '../../../../vendor/solution-forest/filament-tree/resources/**/*.blade.php';
-@source '../../../../vendor/charlesstolive/msgraph-filament/resources/**/*.blade.php';
-@source '../../../../vendor/charlesstolive/msgraph-filament/src/**/*.php';
-@source '../../../../packages/msgraph-filament/resources/**/*.blade.php';
-@source '../../../../packages/msgraph-filament/src/**/*.php';
+
+@source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Livewire';
+@source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Filament';
+@source '../../../../vendor/charlesstolive/filament-msgraph-email/resources/views';
 
 /* Test CSS pour debug */
 

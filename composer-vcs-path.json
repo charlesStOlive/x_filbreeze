@@ -1,0 +1,50 @@
+{
+    "repositories-fil***********************": {
+        "filament-permission-manager-local": {
+            "type": "path",
+            "url": "./packages/filament-permission-manager",
+            "options": {
+                "symlink": true
+            }
+        },
+        "filament-color-installer-local": {
+            "type": "path",
+            "url": "./packages/filament-color-installer",
+            "options": {
+                "symlink": true
+            }
+        },
+        "filament-msgraph-email-local": {
+            "type": "path",
+            "url": "./packages/filament-msgraph-email",
+            "options": {
+                "symlink": true
+            }
+        },
+        "filament-sellsy-local": {
+            "type": "path",
+            "url": "./packages/filament-sellsy-v2",
+            "options": {
+                "symlink": true
+            }
+        }
+    },
+    "repositories-vcs****************************": {
+        "filament-permission-manager-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
+        },
+        "filament-color-installer-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-color-installer.git"
+        },
+        "filament-msgraph-email-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-msgraph-email.git"
+        },
+        "filament-sellsy-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-sellsy-v2.git"
+        }
+    }
+}

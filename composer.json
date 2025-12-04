@@ -8,34 +8,33 @@
     ],
     "license": "MIT",
     "repositories": {
-        "filament-permission-manager-local": {
+        "filament-permission-manager": {
             "type": "path",
-            "url": "./packages/filament-permission-manager",
+            "url": "packages/filament-permission-manager"
+        },
+        "filament-color-installer": {
+            "type": "path",
+            "url": "packages/filament-color-installer"
+        },
+        "filament-msgraph-email-local": {
+            "type": "path",
+            "url": "./packages/filament-msgraph-email",
             "options": {
                 "symlink": true
             }
         },
-        "filament-state-fusion-enhanced-local": {
+        "filament-state-fusion-enhanced": {
             "type": "path",
-            "url": "./packages/filament-state-fusion-enhanced",
-            "options": {
-                "symlink": true
-            }
-        },
-        "msgraph-filament-local": {
-            "type": "path",
-            "url": "./packages/msgraph-filament",
-            "options": {
-                "symlink": true
-            }
+            "url": "packages/filament-state-fusion-enhanced"
         }
     },
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-snappy": "^1.0",
+        "charlesstolive/filament-color-installer": "dev-main",
+        "charlesstolive/filament-msgraph-email": "dev-master",
         "charlesstolive/filament-permission-manager": "dev-main",
         "charlesstolive/filament-state-fusion-enhanced": "dev-main",
-        "charlesstolive/msgraph-filament": "dev-master",
         "cloudinary-labs/cloudinary-laravel": "^3.0",
         "filament/filament": "~4.0",
         "filament/spatie-laravel-media-library-plugin": "~4.0",
@@ -61,7 +60,6 @@
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {
-        "barryvdh/laravel-debugbar": "^3.15",
         "barryvdh/laravel-ide-helper": "^3.6",
         "doctrine/dbal": "^4.1",
         "fakerphp/faker": "^1.23",

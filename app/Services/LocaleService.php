@@ -105,7 +105,7 @@ class LocaleService
     /**
      * Obtenir les fuseaux horaires les plus populaires en Europe
      */
-    public static function getPopularEuropeanTimezones(): array
+    public static function getPopularTimezones(): array
     {
         return [
             'Europe/Paris' => 'Europe - Paris (CET/CEST)',

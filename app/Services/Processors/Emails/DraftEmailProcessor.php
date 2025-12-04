@@ -114,25 +114,16 @@ class DraftEmailProcessor extends BaseEmailDraftProcessor
         ];
     }
 
-    // --- Phase 1 ---
-    public function preflight(): PreflightResult
+    // --- LOGIQUE TRAITEMENT ---
+
+    /**
+     * Phase 1: Validation avant mise en queue
+     * Override pour démarrer immédiatement avec la catégorie WORKING_START
+     */
+    protected function validateDraftBeforeQueue(): PreflightResult
     {
-        if ($block = $this->guardAndCaptureCode()) {
-            $this->updateProcessorStatus(ProcessorStatus::Blocked, $block->reason);
-            $this->email->save();
-            return $block;
-        }
-
-        try {
-            $this->beginProcessor();
-            $this->startProcessingWithPlaceholder();
-        } catch (Exception $ex) {
-            $this->updateProcessorStatus(ProcessorStatus::Error, $ex->getMessage());
-            $this->email->has_error = true;
-            $this->email->save();
-            return PreflightResult::blocked('Préflight en échec');
-        }
-
+        // Marquer le draft comme en cours de traitement
+        $this->markDraftAsProcessing();
         return PreflightResult::ok();
     }
 
@@ -140,11 +131,14 @@ class DraftEmailProcessor extends BaseEmailDraftProcessor
     protected function perform(): MsgEmailDraft
     {
         try {
-            $mode          = $this->getResult('mode', 'inactif');
-            $codeOptions   = $this->getResult('code_options', []);
-            $createNew     = (bool)$this->getServiceOption('create_new_draft', true);
-            $agentId       = $this->getServiceOption('agent_id', static::getDefaults()['agent_id']);
-            $updateExisting = ($codeOptions['u'] ?? false) || !$createNew;
+            $mode        = $this->getResult('mode', 'inactif');
+            $codeOptions = $this->getResult('code_options', []);
+            $agentId     = $this->getServiceOption('agent_id', static::getDefaults()['agent_id']);
+
+            // Logique de création/update :
+            // - Option 'n' dans le code → force nouveau brouillon
+            // - Sinon → suit la config UI 'create_new_draft'
+            $createNew = ($codeOptions['n'] ?? false) || (bool)$this->getServiceOption('create_new_draft', true);
 
             $clean = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyHtml);
 
@@ -154,35 +148,43 @@ class DraftEmailProcessor extends BaseEmailDraftProcessor
                     'corrected_content' => $corrected,
                     'processing_mode' => 'test',
                     'agent_used'      => $agentId,
-                    'create_new_draft' => !$updateExisting,
+                    'create_new_draft' => $createNew,
                 ], 'Correction testée avec succès');
                 return $this->email;
             }
 
             $corrected = (new MistralAgentService())->callAgent($agentId, $clean);
 
-            if ($updateExisting) {
-                $this->updateBody($corrected);
-                $data = [
-                    'corrected_content' => $corrected,
-                    'processing_mode'   => 'update',
-                    'agent_used'        => $agentId,
-                    'create_new_draft' => !$updateExisting,
-                ];
-                $message = 'Email corrigé et mis à jour';
-            } else {
+            if ($createNew) {
+                // Créer un nouveau brouillon
                 $newData = $this->emailData->with(['bodyHtml' => $corrected]);
                 $resp = $this->emailClient->createDraft($this->user, $newData);
-                $this->markOriginalProcessed('Terminé - Brouillon corrigé créé');
+
+                // Marquer l'original comme terminé
+                $this->markDraftAsCompleted();
 
                 $data = [
                     'new_draft_id'      => $resp['id'] ?? null,
                     'corrected_content' => $corrected,
                     'processing_mode'   => 'new_draft',
                     'agent_used'        => $agentId,
-                    'create_new_draft' => !$updateExisting,
+                    'create_new_draft'  => $createNew,
                 ];
                 $message = 'Nouveau brouillon corrigé créé';
+            } else {
+                // Mettre à jour le brouillon existant
+                $this->updateBody($corrected);
+
+                // Marquer comme terminé
+                $this->markDraftAsCompleted();
+
+                $data = [
+                    'corrected_content' => $corrected,
+                    'processing_mode'   => 'update',
+                    'agent_used'        => $agentId,
+                    'create_new_draft'  => $createNew,
+                ];
+                $message = 'Email corrigé et mis à jour';
             }
 
             $this->finishProcessor(ProcessorStatus::Success, $data, $message);

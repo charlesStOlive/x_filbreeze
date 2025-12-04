@@ -19,23 +19,23 @@ export default defineConfig({
             refresh: true,
         }),
     ],
-    ...(isDev && {
-        server: {
-            host: '0.0.0.0',
-            port: 5200,
-            strictPort: true,
-            cors: true,
-            origin: 'https://x_filbreeze.test:5200',
-            allowedHosts: ['x_filbreeze.test'],
-            hmr: {
-                host: 'x_filbreeze.test',
-                port: 5200,
-                protocol: 'wss',
-            },
-            https: {
-                key: fs.readFileSync(path.resolve(__dirname, 'C:/laragon/etc/ssl/laragon.key')),
-                cert: fs.readFileSync(path.resolve(__dirname, 'C:/laragon/etc/ssl/laragon.crt')),
-            },
-        },
-    }),
+    // ...(isDev && {
+    //     server: {
+    //         host: '0.0.0.0',
+    //         port: 5200,
+    //         strictPort: true,
+    //         cors: true,
+    //         origin: 'https://x_filbreeze.test:5200',
+    //         allowedHosts: ['x_filbreeze.test'],
+    //         hmr: {
+    //             host: 'x_filbreeze.test',
+    //             port: 5200,
+    //             protocol: 'wss',
+    //         },
+    //         https: {
+    //             key: fs.readFileSync(path.resolve(__dirname, 'C:/laragon/etc/ssl/laragon.key')),
+    //             cert: fs.readFileSync(path.resolve(__dirname, 'C:/laragon/etc/ssl/laragon.crt')),
+    //         },
+    //     },
+    // }),
 });

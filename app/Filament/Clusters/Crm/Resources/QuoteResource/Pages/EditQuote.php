@@ -71,7 +71,10 @@ class EditQuote extends EditRecord
                 ->color('primary')
                 ->tooltip('Cliquez pour changer l\'état du devis'),
             ActionGroup::make([
-                GenerateMsGraphEmailDraft::make('generateEmailDraft'),
+                // GenerateMsGraphEmailDraft::make('generateEmailDraft')
+                //     ->templates([
+                //         QuoteBasePdfTemplate::class,
+                //     ]),
                 GeneratePdfDownload::make('downloadPdf')
                     ->templates([
                         QuoteBasePdfTemplate::class,

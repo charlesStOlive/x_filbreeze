@@ -2,18 +2,21 @@
 
 namespace App\Services\MsGraph\EmailDraft\Filament\Actions;
 
-use Filament\Schemas\Components\Flex;
-use Filament\Schemas\Components\Group;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\ViewField;
 use Exception;
-use Filament\Notifications\Notification;
+use Filament\Actions\Action;
 use App\Dto\MsGraph\EmailMessageDTO;
 use Illuminate\Support\Facades\Auth;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Group;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
+use Filament\Notifications\Notification;
 use App\Services\MsGraph\MsGraphEmailService;
 use App\Services\MsGraph\EmailDraft\Base\EmailDraftRenderer;
 use App\Services\Document\Filament\Actions\BaseDocumentAction;
+use CharlesStOlive\MsGraphFilament\Infrastructure\MsGraph\GraphEmailService;
+use CharlesStOlive\MsGraphFilament\Filament\Clusters\MsGraph\Resources\MsgDraftUserResource;
 
 class GenerateMsGraphEmailDraft extends BaseDocumentAction
 {
@@ -145,7 +148,18 @@ class GenerateMsGraphEmailDraft extends BaseDocumentAction
             $msUser = Auth::user()?->msgUserDraft;
 
             if (!$msUser) {
-                throw new Exception('Aucun utilisateur Microsoft Graph lié.');
+                Notification::make()
+                    ->title('Erreur Microsoft Graph')
+                    ->body('L\'utilisateur n\'est pas connecté à Microsoft Graph')
+                    ->danger()
+                    ->actions([
+                        Action::make('configure')
+                            ->label('Configurer')
+                            ->button()
+                            ->url(MsgDraftUserResource::getUrl('index'))
+                    ])
+                    ->send();
+                return false;
             }
 
             $template = $this->getTemplateInstance(
@@ -167,10 +181,12 @@ class GenerateMsGraphEmailDraft extends BaseDocumentAction
                     'contentType' => 'HTML',
                     'content' => $rendered['body'],
                 ],
-                'toRecipients' => EmailMessageDTO::formatRecipientsFromEmails($data['to'] ?? []),
+                'toRecipients' => collect($data['to'] ?? [])
+                    ->map(fn($email) => ['emailAddress' => ['address' => $email]])
+                    ->toArray(),
             ];
 
-            app(MsGraphEmailService::class)->createNewDraftAndUploadAttachments($msUser, $payload, $attachments);
+            app(GraphEmailService::class)->createNewDraftAndUploadAttachments($msUser, $payload, $attachments);
 
             Notification::make()
                 ->title('Brouillon créé avec succès')

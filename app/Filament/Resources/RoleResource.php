@@ -81,11 +81,6 @@ class RoleResource extends Resource
                     ->label('Nom')
                     ->required()
                     ->unique(ignoreRecord: true),
-                Textarea::make('description')
-                    ->label('Description')
-                    ->columnSpanFull(),
-
-                // Affichage conditionnel pour Super Admin
                 TextEntry::make('super_admin_notice')
                     ->label('')
                     ->state('🔥 Ce rôle dispose automatiquement de TOUS les droits via Gate::before()')
