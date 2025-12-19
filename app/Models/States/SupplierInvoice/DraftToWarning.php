@@ -12,7 +12,7 @@ use Filament\Support\Contracts\HasIcon;
 use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
 use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class ToCanceled extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
+class DraftToWarning extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -23,23 +23,22 @@ class ToCanceled extends Transition implements FilamentSpatieTransition, HasColo
 
     public function getLabel(): string
     {
-        return __('Passer à canceled');
+        return __('Passer de Draft à Warning');
     }
- 
+
     public function getColor(): string
     {
-        return 'primary';
+        return 'warning';
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-o-arrow-right';
+        return 'heroicon-o-exclamation-triangle';
     }
 
-     public function handle(): SupplierInvoice
+    public function handle(): SupplierInvoice
     {
-        $this->supplierInvoice->state = new Canceled($this->supplierInvoice);
-        // Exemple: $this->supplierInvoice->validated_at = $this->data['validated_at'] ?? now();
+        $this->supplierInvoice->state = new Warning($this->supplierInvoice);
         $this->supplierInvoice->save();
         return $this->supplierInvoice;
     }
@@ -55,11 +54,9 @@ class ToCanceled extends Transition implements FilamentSpatieTransition, HasColo
     public function form(): array | Closure | null
     {
         return [
-            // Forms\Components\DateTimePicker::make('validated_at')
-            //     ->label('Validé le')
-            //     ->default(now())
-            //     ->helperText(__('Date de validation'))
+            // Forms\Components\Textarea::make('warning_message')
+            //     ->label('Message d\'avertissement')
+            //     ->helperText(__('Détails de l\'avertissement'))
         ];
     }
-
 }

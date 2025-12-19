@@ -13,7 +13,7 @@ class Supplier extends Model
 {
     use HasFactory;
 
-     /**
+    /**
      * The table associated with the model.
      *
      * @var string
@@ -23,17 +23,17 @@ class Supplier extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'alternative_names' => 'array',
+    ];
+
     public function invoices()
     {
-       return $this->hasMany(SupplierInvoice::class, 'supplier_id', 'id');
+        return $this->hasMany(SupplierInvoice::class, 'supplier_id', 'id');
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
     }
-
-    
-
-    
 }

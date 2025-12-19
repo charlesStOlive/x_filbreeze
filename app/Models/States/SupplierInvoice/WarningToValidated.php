@@ -10,10 +10,11 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Notifications\Notification;
+use Illuminate\Validation\ValidationException;
 use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
 use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class DraftToValidated extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
+class WarningToValidated extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -24,64 +25,48 @@ class DraftToValidated extends Transition implements FilamentSpatieTransition, H
 
     public function getLabel(): string
     {
-        return __('Passer de Draft à Validated');
+        return __('Passer de Warning à Validated');
     }
 
     public function getColor(): string
     {
-        return 'primary';
+        return 'success';
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-o-arrow-right';
+        return 'heroicon-o-check-circle';
     }
 
     public function handle(): SupplierInvoice
     {
-        // Vérification 1: Le supplier_id OU invoice_number manquant → Warning
-        if (empty($this->supplierInvoice->supplier_id) || empty($this->supplierInvoice->invoice_number)) {
-            $this->supplierInvoice->state = new Warning($this->supplierInvoice);
-            $this->supplierInvoice->save();
-
-            $message = [];
-            if (empty($this->supplierInvoice->supplier_id)) {
-                $message[] = 'le fournisseur';
-            }
-            if (empty($this->supplierInvoice->invoice_number)) {
-                $message[] = 'le numéro de facture';
-            }
-            $messageText = implode(' et ', $message);
-
-            Notification::make()
-                ->warning()
-                ->title(__('Avertissement'))
-                ->body(__("Il manque :message. Facture mise en Warning.", ['message' => $messageText]))
-                ->send();
-
-            return $this->supplierInvoice;
-        }
-
-        // Vérification 2: Le numéro de facture doit être unique pour ce supplier → Error
-        $duplicateExists = SupplierInvoice::where('supplier_id', $this->supplierInvoice->supplier_id)
-            ->where('invoice_number', $this->supplierInvoice->invoice_number)
-            ->where('id', '!=', $this->supplierInvoice->id)
-            ->exists();
-
-        if ($duplicateExists) {
-            $this->supplierInvoice->state = new Error($this->supplierInvoice);
-            $this->supplierInvoice->save();
-
+        // Bloquer si supplier_id est vide
+        if (empty($this->supplierInvoice->supplier_id)) {
             Notification::make()
                 ->danger()
                 ->title(__('Erreur'))
-                ->body(__('Le numéro de facture existe déjà pour ce fournisseur. Facture mise en Error.'))
+                ->body(__('Le fournisseur est obligatoire pour valider une facture.'))
                 ->send();
 
-            return $this->supplierInvoice;
+            throw ValidationException::withMessages([
+                'supplier_id' => __('Le fournisseur est obligatoire pour valider une facture.')
+            ]);
         }
 
-        // Si toutes les validations passent, on valide la facture
+        // Si pas de numéro de facture, ajouter une note
+        if (empty($this->supplierInvoice->invoice_number)) {
+            $date = now()->format('d/m/Y H:i');
+            $user = auth()->user() ? auth()->user()->name : 'Utilisateur inconnu';
+            $note = "Cette facture a été validée sans numéro le {$date} par {$user}.";
+
+            $currentNotes = $this->supplierInvoice->notes;
+            if (!empty($currentNotes)) {
+                $this->supplierInvoice->notes = $currentNotes . "\n\n" . $note;
+            } else {
+                $this->supplierInvoice->notes = $note;
+            }
+        }
+
         $this->supplierInvoice->state = new Validated($this->supplierInvoice);
         $this->supplierInvoice->save();
 

@@ -3,7 +3,6 @@
 namespace App\Services\Processors\Emails;
 
 use Exception;
-use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
 use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
 use CharlesStOlive\MsGraphFilament\Processors\BaseEmailInProcessor;
 use Filament\Forms\Components\TextInput;
@@ -108,10 +107,10 @@ class HelloWorldProcessor extends BaseEmailInProcessor
     // --- LOGIQUE TRAITEMENT ---
 
     /**
-     * Phase 1: Vérification avant mise en queue
+     * Phase 1: Action avant mise en queue
      * Vérifie que le sujet contient "Hello World"
      */
-    protected function validateBeforeQueue(): PreflightResult
+    protected function actionBeforeQueue(): ProcessorStatus
     {
         // Vérifier le sujet
         $subject = $this->emailData->subject ?? '';
@@ -122,19 +121,18 @@ class HelloWorldProcessor extends BaseEmailInProcessor
         $this->setResult('subject_check', $hasHelloWorld ? 'Oui' : 'Non');
 
         if (!$hasHelloWorld) {
-            $this->updateProcessorStatus(
+            return $this->updateProcessorStatus(
                 ProcessorStatus::Blocked,
                 'Le sujet ne contient pas "Hello World"'
             );
-            return PreflightResult::blocked('Le sujet ne contient pas "Hello World"');
         }
 
         // Si la validation passe, on continue vers la queue
-        return PreflightResult::ok();
+        return $this->updateProcessorStatus(ProcessorStatus::Success);
     }
 
     /**
-     * Phase 2: Traitement en queue
+     * Phase 2: Action durant la queue
      * Recherche de la phrase dans le contenu de l'email
      */
     protected function perform(): void
@@ -164,20 +162,22 @@ class HelloWorldProcessor extends BaseEmailInProcessor
                 }
             }
 
+            // ✅ Stocker les résultats AVANT finishProcessor
+            $this->setResult('phrase_searched', $searchPhrase);
+            $this->setResult('phrase_position', stripos($content, $searchPhrase));
+
+            // ✅ finishProcessor auto-sauvegarde tout
             $this->finishProcessor(
                 ProcessorStatus::Success,
-                [
-                    'phrase_searched' => $searchPhrase,
-                    'phrase_position' => stripos($content, $searchPhrase),
-                ],
                 "Phrase \"{$searchPhrase}\" trouvée dans le contenu"
             );
         } else {
+            // ✅ Stocker les résultats AVANT finishProcessor
+            $this->setResult('phrase_searched', $searchPhrase);
+
+            // ✅ finishProcessor auto-sauvegarde tout
             $this->finishProcessor(
                 ProcessorStatus::Blocked,
-                [
-                    'phrase_searched' => $searchPhrase,
-                ],
                 "Phrase \"{$searchPhrase}\" non trouvée dans le contenu"
             );
         }

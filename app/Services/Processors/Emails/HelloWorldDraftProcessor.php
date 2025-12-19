@@ -4,7 +4,6 @@ namespace App\Services\Processors\Emails;
 
 use Exception;
 use CharlesStOlive\MsGraphFilament\Models\MsgEmailDraft;
-use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
 use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
 use CharlesStOlive\MsGraphFilament\Processors\BaseEmailDraftProcessor;
 use Filament\Forms\Components\TextInput;
@@ -111,18 +110,18 @@ class HelloWorldDraftProcessor extends BaseEmailDraftProcessor
     // --- LOGIQUE TRAITEMENT ---
 
     /**
-     * Phase 1: Validation avant mise en queue
-     * Vérifie que le sujet contient "Hello World"
+     * Phase 1: Action spécifique avant mise en queue
+     * Marque le draft comme en cours de traitement
      */
-    protected function validateDraftBeforeQueue(): PreflightResult
+    protected function actionDraftBeforeQueue(): ProcessorStatus
     {
-        // Validation OK : marquer le draft comme en cours de traitement
+        // Marquer le draft comme en cours de traitement (catégorie WORKING_START)
         $this->markDraftAsProcessing();
-        return PreflightResult::ok();
+        return ProcessorStatus::Success;
     }
 
     /**
-     * Phase 2: Traitement en queue
+     * Phase 2: Action durant la queue
      * Insère le texte configuré dans le brouillon
      */
     protected function perform(): MsgEmailDraft
@@ -138,10 +137,14 @@ class HelloWorldDraftProcessor extends BaseEmailDraftProcessor
 
             // Mode test - simulation uniquement
             if ($this->isTestMode()) {
-                $this->finishProcessor(ProcessorStatus::Success, [
-                    'text_inserted' => $insertText,
-                    'processing_mode' => 'test',
-                ], '[TEST] Simulation réussie - texte serait inséré');
+                // ✅ Stocker les résultats AVANT finishProcessor
+                $this->setResult('text_inserted', $insertText);
+                $this->setResult('processing_mode', 'test');
+                
+                $this->finishProcessor(
+                    ProcessorStatus::Success,
+                    '[TEST] Simulation réussie - texte serait inséré'
+                );
                 return $this->email;
             }
 
@@ -151,12 +154,16 @@ class HelloWorldDraftProcessor extends BaseEmailDraftProcessor
             // Marquer le draft comme terminé (catégorie WORKING_END)
             $this->markDraftAsCompleted();
 
-            $this->finishProcessor(ProcessorStatus::Success, [
-                'text_inserted' => $insertText,
-                'processing_mode' => 'actif',
-            ], 'Texte inséré avec succès dans le brouillon');
+            // ✅ Stocker les résultats AVANT finishProcessor
+            $this->setResult('text_inserted', $insertText);
+            $this->setResult('processing_mode', 'actif');
+
+            $this->finishProcessor(
+                ProcessorStatus::Success,
+                'Texte inséré avec succès dans le brouillon'
+            );
         } catch (Exception $e) {
-            $this->finishProcessor(ProcessorStatus::Error, [], $e->getMessage());
+            $this->finishProcessor(ProcessorStatus::Error, $e->getMessage());
         }
 
         return $this->email;

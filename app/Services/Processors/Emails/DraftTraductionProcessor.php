@@ -4,7 +4,6 @@ namespace App\Services\Processors\Emails;
 
 use Exception;
 use CharlesStOlive\MsGraphFilament\Models\MsgEmailDraft;
-use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
 use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
 use CharlesStOlive\MsGraphFilament\Processors\BaseEmailDraftProcessor;
 use Filament\Forms\Components\TextInput;
@@ -16,8 +15,8 @@ use Filament\Infolists\Components\TextEntry;
  * Traduit le contenu d'un brouillon via un service IA
  * 
  * Template Method Pattern :
- * - validateDraftBeforeQueue() : Validation avant mise en queue
- * - perform() : Traitement en queue (appel IA + mise à jour)
+ * - actionDraftBeforeQueue() : Action avant mise en queue
+ * - perform() : Action durant la queue (appel IA + mise à jour)
  */
 class DraftTraductionProcessor extends BaseEmailDraftProcessor
 {
@@ -133,17 +132,18 @@ class DraftTraductionProcessor extends BaseEmailDraftProcessor
     // --- LOGIQUE TRAITEMENT ---
 
     /**
-     * Phase 1: Validation avant mise en queue
+     * Phase 1: Action spécifique avant mise en queue
+     * Marque le draft comme en cours de traitement
      */
-    protected function validateDraftBeforeQueue(): PreflightResult
+    protected function actionDraftBeforeQueue(): ProcessorStatus
     {
-        // Validation OK : marquer le draft comme en cours de traitement
+        // Marquer le draft comme en cours de traitement
         $this->markDraftAsProcessing();
-        return PreflightResult::ok();
+        return ProcessorStatus::Success;
     }
 
     /**
-     * Phase 2: Traitement en queue
+     * Phase 2: Action durant la queue
      * Appelle le service IA pour traduire le contenu
      */
     protected function perform(): MsgEmailDraft
@@ -157,11 +157,15 @@ class DraftTraductionProcessor extends BaseEmailDraftProcessor
 
             // Mode test - simulation uniquement
             if ($this->isTestMode()) {
-                $this->finishProcessor(ProcessorStatus::Success, [
-                    'target_language' => $targetLanguage,
-                    'processing_mode' => 'test',
-                    'agent_used' => $agentId,
-                ], '[TEST] Simulation réussie - traduction serait effectuée');
+                // ✅ Stocker les résultats AVANT finishProcessor
+                $this->setResult('target_language', $targetLanguage);
+                $this->setResult('processing_mode', 'test');
+                $this->setResult('agent_used', $agentId);
+                
+                $this->finishProcessor(
+                    ProcessorStatus::Success,
+                    '[TEST] Simulation réussie - traduction serait effectuée'
+                );
                 return $this->email;
             }
 
@@ -176,13 +180,17 @@ class DraftTraductionProcessor extends BaseEmailDraftProcessor
             // Marquer le draft comme terminé (catégorie WORKING_END)
             $this->markDraftAsCompleted();
 
-            $this->finishProcessor(ProcessorStatus::Success, [
-                'target_language' => $targetLanguage,
-                'processing_mode' => 'actif',
-                'agent_used' => $agentId,
-            ], 'Traduction effectuée avec succès');
+            // ✅ Stocker les résultats AVANT finishProcessor
+            $this->setResult('target_language', $targetLanguage);
+            $this->setResult('processing_mode', 'actif');
+            $this->setResult('agent_used', $agentId);
+
+            $this->finishProcessor(
+                ProcessorStatus::Success,
+                'Traduction effectuée avec succès'
+            );
         } catch (Exception $e) {
-            $this->finishProcessor(ProcessorStatus::Error, [], $e->getMessage());
+            $this->finishProcessor(ProcessorStatus::Error, $e->getMessage());
         }
 
         return $this->email;

@@ -16,7 +16,7 @@ class SupplierInvoiceFileAdded
     public function handle(MediaHasBeenAddedEvent|Media $event): void
     {
         if ($event instanceof MediaHasBeenAddedEvent) {
-            // Log::info('MediaHasBeenAdded event déclenché');
+            Log::info('MediaHasBeenAdded event déclenché');
             $file = $event->media;
             $invoice = $event->media->model;
 

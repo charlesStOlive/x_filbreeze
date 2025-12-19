@@ -48,9 +48,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        
-        Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
-        Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
+        // Event déplacé dans le workflow des states (DraftToValidated->handle())
+        // Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
+        // Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
         FilamentView::registerRenderHook(
             'panels::auth.login.form.after',
             fn(): View => view('filament.hooks.login_extra')

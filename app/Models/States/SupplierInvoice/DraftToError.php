@@ -12,7 +12,7 @@ use Filament\Support\Contracts\HasIcon;
 use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
 use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class ToValidated extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
+class DraftToError extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -23,23 +23,22 @@ class ToValidated extends Transition implements FilamentSpatieTransition, HasCol
 
     public function getLabel(): string
     {
-        return __('Passer à validated');
+        return __('Passer de Draft à Error');
     }
- 
+
     public function getColor(): string
     {
-        return 'primary';
+        return 'danger';
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-o-arrow-right';
+        return 'heroicon-o-exclamation-circle';
     }
 
-     public function handle(): SupplierInvoice
+    public function handle(): SupplierInvoice
     {
-        $this->supplierInvoice->state = new Validated($this->supplierInvoice);
-        // Exemple: $this->supplierInvoice->validated_at = $this->data['validated_at'] ?? now();
+        $this->supplierInvoice->state = new Error($this->supplierInvoice);
         $this->supplierInvoice->save();
         return $this->supplierInvoice;
     }
@@ -55,11 +54,9 @@ class ToValidated extends Transition implements FilamentSpatieTransition, HasCol
     public function form(): array | Closure | null
     {
         return [
-            // Forms\Components\DateTimePicker::make('validated_at')
-            //     ->label('Validé le')
-            //     ->default(now())
-            //     ->helperText(__('Date de validation'))
+            // Forms\Components\Textarea::make('error_message')
+            //     ->label('Message d\'erreur')
+            //     ->helperText(__('Détails de l\'erreur'))
         ];
     }
-
 }

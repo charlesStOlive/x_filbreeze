@@ -7,28 +7,28 @@ use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-class Validated extends SupplierInvoiceState implements HasDescription, HasColor, HasIcon, HasLabel
+class Warning extends SupplierInvoiceState implements HasDescription, HasColor, HasIcon, HasLabel
 {
-    public static $name = 'validated';
+    public static $name = 'warning';
     public $isSaveHidden = false;
 
     public function getLabel(): string
     {
-        return __('Validé');
+        return __('Avertissement');
     }
 
     public function getColor(): string
     {
-        return 'success';
+        return 'warning';
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-o-pencil';
+        return 'heroicon-o-exclamation-triangle';
     }
 
     public function getDescription(): ?string
     {
-        return __('Validé la facture le fournisseur et  le numéro de facture doit exister et être unique par fournisseur');
+        return __('Avertissement - vérification recommandée');
     }
 }

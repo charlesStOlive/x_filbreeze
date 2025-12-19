@@ -5,7 +5,6 @@ namespace App\Services\Processors\Emails;
 use Exception;
 use App\Services\Ia\MistralAgentService;
 use CharlesStOlive\MsGraphFilament\Models\MsgEmailDraft;
-use CharlesStOlive\MsGraphFilament\Support\PreflightResult;
 use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
 use CharlesStOlive\MsGraphFilament\Processors\BaseEmailDraftProcessor;
 use Filament\Forms\Components\TextInput;
@@ -115,15 +114,21 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
         ];
     }
 
-    // --- Phase 1 ---
-    protected function validateDraftBeforeQueue(): PreflightResult
+    /**
+     * Phase 1: Action spécifique avant mise en queue
+     * Marque le draft comme en cours de traitement
+     */
+    protected function actionDraftBeforeQueue(): ProcessorStatus
     {
-        // Validation OK : marquer le draft comme en cours de traitement
+        // Marquer le draft comme en cours de traitement
         $this->markDraftAsProcessing();
-        return PreflightResult::ok();
+        return ProcessorStatus::Success;
     }
 
-    // --- Phase 2 ---
+    /**
+     * Phase 2: Action durant la queue
+     * Traduction du brouillon avec l'IA
+     */
     protected function perform(): MsgEmailDraft
     {
         try {
@@ -138,12 +143,17 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
 
             if ($mode === 'test') {
                 $translated = (new MistralAgentService())->callAgent($agentId, $prompt);
-                $this->finishProcessor(ProcessorStatus::Success, [
-                    'target_language'   => $lang,
-                    'translated_content' => $translated,
-                    'processing_mode'   => 'test',
-                    'create_new_draft'  => $createNew,
-                ], "Traduction testée vers {$lang}");
+                
+                // ✅ Stocker les résultats AVANT finishProcessor
+                $this->setResult('target_language', $lang);
+                $this->setResult('translated_content', $translated);
+                $this->setResult('processing_mode', 'test');
+                $this->setResult('create_new_draft', $createNew);
+                
+                $this->finishProcessor(
+                    ProcessorStatus::Success,
+                    "Traduction testée vers {$lang}"
+                );
                 return $this->email;
             }
 
@@ -157,13 +167,16 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
                 // Marquer le draft original comme terminé
                 $this->markDraftAsCompleted();
 
-                $data = [
-                    'new_draft_id'       => $resp['id'] ?? null,
-                    'target_language'    => $lang,
-                    'translated_content' => $translated,
-                    'processing_mode'    => 'new_draft',
-                ];
-                $message = "Nouveau brouillon traduit vers {$lang} créé";
+                // ✅ Stocker les résultats AVANT finishProcessor
+                $this->setResult('new_draft_id', $resp['id'] ?? null);
+                $this->setResult('target_language', $lang);
+                $this->setResult('translated_content', $translated);
+                $this->setResult('processing_mode', 'new_draft');
+                
+                $this->finishProcessor(
+                    ProcessorStatus::Success,
+                    "Nouveau brouillon traduit vers {$lang} créé"
+                );
             } else {
                 // Par défaut : Update du brouillon existant
                 $this->updateBody($translated);
@@ -171,17 +184,18 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
                 // Marquer le draft comme terminé
                 $this->markDraftAsCompleted();
 
-                $data = [
-                    'target_language'    => $lang,
-                    'translated_content' => $translated,
-                    'processing_mode'    => 'update',
-                ];
-                $message = "Email traduit vers {$lang} et mis à jour";
+                // ✅ Stocker les résultats AVANT finishProcessor
+                $this->setResult('target_language', $lang);
+                $this->setResult('translated_content', $translated);
+                $this->setResult('processing_mode', 'update');
+                
+                $this->finishProcessor(
+                    ProcessorStatus::Success,
+                    "Email traduit vers {$lang} et mis à jour"
+                );
             }
-
-            $this->finishProcessor(ProcessorStatus::Success, $data, $message);
         } catch (Exception $e) {
-            $this->finishProcessor(ProcessorStatus::Error, [], $e->getMessage());
+            $this->finishProcessor(ProcessorStatus::Error, $e->getMessage());
         }
 
         return $this->email;

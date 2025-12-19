@@ -2,39 +2,44 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkAction;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\ListSupplierInvoices;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreateSupplierInvoice;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\EditSupplierInvoice;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreatSupplieFromFile;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Supplier;
 use Filament\Tables\Table;
+use Filament\Schemas\Schema;
 use App\Filament\Clusters\Crm;
 use Illuminate\Support\Carbon;
 use App\Models\SupplierInvoice;
+use Filament\Actions\BulkAction;
+use Filament\Actions\EditAction;
 use Filament\Resources\Resource;
+use Filament\Actions\DeleteAction;
 use Illuminate\Support\Facades\DB;
 use Filament\Tables\Grouping\Group;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Database\Eloquent\Collection;
+use A909M\FilamentStateFusion\Tables\Filters\StateFusionSelectFilter;
+use A909M\FilamentStateFusion\Actions\StateFusionBulkAction;
+use App\Models\States\SupplierInvoice\Draft;
+use App\Models\States\SupplierInvoice\Validated;
 use App\Filament\Components\Tables\DateColumn;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\RelationManagers;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\EditSupplierInvoice;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreatSupplieFromFile;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\ListSupplierInvoices;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreateSupplierInvoice;
+use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreatSupplieFromFileV2;
 
 
 class SupplierInvoiceResource extends Resource
@@ -68,16 +73,6 @@ class SupplierInvoiceResource extends Resource
                     ->required()
                     ->default(today()),
 
-                Select::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'validated' => 'Validated',
-                    ])
-                    ->default('pending')
-                    ->label('Status')
-                    ->required()
-                    ->columnSpan('full'),
-
                 Section::make('Détails TVA')
                     ->schema([
                         Toggle::make('has_tva')
@@ -92,8 +87,7 @@ class SupplierInvoiceResource extends Resource
                             ->label('Total HT')
                             ->suffix('€ HT')
                             ->live(debounce: 1000)
-                            ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'total_ht'))
-                            ->requiredIf('status', 'validated'),
+                            ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'total_ht')),
 
                         TextInput::make('tx_tva')
                             ->numeric()
@@ -120,8 +114,7 @@ class SupplierInvoiceResource extends Resource
                             ->label('Total TTC')
                             ->suffix('€ TTC')
                             ->live(debounce: 500)
-                            ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'total_ttc'))
-                            ->requiredIf('status', 'validated'),
+                            ->afterStateUpdated(fn(callable $set, callable $get) => self::calculateTVA($set, $get, 'total_ttc')),
                     ])
                     ->columns([
                         'sm' => 1,
@@ -133,8 +126,7 @@ class SupplierInvoiceResource extends Resource
                     ->preserveFilenames()
                     ->acceptedFileTypes(['application/pdf'])
                     ->openable()
-                    ->downloadable()
-                    ->required(fn(callable $get) => $get('status') === 'validated'),
+                    ->downloadable(),
 
                 Textarea::make('notes')
                     ->nullable()
@@ -222,13 +214,10 @@ class SupplierInvoiceResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->colors([
-                        'pending' => 'secondary',
-                        'validated' => 'success',
-                    ]),
+                TextColumn::make('state')
+                    ->label('État')
+                    ->badge(),
+
                 TextColumn::make('invoice_number')
                     ->label('Numéro')
                     ->searchable(),
@@ -256,15 +245,51 @@ class SupplierInvoiceResource extends Resource
 
             ])
             ->filters([
-                // Add any filters if necessary
+                StateFusionSelectFilter::make('state')
+                    ->multiple()
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
-            ])->toolbarActions([
+                DeleteAction::make()
+                    ->visible(fn($record) => !($record->state instanceof Validated)),
+            ])
+            ->toolbarActions([
                 BulkAction::make('delete')
                     ->requiresConfirmation()
-                    ->action(fn(Collection $records) => $records->each->delete())
+                    ->action(function (Collection $records) {
+                        $deleted = 0;
+                        $skipped = 0;
+
+                        foreach ($records as $record) {
+                            if ($record->state instanceof Validated) {
+                                $skipped++;
+                                continue;
+                            }
+                            $record->delete();
+                            $deleted++;
+                        }
+
+                        if ($deleted > 0) {
+                            Notification::make()
+                                ->title('Suppression effectuée')
+                                ->body("$deleted facture(s) supprimée(s)" . ($skipped > 0 ? ", $skipped validée(s) ignorée(s)" : ''))
+                                ->success()
+                                ->send();
+                        } elseif ($skipped > 0) {
+                            Notification::make()
+                                ->title('Suppression impossible')
+                                ->body("$skipped facture(s) validée(s) ne peuvent pas être supprimées")
+                                ->warning()
+                                ->send();
+                        }
+                    }),
+
+                // BulkAction pour valider (utilise la transition DraftToValidated avec sa logique)
+                StateFusionBulkAction::make('validate')
+                    ->label('Valider la sélection')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->transition(Draft::class, Validated::class),
             ]);
     }
 
@@ -274,7 +299,7 @@ class SupplierInvoiceResource extends Resource
             'index' => ListSupplierInvoices::route('/'),
             'create' => CreateSupplierInvoice::route('/create'),
             'edit' => EditSupplierInvoice::route('/{record}/edit'),
-            'createfromfile' => CreatSupplieFromFile::route('/createfromfile'),
+            'createfromfile' => CreatSupplieFromFileV2::route('/createfromfile'),
         ];
     }
 }

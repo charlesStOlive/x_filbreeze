@@ -9,10 +9,11 @@ use Spatie\ModelStates\Transition;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use Filament\Support\Contracts\HasIcon;
+use Filament\Notifications\Notification;
 use A909M\FilamentStateFusion\Concerns\StateFusionInfo as ProvidesSpatieTransitionToFilament;
 use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatieTransition;
 
-class ToDraft extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
+class ValidatedToDraft extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
     use ProvidesSpatieTransitionToFilament;
 
@@ -23,24 +24,34 @@ class ToDraft extends Transition implements FilamentSpatieTransition, HasColor, 
 
     public function getLabel(): string
     {
-        return __('Passer à draft');
+        return __('Annuler la validation');
     }
- 
+
     public function getColor(): string
     {
-        return 'primary';
+        return 'danger';
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-o-arrow-right';
+        return 'heroicon-o-exclamation-triangle';
     }
 
-     public function handle(): SupplierInvoice
+    public function handle(): SupplierInvoice
     {
+        // Supprimer le fichier de SharePoint
+        $this->supplierInvoice->deleteFromSharePoint();
+
+        // Retour à l'état Draft
         $this->supplierInvoice->state = new Draft($this->supplierInvoice);
-        // Exemple: $this->supplierInvoice->validated_at = $this->data['validated_at'] ?? now();
         $this->supplierInvoice->save();
+
+        Notification::make()
+            ->warning()
+            ->title(__('Validation annulée'))
+            ->body(__('La facture est retournée à l\'état Draft. Le fichier SharePoint a été supprimé.'))
+            ->send();
+
         return $this->supplierInvoice;
     }
 
@@ -54,12 +65,6 @@ class ToDraft extends Transition implements FilamentSpatieTransition, HasColor, 
 
     public function form(): array | Closure | null
     {
-        return [
-            // Forms\Components\DateTimePicker::make('validated_at')
-            //     ->label('Validé le')
-            //     ->default(now())
-            //     ->helperText(__('Date de validation'))
-        ];
+        return [];
     }
-
 }

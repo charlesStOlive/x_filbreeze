@@ -18,11 +18,10 @@ abstract class SupplierInvoiceState extends State implements HasFilamentStateFus
         return parent::config()
             ->default(Draft::class)
             ->allowTransition(Draft::class, Validated::class, DraftToValidated::class)
-            ->allowTransition(Draft::class, Canceled::class, DraftToCanceled::class)
-            ->allowTransition(Validated::class, Canceled::class, ValidatedToCanceled::class)
-            ->allowTransition(Canceled::class, Draft::class, CanceledToDraft::class)
-            ->allowTransition(Draft::class, ToDraft::class)
-            ->allowTransition(Validated::class, ToValidated::class)
-            ->allowTransition(Canceled::class, ToCanceled::class);
+            ->allowTransition(Draft::class, Error::class, DraftToError::class)
+            ->allowTransition(Draft::class, Warning::class, DraftToWarning::class)
+            ->allowTransition(Error::class, Draft::class, ErrorToDraft::class)
+            ->allowTransition(Warning::class, Validated::class, WarningToValidated::class)
+            ->allowTransition(Validated::class, Draft::class, ValidatedToDraft::class);
     }
 }

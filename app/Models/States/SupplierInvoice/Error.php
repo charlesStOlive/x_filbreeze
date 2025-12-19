@@ -7,28 +7,28 @@ use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-class Canceled extends SupplierInvoiceState implements HasDescription, HasColor, HasIcon, HasLabel
+class Error extends SupplierInvoiceState implements HasDescription, HasColor, HasIcon, HasLabel
 {
-    public static $name = 'canceled';
+    public static $name = 'error';
     public $isSaveHidden = false;
 
     public function getLabel(): string
     {
-        return __('Annulé');
+        return __('Erreur');
     }
 
     public function getColor(): string
     {
-        return 'gray';
+        return 'danger';
     }
 
     public function getIcon(): string
     {
-        return 'heroicon-o-pencil';
+        return 'heroicon-o-exclamation-circle';
     }
 
     public function getDescription(): ?string
     {
-        return __('Annulé');
+        return __('Erreur - nécessite correction');
     }
 }
