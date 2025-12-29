@@ -16,12 +16,9 @@
             "type": "path",
             "url": "packages/filament-color-installer"
         },
-        "filament-msgraph-email-local": {
-            "type": "path",
-            "url": "./packages/filament-msgraph-email",
-            "options": {
-                "symlink": true
-            }
+        "filament-msgraph-email-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-msgraph-email.git"
         },
         "filament-state-fusion-enhanced": {
             "type": "path",
