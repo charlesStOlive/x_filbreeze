@@ -27,6 +27,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        "filament-state-fusion-enhanced": {
+            "type": "path",
+            "url": "packages/filament-state-fusion-enhanced",
+            "options": {
+                "symlink": true
+            }
         }
     },
     "repositories-vcs****************************": {
@@ -45,6 +52,10 @@
         "filament-sellsy-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-sellsy-v2.git"
+        },
+        "filament-state-fusion-enhanced-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-state-fusion-enhanced.git"
         }
     }
 }

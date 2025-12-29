@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "58896a51bdc8a3c361d5650d485c7ec6",
+    "content-hash": "20ee3b1e54ed0d6bef9f0d17b8ea3782",
     "packages": [
         {
             "name": "a909m/filament-statefusion",
@@ -520,10 +520,16 @@
         {
             "name": "charlesstolive/filament-color-installer",
             "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "packages/filament-color-installer",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-color-installer.git",
                 "reference": "9cadeea24b6634c478c9542931d98af30eeb7a16"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-color-installer/zipball/9cadeea24b6634c478c9542931d98af30eeb7a16",
+                "reference": "9cadeea24b6634c478c9542931d98af30eeb7a16",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^4.0",
@@ -531,6 +537,7 @@
                 "php": "^8.2|^8.3",
                 "spatie/laravel-package-tools": "^1.16"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -548,9 +555,11 @@
                 "MIT"
             ],
             "description": "Filament color palette generator and installer",
-            "transport-options": {
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-color-installer/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-color-installer/issues"
+            },
+            "time": "2025-11-18T13:59:20+00:00"
         },
         {
             "name": "charlesstolive/filament-msgraph-email",
@@ -616,10 +625,16 @@
         {
             "name": "charlesstolive/filament-permission-manager",
             "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "packages/filament-permission-manager",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-permission-manager.git",
                 "reference": "b5826be752bc5e0fb17871a244c0f426197267d8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-permission-manager/zipball/b5826be752bc5e0fb17871a244c0f426197267d8",
+                "reference": "b5826be752bc5e0fb17871a244c0f426197267d8",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^4.0",
@@ -634,6 +649,7 @@
                 "pestphp/pest-plugin-arch": "^2.0",
                 "pestphp/pest-plugin-laravel": "^2.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -698,17 +714,25 @@
                 "roles",
                 "spatie"
             ],
-            "transport-options": {
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-permission-manager/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-permission-manager/issues"
+            },
+            "time": "2025-11-28T16:05:37+00:00"
         },
         {
             "name": "charlesstolive/filament-state-fusion-enhanced",
             "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "packages/filament-state-fusion-enhanced",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-state-fusion-enhanced.git",
                 "reference": "81b920602156b9db1967198f7defbc7a34b4dab3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-state-fusion-enhanced/zipball/81b920602156b9db1967198f7defbc7a34b4dab3",
+                "reference": "81b920602156b9db1967198f7defbc7a34b4dab3",
+                "shasum": ""
             },
             "require": {
                 "a909m/filament-statefusion": "^2.0",
@@ -787,9 +811,11 @@
                 "spatie",
                 "states"
             ],
-            "transport-options": {
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-state-fusion-enhanced/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-state-fusion-enhanced/issues"
+            },
+            "time": "2025-11-12T18:24:44+00:00"
         },
         {
             "name": "chillerlan/php-qrcode",
