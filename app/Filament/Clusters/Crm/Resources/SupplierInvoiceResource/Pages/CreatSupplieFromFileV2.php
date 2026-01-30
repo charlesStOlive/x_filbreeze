@@ -103,9 +103,9 @@ class CreatSupplieFromFileV2 extends Page implements HasForms
 
                                             Toggle::make('has_tva')->label('Soumis à TVA')->inline(false),
 
-                                            TextInput::make('total_ht')->numeric()->label('Total HT'),
-                                            TextInput::make('tva')->numeric()->label('Montant TVA'),
-                                            TextInput::make('total_ttc')->numeric()->label('Total TTC'),
+                                            TextInput::make('total_ht')->numeric()->minValue(0)->label('Total HT'),
+                                            TextInput::make('tva')->numeric()->minValue(0)->label('Montant TVA'),
+                                            TextInput::make('total_ttc')->numeric()->minValue(0)->label('Total TTC'),
                                         ])
                                         ->hidden(fn($get) => $get('state') === 'Erreur')
                                         ->columns(4)

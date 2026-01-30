@@ -46,10 +46,10 @@ class ListInvoices extends ListRecords
                     Select::make('tx_tva')
                         ->label('TVA')
                         ->options([
-                            0 => '0%',
-                            0.2 => '20%',
+                            '0' => '0%',
+                            '0.2' => '20%',
                         ])
-                        ->default(0.2)
+                        ->default('0.2')
                         ->selectablePlaceholder(false)
                 ])->columns(2),
                 MarkdownEditor::make('description')
