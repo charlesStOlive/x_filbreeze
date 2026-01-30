@@ -188,10 +188,10 @@ class EditInvoice extends EditRecord
                                         Select::make('tx_tva')
                                             ->label('TVA')
                                             ->options([
-                                                0 => '0%',
-                                                0.2 => '20%',
+                                                '0' => '0%',
+                                                '0.2' => '20%',
                                             ])
-                                            ->default(0.2)
+                                            ->default('0.2')
                                             ->selectablePlaceholder(false)
                                     ])
                             ])
