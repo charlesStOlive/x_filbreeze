@@ -13,6 +13,11 @@ class ColorPickerAction extends Action
 
     public function onMount($record): void
     {
+        if (!$record) {
+            $this->colorPalettes = [];
+            return;
+        }
+
         $imagePath = $record->getFirstMediaPath('logo');
 
         if (!$imagePath) {
@@ -21,7 +26,12 @@ class ColorPickerAction extends Action
         }
 
         // Générer la palette de couleurs
-        $palette = ColorThief::getPalette($imagePath, 10);
+        try {
+            $palette = ColorThief::getPalette($imagePath, 10);
+        } catch (\Throwable $e) {
+            $this->colorPalettes = [];
+            return;
+        }
 
         // Convertir en hexadécimal
         $this->colorPalettes = array_map(function ($color) {

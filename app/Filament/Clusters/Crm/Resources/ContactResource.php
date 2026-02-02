@@ -109,7 +109,8 @@ class ContactResource extends Resource
                     ->query(fn(Builder $query): Builder => $query->whereNotNull('linkedin_ext_id')->where('linkedin_ext_id', '!=', ''))
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

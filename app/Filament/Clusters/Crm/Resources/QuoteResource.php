@@ -91,8 +91,10 @@ class QuoteResource extends Resource
                     ->multiple()->default(['draft', 'validated'])
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
                 Action::make('voir_schema')
+                    ->iconButton()
                     ->label('Voir le schéma')
                     ->icon('heroicon-o-chart-bar')
                     ->color('info')

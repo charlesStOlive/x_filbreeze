@@ -249,8 +249,10 @@ class SupplierInvoiceResource extends Resource
                     ->multiple()
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
                 DeleteAction::make()
+                    ->iconButton()
                     ->visible(fn($record) => !($record->state instanceof Validated)),
             ])
             ->toolbarActions([

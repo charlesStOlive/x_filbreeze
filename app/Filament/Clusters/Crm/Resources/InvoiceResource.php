@@ -95,6 +95,7 @@ class InvoiceResource extends Resource
                 TextColumn::make('total_ttc')
                     ->numeric()
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->summarize(Sum::make()),
                 TextColumn::make('tva')
                     ->numeric()
@@ -110,8 +111,10 @@ class InvoiceResource extends Resource
                     ->multiple()->default(['draft', 'submited', 'payed'])
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
                 Action::make('voir_schema')
+                    ->iconButton()
                     ->label('Voir le schéma')
                     ->icon('heroicon-o-chart-bar')
                     ->color('info')
@@ -126,10 +129,11 @@ class InvoiceResource extends Resource
                     ])
                     ->modalWidth('7xl'),
                 Action::make('test_mermaid')
+                    ->iconButton()
                     ->label('Test Mermaid')
                     ->icon('heroicon-o-bug-ant')
                     ->color('warning')
-                    ->url(fn (Invoice $record): string => InvoiceResource::getUrl('view', ['record' => $record]))
+                    ->url(fn(Invoice $record): string => InvoiceResource::getUrl('view', ['record' => $record]))
                     ->openUrlInNewTab(),
             ])
             ->toolbarActions([
@@ -755,7 +759,7 @@ class InvoiceResource extends Resource
     {
         return [];
     }
-    
+
     public static function getPages(): array
     {
         return [

@@ -7,6 +7,7 @@ use ColorThief\ColorThief;
 use Filament\Forms\Components\Select;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Services\Helpers\ViteHelper;
+use Illuminate\Support\Arr;
 
 class ImageUtils
 {
@@ -16,26 +17,33 @@ class ImageUtils
             ->icon('heroicon-o-photo')
             ->mountUsing(function ($livewire, $record, $get) use ($source) {
                 $finalPath = null;
-                $temporaryFile =  $get($source);
-                $uploadedFile = reset($temporaryFile);
+                $temporaryFile = $get($source);
+                $uploadedFile = Arr::first(Arr::wrap($temporaryFile));
 
                 if ($uploadedFile instanceof TemporaryUploadedFile) {
                     $finalPath = $uploadedFile->getRealPath() ?? null;
-                } else if ($record->getFirstMedia('logo') ?? null) {
+                } elseif ($record && ($record->getFirstMedia('logo') ?? null)) {
                     $finalPath = $record->getFirstMedia('logo')->getPath();
-                } else {
+                }
+
+                if (!$finalPath || !is_file($finalPath)) {
                     $livewire->colorPalettes = [];
                     return;
                 }
 
-                $palette = ColorThief::getPalette($finalPath, 4);
+                try {
+                    $palette = ColorThief::getPalette($finalPath, 4);
+                } catch (\Throwable $e) {
+                    $livewire->colorPalettes = [];
+                    return;
+                }
 
                 // Convertir en hexadécimal
                 $colorPalettes = array_map(function ($color) {
                     return sprintf('#%02x%02x%02x', ...$color);
                 }, $palette);
                 // Mettre à jour les options dynamiquement dans Livewire
-                $livewire->colorPalettes = $colorPalettes;
+                $livewire->colorPalettes = array_combine($colorPalettes, $colorPalettes);
             })
             ->schema([
                 Select::make('select-color')

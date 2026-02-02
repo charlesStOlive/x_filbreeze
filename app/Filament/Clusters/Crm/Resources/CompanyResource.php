@@ -41,6 +41,7 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ContactsRelationManager;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ProductsRelationManager;
+use Filament\Actions\DeleteAction;
 
 class CompanyResource extends Resource
 {
@@ -204,7 +205,10 @@ class CompanyResource extends Resource
                     ->relationship('sector', 'title'), // Assuming 'company' is a valid relationship
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
+                DeleteAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

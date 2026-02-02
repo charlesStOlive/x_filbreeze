@@ -25,7 +25,7 @@
                     class="w-10 h-10 rounded-full cursor-pointer border-2 flex items-center justify-center"
                     :class="{ 'ring-4 ring-blue-500': selected === '{{ $label }}' }" {{-- Comparer avec le label --}}
                     style="background-color: {{ $label }};" {{-- Utilisation du label comme couleur --}}
-                    @click="selected = '{{ $label }}'; $dispatch('input', '{{ $label }}'); Livewire.emit('updateFormState', '{{ $statePath }}', '{{ $label }}')" {{-- Émettre le label --}}
+                    @click="selected = '{{ $label }}'; $dispatch('input', '{{ $label }}'); $wire.set('{{ $statePath }}', '{{ $label }}')" {{-- Mettre à jour l'état Livewire --}}
                 ></div>
             @endforeach
         @endif

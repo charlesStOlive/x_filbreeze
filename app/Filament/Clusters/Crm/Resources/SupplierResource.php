@@ -120,8 +120,8 @@ class SupplierResource extends Resource
                 // Add any filters if necessary
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()->iconButton(),
+                DeleteAction::make()->iconButton(),
             ]);
     }
 
