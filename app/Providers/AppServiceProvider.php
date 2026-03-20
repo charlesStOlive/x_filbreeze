@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
 use App\Models\User;
+use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use Illuminate\View\View;
 use Filament\Tables\Table;
 use Filament\Support\Assets\Js;
@@ -48,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Company::class, CompanyPolicy::class);
         // Event déplacé dans le workflow des states (DraftToValidated->handle())
         // Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
         // Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);

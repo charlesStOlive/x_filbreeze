@@ -57,6 +57,4 @@ class ImageUtils
                 $set($fieldName, $data['select-color']);
             });
     }
-
-    
 }

@@ -83,7 +83,7 @@ class RoleResource extends Resource
                     ->unique(ignoreRecord: true),
                 TextEntry::make('super_admin_notice')
                     ->label('')
-                    ->state('🔥 Ce rôle dispose automatiquement de TOUS les droits via Gate::before()')
+                    ->state('🔥 Ce rôle a une commande pour garantir tous les droits à chaque MAJ')
                     ->visible(fn($record) => $record && $record->name === 'Super Admin')
                     ->columnSpanFull(),
 

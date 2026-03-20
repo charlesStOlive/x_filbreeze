@@ -143,37 +143,43 @@ class InvoiceResource extends Resource
             ]);
     }
 
-    public static function getContactAndCompanyFields($companyEditable = true): array
+    public static function getContactAndCompanyFields($companyEditable = true, $showCompanyField = true): array
     {
-        return [
-            Select::make('contact_id')
-                ->label('Contact')
-                ->relationship(
-                    name: 'contact',
-                    titleAttribute: 'full_name',
-                    modifyQueryUsing: fn($query, $get) => $get('company_id') ? $query->where('company_id', $get('company_id')) : $query,
-                )
-                ->searchable(fn($get) => $get('company_id') ? false : true)
-                ->required()
-                ->reactive()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $contact = Contact::find($state);
-                        if ($contact && $contact->company_id) {
-                            $set('company_id', $contact->company_id);
-                        }
+        $fields = [];
+
+        // Ajouter le champ contact en premier
+        $fields[] = Select::make('contact_id')
+            ->label('Contact')
+            ->relationship(
+                name: 'contact',
+                titleAttribute: 'full_name',
+                modifyQueryUsing: fn($query, $get) => $get('company_id') ? $query->where('company_id', $get('company_id')) : $query,
+            )
+            ->searchable(fn($get) => $get('company_id') ? false : true)
+            ->required()
+            ->reactive()
+            ->afterStateUpdated(function ($state, callable $set) {
+                if ($state) {
+                    $contact = Contact::find($state);
+                    if ($contact && $contact->company_id) {
+                        $set('company_id', $contact->company_id);
                     }
-                }),
-            Select::make('company_id')
+                }
+            });
+
+        // Ajouter le champ company seulement si demandé
+        if ($showCompanyField) {
+            $fields[] = Select::make('company_id')
                 ->label('Client')
                 ->relationship('company', 'title')
                 ->searchable()
                 ->required()
                 ->reactive()
                 ->disabled(!$companyEditable)
-                ->dehydrated(fn($state) => filled($state)),
+                ->dehydrated(fn($state) => filled($state));
+        }
 
-        ];
+        return $fields;
     }
 
     protected static function getQuote($quoteId)

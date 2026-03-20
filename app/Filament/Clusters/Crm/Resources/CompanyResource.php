@@ -41,6 +41,8 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ContactsRelationManager;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ProductsRelationManager;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\InvoicesRelationManager;
+use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\QuotesRelationManager;
 use Filament\Actions\DeleteAction;
 
 class CompanyResource extends Resource
@@ -212,7 +214,7 @@ class CompanyResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
                 ]),
             ]);
     }
@@ -222,6 +224,8 @@ class CompanyResource extends Resource
         return [
             ProductsRelationManager::class,
             ContactsRelationManager::class,
+            InvoicesRelationManager::class,
+            QuotesRelationManager::class,
         ];
     }
 

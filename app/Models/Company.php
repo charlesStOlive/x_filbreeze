@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\Country;
 use App\Models\Product;
+use App\Models\Invoice;
+use App\Models\Quote;
 use App\Enums\CompanyType;
 use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @mixin IdeHelperCompany
@@ -38,7 +41,7 @@ class Company extends Model implements HasMedia
     protected $casts = [
         'others' => 'json',
         'type' => CompanyType::class,
-        'country' => Country::class, 
+        'country' => Country::class,
     ];
 
     /**
@@ -57,6 +60,15 @@ class Company extends Model implements HasMedia
         return $this->hasMany(Contact::class, 'company_id');
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'company_id');
+    }
+
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class, 'company_id');
+    }
 
     public function products(): BelongsToMany
     {
@@ -81,6 +93,6 @@ class Company extends Model implements HasMedia
      */
     public function countryName(): Attribute
     {
-        return Attribute::get(fn () => $this->country?->label());
+        return Attribute::get(fn() => $this->country?->label());
     }
 }

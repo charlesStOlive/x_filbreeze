@@ -16,34 +16,25 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Schemas\Components\Grid;
 use Filament\Actions\Action;
-use App\Filament\Infolists\Components\MermaidDiagramEntry;
 use Filament\Forms\Components\DatePicker;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\ListQuotes;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\EditQuote;
 use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\PreviewPdf;
-use Filament\Forms;
-use Filament\Tables;
 use App\Models\Quote;
 use Filament\Actions;
 use App\Models\Contact;
 use App\Models\Product;
 use App\Models\Company;
-use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Builder;
-use Filament\Tables\Actions\CreateAction;
 use App\Services\Helpers\ProductFormHelper;
 use App\Filament\Components\Tables\DateColumn;
-use A909M\FilamentStateFusion\Tables\Columns\StateFusionSelectColumn;
 use A909M\FilamentStateFusion\Tables\Filters\StateFusionSelectFilter;
 use BackedEnum;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use App\Filament\Clusters\Crm\Resources\QuoteResource\RelationManagers;
+
 
 class QuoteResource extends Resource
 {
@@ -116,38 +107,42 @@ class QuoteResource extends Resource
             ]);
     }
 
-    public static function getContactAndCompanyFields($companyEditable = true): array
+    public static function getContactAndCompanyFields($companyEditable = true, $showCompanyField = true): array
     {
-        return [
-            Select::make('company_id')
+        $fields = [];
+
+        // Ajouter le champ company seulement si demandé
+        if ($showCompanyField) {
+            $fields[] = Select::make('company_id')
                 ->label('Client')
                 ->relationship('company', 'title')
                 ->searchable()
                 ->required()
                 ->live(onBlur: true)
-                ->disabled(!$companyEditable),
+                ->disabled(!$companyEditable);
+        }
 
-            Select::make('contact_id')
-                ->label('Contact')
-                ->relationship(
-                    name: 'contact',
-                    titleAttribute: 'full_name',
-                    modifyQueryUsing: fn($query, $get) => $get('company_id') ? $query->where('company_id', $get('company_id')) : $query,
-                )
-                ->searchable(fn($get) => $get('company_id') ? false : true)
-                ->required()
-                ->live(onBlur: true)
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $contact = Contact::find($state);
-                        if ($contact && $contact->company_id) {
-                            $set('company_id', $contact->company_id);
-                        }
+        // Ajouter le champ contact
+        $fields[] = Select::make('contact_id')
+            ->label('Contact')
+            ->relationship(
+                name: 'contact',
+                titleAttribute: 'full_name',
+                modifyQueryUsing: fn($query, $get) => $get('company_id') ? $query->where('company_id', $get('company_id')) : $query,
+            )
+            ->searchable(fn($get) => $get('company_id') ? false : true)
+            ->required()
+            ->live(onBlur: true)
+            ->afterStateUpdated(function ($state, callable $set) {
+                if ($state) {
+                    $contact = Contact::find($state);
+                    if ($contact && $contact->company_id) {
+                        $set('company_id', $contact->company_id);
                     }
-                }),
+                }
+            });
 
-
-        ];
+        return $fields;
     }
 
     public static function getItemsBuilderComponent(): array

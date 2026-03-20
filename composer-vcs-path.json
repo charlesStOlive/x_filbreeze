@@ -2,35 +2,28 @@
     "repositories-fil***********************": {
         "filament-permission-manager-local": {
             "type": "path",
-            "url": "./packages/filament-permission-manager",
+            "url": "../packages_filament/filament-permission-manager",
             "options": {
                 "symlink": true
             }
         },
         "filament-color-installer-local": {
             "type": "path",
-            "url": "./packages/filament-color-installer",
+            "url": "../packages_filament/filament-color-installer",
             "options": {
                 "symlink": true
             }
         },
         "filament-msgraph-email-local": {
             "type": "path",
-            "url": "./packages/filament-msgraph-email",
+            "url": "../packages_filament/filament-msgraph-email",
             "options": {
                 "symlink": true
             }
         },
-        "filament-sellsy-local": {
+        "filament-state-fusion-enhanced-local": {
             "type": "path",
-            "url": "./packages/filament-sellsy-v2",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-state-fusion-enhanced": {
-            "type": "path",
-            "url": "packages/filament-state-fusion-enhanced",
+            "url": "../packages_filament/filament-state-fusion-enhanced",
             "options": {
                 "symlink": true
             }
@@ -48,10 +41,6 @@
         "filament-msgraph-email-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-msgraph-email.git"
-        },
-        "filament-sellsy-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-sellsy-v2.git"
         },
         "filament-state-fusion-enhanced-vcs": {
             "type": "vcs",

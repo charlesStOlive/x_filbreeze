@@ -107,7 +107,7 @@ class UserResource extends Resource
                 // Avertissement pour les Super Admin
                 TextEntry::make('super_admin_warning')
                     ->label('')
-                    ->state('⚠️ Cet utilisateur est Super Admin et dispose de TOUS les droits via Gate::before()')
+                    ->state('⚠️ Cet utilisateur est Super Admin ')
                     ->visible(fn($record) => $record && $record->hasRole('Super Admin'))
                     ->columnSpanFull(),
 
@@ -206,7 +206,7 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         // \Log::info("UserResource::table() called", [
-            // 'user_id' => auth()->id()
+        // 'user_id' => auth()->id()
         // ]);
 
         return $table
@@ -247,10 +247,10 @@ class UserResource extends Resource
                     ->visible(function ($record) {
                         $canEdit = static::canEdit($record);
                         // \Log::info("UserResource EditAction direct visible() debug", [
-                            // 'record_id' => $record->id,
-                            // 'user_id' => auth()->id(),
-                            // 'canEdit_result' => $canEdit,
-                            // 'method_called' => 'static::canEdit'
+                        // 'record_id' => $record->id,
+                        // 'user_id' => auth()->id(),
+                        // 'canEdit_result' => $canEdit,
+                        // 'method_called' => 'static::canEdit'
                         // ]);
                         return $canEdit;
                     }),
@@ -258,10 +258,10 @@ class UserResource extends Resource
                     ->visible(function ($record) {
                         $canDelete = static::canDelete($record);
                         // \Log::info("UserResource DeleteAction direct visible() debug", [
-                            // 'record_id' => $record->id,
-                            // 'user_id' => auth()->id(),
-                            // 'canDelete_result' => $canDelete,
-                            // 'method_called' => 'static::canDelete'
+                        // 'record_id' => $record->id,
+                        // 'user_id' => auth()->id(),
+                        // 'canDelete_result' => $canDelete,
+                        // 'method_called' => 'static::canDelete'
                         // ]);
                         return $canDelete;
                     }),
