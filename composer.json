@@ -8,21 +8,33 @@
     ],
     "license": "MIT",
     "repositories": {
-        "filament-permission-manager-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
+        "filament-permission-manager-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-permission-manager",
+            "options": {
+                "symlink": true
+            }
         },
-        "filament-color-installer-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-color-installer.git"
+        "filament-color-installer-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-color-installer",
+            "options": {
+                "symlink": true
+            }
         },
-        "filament-msgraph-email-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-msgraph-email.git"
+        "filament-msgraph-email-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-msgraph-email",
+            "options": {
+                "symlink": true
+            }
         },
-        "filament-state-fusion-enhanced-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-state-fusion-enhanced.git"
+        "filament-state-fusion-enhanced-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-state-fusion-enhanced",
+            "options": {
+                "symlink": true
+            }
         }
     },
     "require": {
