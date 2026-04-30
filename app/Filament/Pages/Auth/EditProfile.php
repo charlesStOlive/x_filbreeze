@@ -39,7 +39,7 @@ class EditProfile extends BaseEditProfile
             ->where('revoked', false)
             ->orderByDesc('created_at')
             ->get()
-            ->map(fn ($t) => [
+            ->map(fn($t) => [
                 'id'         => (string) $t->id,
                 'name'       => $t->name,
                 'created_at' => $t->created_at->format('d/m/Y H:i'),
@@ -113,8 +113,8 @@ class EditProfile extends BaseEditProfile
                 ->schema([
                     TextEntry::make('freshToken')
                         ->label('🔑 Nouveau token — copiez-le maintenant, il ne sera plus visible !')
-                        ->state(fn () => $this->freshToken)
-                        ->visible(fn () => filled($this->freshToken))
+                        ->state(fn() => $this->freshToken)
+                        ->visible(fn() => filled($this->freshToken))
                         ->fontFamily(FontFamily::Mono)
                         ->color('warning')
                         ->copyable()
@@ -122,7 +122,7 @@ class EditProfile extends BaseEditProfile
                         ->copyMessageDuration(1500),
                     RepeatableEntry::make('apiTokens')
                         ->label('Tokens actifs')
-                        ->state(fn () => $this->apiTokens)
+                        ->state(fn() => $this->apiTokens)
                         ->table([
                             TableColumn::make('Clé'),
                             TableColumn::make('Créé le'),
@@ -136,19 +136,17 @@ class EditProfile extends BaseEditProfile
                                 ->hiddenLabel(),
                             TextEntry::make('id')
                                 ->hiddenLabel()
-                                ->formatStateUsing(fn () => '')
+                                ->formatStateUsing(fn() => '')
                                 ->suffixAction(
                                     Action::make('revoke')
                                         ->icon('heroicon-o-trash')
                                         ->color('danger')
                                         ->requiresConfirmation()
                                         ->modalHeading('Révoquer ce token ?')
-                                        ->action(fn (string $state) => $this->revokeToken($state))
+                                        ->action(fn(string $state) => $this->revokeToken($state))
                                 ),
                         ]),
                 ]),
         ]);
     }
-
-
 }

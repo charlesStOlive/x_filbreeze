@@ -82,7 +82,7 @@ class RoleResource extends Resource
                 // Affichage conditionnel pour Super Admin
                 TextEntry::make('super_admin_notice')
                     ->label('')
-                    ->state('🔥 Ce rôle dispose automatiquement de TOUS les droits via Gate::before()')
+                    ->state('🔥 Ce rôle dispose de TOUS les droits (assignés via permissions:grant-super-admin)')
                     ->visible(fn($record) => $record && $record->name === 'Super Admin')
                     ->columnSpanFull(),
 

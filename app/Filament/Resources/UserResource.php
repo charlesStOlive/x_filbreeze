@@ -111,7 +111,7 @@ class UserResource extends Resource
                 // Avertissement pour les Super Admin
                 TextEntry::make('super_admin_warning')
                     ->label('')
-                    ->state('⚠️ Cet utilisateur est Super Admin et dispose de TOUS les droits via Gate::before()')
+                    ->state('⚠️ Cet utilisateur est Super Admin et dispose de TOUS les droits (assignés via permissions:grant-super-admin)')
                     ->visible(fn($record) => $record && $record->hasRole('Super Admin'))
                     ->columnSpanFull(),
 

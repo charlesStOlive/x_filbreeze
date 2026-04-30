@@ -4,9 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // DesTest — modèle de test pour le système de permissions API
-Route::middleware('auth:api')->prefix('des-tests')->name('api.des-tests.')->group(function () {
-    Route::get('/',                                         [\App\Http\Controllers\Api\DesTestController::class, 'index'])  ->name('index');
-    Route::post('/',                                        [\App\Http\Controllers\Api\DesTestController::class, 'store'])  ->name('store');
+Route::middleware(['auth:api', 'throttle:60,1'])->prefix('des-tests')->name('api.des-tests.')->group(function () {
+    Route::get('/',                                         [\App\Http\Controllers\Api\DesTestController::class, 'index'])->name('index');
+    Route::post('/',                                        [\App\Http\Controllers\Api\DesTestController::class, 'store'])->name('store');
     Route::delete('/{desTest}',                             [\App\Http\Controllers\Api\DesTestController::class, 'destroy'])->name('destroy');
     Route::post('/{desTest}/publish',                       [\App\Http\Controllers\Api\DesTestController::class, 'publish'])->name('publish');
 });

@@ -1,20 +1,7 @@
 {
-	"folders": [
-		{
-			"path": "../.."
-		},
-		{
-			"path": "../../../packages_filament/filament-color-installer"
-		},
-		{
-			"path": "../../../packages_filament/filament-msgraph-email"
-		},
-		{
-			"path": "../../../packages_filament/filament-permission-manager"
-		},
-		{
-			"path": "../../../packages_filament/filament-state-fusion-enhanced"
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": "../../../desapp"
+        }
+    ]
 }
