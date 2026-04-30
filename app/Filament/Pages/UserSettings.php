@@ -18,13 +18,14 @@ use Filament\Notifications\Notification;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Filament\Forms\Concerns\InteractsWithForms;
+use CharlesStOlive\FilamentPermissionManager\Services\ApiTokenService;
 use CharlesStOlive\FilamentPermissionManager\Services\LocaleService;
 
 class UserSettings extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-circle';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-circle';
 
     protected string $view = 'filament.pages.user-settings';
 
@@ -32,13 +33,14 @@ class UserSettings extends Page implements HasForms
 
     protected static ?string $title = 'Paramètres utilisateur';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Profil';
+    protected static string|\UnitEnum|null $navigationGroup = 'Profil';
 
     protected static bool $shouldRegisterNavigation = false;
 
     public ?array $profileData = [];
     public ?array $passwordData = [];
     public ?array $localeData = [];
+    public ?array $apiData = [];
 
     public function mount(): void
     {
@@ -51,7 +53,31 @@ class UserSettings extends Page implements HasForms
             'editProfileForm',
             'editPasswordForm',
             'editLocaleForm',
+            'editApiForm',
         ];
+    }
+
+    public function editApiForm(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Clés API personnelles')
+                    ->description('Générez des clés API pour accéder à l\'API. La MFA est configurable depuis votre profil.')
+                    ->schema([
+                        TextInput::make('api_token_name')
+                            ->label('Nom de la clé API')
+                            ->default('default')
+                            ->maxLength(80),
+                    ])
+                    ->footerActions([
+                        Action::make('createApiToken')
+                            ->label('Générer une clé API')
+                            ->color('warning')
+                            ->action('createApiToken'),
+                    ]),
+            ])
+            ->model($this->getUser())
+            ->statePath('apiData');
     }
 
     public function editProfileForm(Schema $schema): Schema
@@ -194,6 +220,20 @@ class UserSettings extends Page implements HasForms
         $this->sendSuccessNotification('Mot de passe mis à jour', 'Votre mot de passe a été mis à jour avec succès.');
     }
 
+    public function createApiToken(): void
+    {
+        $data = $this->editApiForm->getState();
+        $tokenName = (string) ($data['api_token_name'] ?? 'default');
+
+        $token = app(ApiTokenService::class)->createToken($this->getUser(), $tokenName, ['*']);
+
+        Notification::make()
+            ->success()
+            ->title('Clé API générée')
+            ->body('Copiez-la maintenant (elle ne sera plus visible): ' . $token['plain_text_token'])
+            ->send();
+    }
+
     protected function getUser(): Authenticatable & Model
     {
         $user = Filament::auth()->user();
@@ -211,5 +251,6 @@ class UserSettings extends Page implements HasForms
         $this->editProfileForm->fill($data);
         $this->editLocaleForm->fill($data);
         $this->editPasswordForm->fill();
+        $this->editApiForm->fill(['api_token_name' => 'default']);
     }
 }

@@ -2,90 +2,67 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Filament\Panel;
-use App\Services\LocaleService;
-use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Notifications\Notifiable;
-use Filament\Models\Contracts\FilamentUser;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use CharlesStOlive\MsGraphFilament\Models\MsgUserDraft;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\Email\Concerns\InteractsWithEmailAuthentication;
+use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Passport\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
-
-/**
- * @mixin IdeHelperUser
- */
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication, MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasRoles, HasApiTokens;
+    use HasFactory;
+    use Notifiable;
+    use HasRoles;
+    use HasApiTokens;
+    use InteractsWithAppAuthentication;
+    use InteractsWithAppAuthenticationRecovery;
+    use InteractsWithEmailAuthentication;
 
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
     }
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'timezone',
         'locale',
+        'app_authentication_secret',
+        'app_authentication_recovery_codes',
+        'has_email_authentication',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
+        'app_authentication_secret',
+        'app_authentication_recovery_codes',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'has_email_authentication' => 'boolean',
         ];
     }
 
     public function msgUserDraft(): HasOne
     {
         return $this->hasOne(MsgUserDraft::class);
-    }
-
-    public static function getSystemUser(): self
-    {
-        return self::where('email', config('notifications.system_user_email'))->firstOrFail();
-    }
-
-    /**
-     * Obtenir le nom affiché de la timezone de l'utilisateur
-     */
-    public function getTimezoneDisplayNameAttribute(): string
-    {
-        return LocaleService::getTimezoneDisplayName($this->timezone ?? 'Europe/Paris');
-    }
-
-    /**
-     * Obtenir le nom affiché de la locale de l'utilisateur
-     */
-    public function getLocaleDisplayNameAttribute(): string
-    {
-        return LocaleService::getLocaleDisplayName($this->locale ?? 'fr_FR');
     }
 }

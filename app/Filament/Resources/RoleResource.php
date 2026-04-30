@@ -20,10 +20,8 @@ use Filament\Actions\DeleteAction;
 use Spatie\Permission\Models\Role;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Infolists\Components\TextEntry;
 use App\Filament\Resources\RoleResource\Pages;
@@ -81,9 +79,10 @@ class RoleResource extends Resource
                     ->label('Nom')
                     ->required()
                     ->unique(ignoreRecord: true),
+                // Affichage conditionnel pour Super Admin
                 TextEntry::make('super_admin_notice')
                     ->label('')
-                    ->state('🔥 Ce rôle a une commande pour garantir tous les droits à chaque MAJ')
+                    ->state('🔥 Ce rôle dispose automatiquement de TOUS les droits via Gate::before()')
                     ->visible(fn($record) => $record && $record->name === 'Super Admin')
                     ->columnSpanFull(),
 
@@ -105,13 +104,13 @@ class RoleResource extends Resource
                     ->label('Nom')
                     ->searchable()
                     ->badge()
-                    ->color(fn(string $state): string => $state === 'Super Admin' ? 'danger' : 'gray'),
+                    ->color(fn (string $state): string => $state === 'Super Admin' ? 'danger' : 'gray'),
                 TextColumn::make('permissions_count')
                     ->label('Permissions')
                     ->counts('permissions')
                     ->formatStateUsing(function ($state, $record) {
-                        return $record->name === 'Super Admin'
-                            ? '∞ (Tous les droits)'
+                        return $record->name === 'Super Admin' 
+                            ? '∞ (Tous les droits)' 
                             : $state;
                     }),
                 TextColumn::make('users_count')

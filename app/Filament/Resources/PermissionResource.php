@@ -33,8 +33,6 @@ class PermissionResource extends Resource
 
     protected static ?string $modelLabel = 'Permission';
 
-
-
     public static function form(Schema $schema): Schema
     {
         return $schema

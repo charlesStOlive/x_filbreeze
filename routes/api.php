@@ -3,14 +3,15 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
+// DesTest — modèle de test pour le système de permissions API
+Route::middleware('auth:api')->prefix('des-tests')->name('api.des-tests.')->group(function () {
+    Route::get('/',                                         [\App\Http\Controllers\Api\DesTestController::class, 'index'])  ->name('index');
+    Route::post('/',                                        [\App\Http\Controllers\Api\DesTestController::class, 'store'])  ->name('store');
+    Route::delete('/{desTest}',                             [\App\Http\Controllers\Api\DesTestController::class, 'destroy'])->name('destroy');
+    Route::post('/{desTest}/publish',                       [\App\Http\Controllers\Api\DesTestController::class, 'publish'])->name('publish');
+});
 
 
-// Microsoft Graph routes are now handled by the MsGraphFilament plugin
-
-// Routes pour l'analyse des états
 Route::prefix('states')->name('api.states.')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'index'])->name('index');
     Route::get('/statistics', [\App\Http\Controllers\Api\StatesAnalysisController::class, 'statistics'])->name('statistics');

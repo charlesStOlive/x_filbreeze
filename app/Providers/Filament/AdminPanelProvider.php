@@ -6,11 +6,12 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
 use Filament\PanelProvider;
-use Filament\Actions\Action;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 
 
 use Filament\Support\Colors\Color;
-use App\Filament\Pages\UserSettings;
+use App\Filament\Pages\Auth\EditProfile;
 use Filament\Http\Middleware\Authenticate;
 use Pboivin\FilamentPeek\FilamentPeekPlugin;
 use CharlesStOlive\FilamentStateFusionEnhanced\FilamentStateFusionEnhancedPlugin;
@@ -36,16 +37,16 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->profile(EditProfile::class, isSimple: false)
+            ->multiFactorAuthentication([
+                AppAuthentication::make()
+                    ->recoverable(),
+                EmailAuthentication::make(),
+            ])
             ->brandLogo(asset('images/logo.png'))
             ->darkModeBrandLogo(asset('images/logo white.png'))
             ->brandLogoHeight('4rem')
             ->databaseNotifications()
-            ->userMenuItems([
-                Action::make('user_settings')
-                    ->label('Mes options')
-                    ->url(fn() => UserSettings::getUrl())
-                    ->icon('heroicon-o-cog-6-tooth'),
-            ])
             ->plugins([
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 FilamentStateFusionEnhancedPlugin::make(),

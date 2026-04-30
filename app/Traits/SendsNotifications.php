@@ -11,7 +11,7 @@ trait SendsNotifications
 {
     public function notifyError(string $title, string $message, $mode = 'both'): void
     {
-        $user = Auth::user() ?? User::getSystemUser();
+        $user = $this->resolveNotificationRecipient();
 
         if ($mode == 'live' || $mode == 'both') {
             Notification::make()
@@ -39,7 +39,7 @@ trait SendsNotifications
 
     public function notifySuccess(string $title, string $message, $mode = 'both'): void
     {
-        $user = Auth::user() ?? User::getSystemUser();
+        $user = $this->resolveNotificationRecipient();
 
         if ($mode == 'live' || $mode == 'both') {
             Notification::make()
@@ -65,4 +65,15 @@ trait SendsNotifications
     }
 
     // Tu peux aussi ajouter notifyInfo(), notifyWarning() si besoin
+
+    private function resolveNotificationRecipient(): ?User
+    {
+        if (Auth::check()) {
+            return Auth::user();
+        }
+
+        $email = config('notifications.system_user_email');
+
+        return $email ? User::where('email', $email)->first() : null;
+    }
 }

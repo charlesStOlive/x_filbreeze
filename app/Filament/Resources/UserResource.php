@@ -8,6 +8,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use Filament\Resources\Resource;
 use Filament\Actions\DeleteAction;
 use Spatie\Permission\Models\Role;
@@ -17,7 +18,9 @@ use Filament\Forms\Components\Select;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Columns\IconColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\CheckboxList;
@@ -29,12 +32,13 @@ use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\RelationManagers;
 use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Services\ApiTokenService;
 use CharlesStOlive\FilamentPermissionManager\Traits\HasFilamentAuthorization;
 
 class UserResource extends Resource
 {
     use HasFilamentAuthorization;
-
+    
     protected static ?string $model = User::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
@@ -54,7 +58,7 @@ class UserResource extends Resource
             // Seul un Super Admin peut éditer un Super Admin
             return auth()->user()->hasRole('Super Admin') && parent::canEdit($record);
         }
-
+        
         return parent::canEdit($record);
     }
 
@@ -65,7 +69,7 @@ class UserResource extends Resource
             // Seul un Super Admin peut supprimer un Super Admin
             return auth()->user()->hasRole('Super Admin') && parent::canDelete($record);
         }
-
+        
         return parent::canDelete($record);
     }
 
@@ -107,7 +111,7 @@ class UserResource extends Resource
                 // Avertissement pour les Super Admin
                 TextEntry::make('super_admin_warning')
                     ->label('')
-                    ->state('⚠️ Cet utilisateur est Super Admin ')
+                    ->state('⚠️ Cet utilisateur est Super Admin et dispose de TOUS les droits via Gate::before()')
                     ->visible(fn($record) => $record && $record->hasRole('Super Admin'))
                     ->columnSpanFull(),
 
@@ -150,34 +154,34 @@ class UserResource extends Resource
 
                         // Récupérer toutes les permissions existantes avec leurs IDs
                         $allPermissions = \Spatie\Permission\Models\Permission::all()->keyBy('name');
-
+                        
                         // Récupérer les permissions de l'utilisateur connecté (via rôles + permissions directes)
                         $userPermissions = collect();
-
+                        
                         // Permissions via les rôles
                         $userPermissions = $userPermissions->merge(
                             auth()->user()->getPermissionsViaRoles()->pluck('name')
                         );
-
+                        
                         // Permissions directes
                         $userPermissions = $userPermissions->merge(
                             auth()->user()->getDirectPermissions()->pluck('name')
                         );
-
+                        
                         // Permissions que l'utilisateur peut gérer
                         $managablePermissions = collect();
-
+                        
                         foreach ($userPermissions->unique() as $userPermission) {
                             // Si c'est une permission wildcard (se termine par *)
                             if (str_ends_with($userPermission, '*')) {
                                 // Récupérer le préfixe (ex: "user.*" -> "user.")
                                 $prefix = str_replace('*', '', $userPermission);
-
+                                
                                 // Ajouter toutes les permissions qui commencent par ce préfixe
                                 $matchingPermissions = $allPermissions->filter(function ($permission, $name) use ($prefix) {
                                     return str_starts_with($name, $prefix);
                                 });
-
+                                
                                 $managablePermissions = $managablePermissions->merge($matchingPermissions);
                             } else {
                                 // Permission exacte
@@ -186,7 +190,7 @@ class UserResource extends Resource
                                 }
                             }
                         }
-
+                        
                         // Retourner les permissions uniques triées par ordre alphabétique
                         return $managablePermissions->unique()
                             ->sortBy('name')
@@ -205,10 +209,6 @@ class UserResource extends Resource
 
     public static function table(Table $table): Table
     {
-        // \Log::info("UserResource::table() called", [
-        // 'user_id' => auth()->id()
-        // ]);
-
         return $table
             ->columns([
                 TextColumn::make('name')
@@ -224,6 +224,14 @@ class UserResource extends Resource
                     ->badge()
                     ->color(fn(string $state): string => $state === 'Super Admin' ? 'danger' : 'primary')
                     ->separator(','),
+                IconColumn::make('app_authentication_secret')
+                    ->label('MFA App')
+                    ->boolean()
+                    ->getStateUsing(fn ($record) => ! empty($record->app_authentication_secret))
+                    ->trueIcon('heroicon-o-shield-check')
+                    ->falseIcon('heroicon-o-shield-exclamation')
+                    ->trueColor('success')
+                    ->falseColor('gray'),
                 TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime()
@@ -243,27 +251,32 @@ class UserResource extends Resource
                     ->preload(),
             ])
             ->recordActions([
+                Action::make('resetMfa')
+                    ->label('Réinitialiser MFA')
+                    ->icon('heroicon-o-shield-exclamation')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn ($record) => ! empty($record->app_authentication_secret) || $record->has_email_authentication)
+                    ->action(function ($record) {
+                        $record->forceFill([
+                            'app_authentication_secret' => null,
+                            'app_authentication_recovery_codes' => null,
+                            'has_email_authentication' => false,
+                        ])->save();
+                    }),
+                Action::make('generateApiToken')
+                    ->label('Générer clé API')
+                    ->icon('heroicon-o-key')
+                    ->action(function ($record) {
+                        app(ApiTokenService::class)->createToken($record, 'managed-from-user-resource', ['*']);
+                    }),
                 EditAction::make()
                     ->visible(function ($record) {
-                        $canEdit = static::canEdit($record);
-                        // \Log::info("UserResource EditAction direct visible() debug", [
-                        // 'record_id' => $record->id,
-                        // 'user_id' => auth()->id(),
-                        // 'canEdit_result' => $canEdit,
-                        // 'method_called' => 'static::canEdit'
-                        // ]);
-                        return $canEdit;
+                        return static::canEdit($record);
                     }),
                 DeleteAction::make()
                     ->visible(function ($record) {
-                        $canDelete = static::canDelete($record);
-                        // \Log::info("UserResource DeleteAction direct visible() debug", [
-                        // 'record_id' => $record->id,
-                        // 'user_id' => auth()->id(),
-                        // 'canDelete_result' => $canDelete,
-                        // 'method_called' => 'static::canDelete'
-                        // ]);
-                        return $canDelete;
+                        return static::canDelete($record);
                     }),
             ])
             ->toolbarActions([
@@ -294,9 +307,9 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListUsers::route('/'),
-            'create' => CreateUser::route('/create'),
-            'edit' => EditUser::route('/{record}/edit'),
+            'index' => Pages\ListUsers::route('/'),
+            'create' => Pages\CreateUser::route('/create'),
+            'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
 }
