@@ -8,42 +8,30 @@
     ],
     "license": "MIT",
     "repositories": {
-        "filament-permission-manager-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-permission-manager",
-            "options": {
-                "symlink": true
-            }
+        "filament-permission-manager-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
         },
-        "filament-color-installer-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-color-installer",
-            "options": {
-                "symlink": true
-            }
+        "filament-color-installer-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-color-installer.git"
         },
-        "filament-msgraph-email-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-msgraph-email",
-            "options": {
-                "symlink": true
-            }
+        "filament-msgraph-email-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-msgraph-email.git"
         },
-        "filament-state-fusion-enhanced-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-state-fusion-enhanced",
-            "options": {
-                "symlink": true
-            }
+        "filament-state-fusion-enhanced-vcs": {
+            "type": "vcs",
+            "url": "https://github.com//charlesStOlive/filament-state-fusion-enhancedV2.git"
         }
     },
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "barryvdh/laravel-snappy": "^1.0",
         "charlesstolive/filament-color-installer": "dev-main",
         "charlesstolive/filament-msgraph-email": "dev-master",
         "charlesstolive/filament-permission-manager": "@dev",
-        "charlesstolive/filament-state-fusion-enhanced": "@dev",
+        "charlesstolive/filament-state-fusion-enhanced": "dev-master",
         "cloudinary-labs/cloudinary-laravel": "^3.0",
         "filament/filament": "~5.0",
         "filament/spatie-laravel-media-library-plugin": "~5.0",
