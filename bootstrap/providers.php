@@ -5,7 +5,6 @@ return [
     App\Providers\EventServiceProvider::class,
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\FlySystemSharepointProvider::class,
-    App\Providers\IaServiceProvider::class,
     App\Providers\SchemaServiceProvider::class,
     App\Providers\StateAnalysisServiceProvider::class,
     // App\Providers\TreeAssetsServiceProvider::class,

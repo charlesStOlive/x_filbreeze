@@ -10,7 +10,7 @@ use Filament\Forms;
 class StateUtils
 {
     /**
-     * Crée une action pour corriger les textes via Mistral IA.
+     * Crée une action de sauvegarde d'état.
      *
      * @param  string  $resource  La classe de la ressource utilisée
      * @return Action

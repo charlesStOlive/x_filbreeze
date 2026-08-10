@@ -18,7 +18,6 @@ use Filament\Forms\Components\Actions as FormActions;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreatSupplieFromFile;
 
 class ListSupplierInvoices extends ListRecords
 {
