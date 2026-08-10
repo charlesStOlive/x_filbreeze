@@ -39,7 +39,7 @@ class SupplierInvoiceAnalysisService
             );
 
             $prismResult = Prism::structured()
-                ->using('mistral', 'mistral-large-latest')
+                ->using(config('ai.provider'), config('ai.extraction.model'))
                 ->withSchema($schema) // ✅ CORRECT
                 ->withSystemPrompt(
                     "Tu es un assistant comptable expert spécialisé dans l’analyse de factures fournisseurs.

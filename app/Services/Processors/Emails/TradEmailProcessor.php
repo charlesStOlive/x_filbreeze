@@ -37,7 +37,7 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
     {
         return [
             'mode' => 'inactif',
-            'model' => config('ai.translation.model', 'mistral-large-latest'),
+            'model' => config('ai.translation.model', 'gpt-5.4-nano'),
             'regex_code' => 'traduit',
         ];
     }
