@@ -3,7 +3,7 @@
 namespace App\Services\Processors\Emails;
 
 use Exception;
-use App\Services\Ia\MistralAgentService;
+use App\Services\Prism\PrismTextService;
 use CharlesStOlive\MsGraphFilament\Models\MsgEmailDraft;
 use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
 use CharlesStOlive\MsGraphFilament\Processors\BaseEmailDraftProcessor;
@@ -37,7 +37,7 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
     {
         return [
             'mode' => 'inactif',
-            'agent_id' => 'ag:3e2c948d:20241128:untitled-agent:863e968f',
+            'model' => config('ai.translation.model', 'mistral-large-latest'),
             'regex_code' => 'traduit',
         ];
     }
@@ -46,9 +46,9 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
     public static function getForm(): array
     {
         return [
-            TextInput::make('agent_id')
-                ->label('ID Agent Mistral')
-                ->helperText('Identifiant de l\'agent Mistral à utiliser pour la traduction')
+            TextInput::make('model')
+                ->label('Modèle IA')
+                ->helperText('Modèle Prism à utiliser pour la traduction')
                 ->visible(fn($get) => in_array($get('mode'), ['actif', 'test'])),
 
             TextInput::make('regex_code')
@@ -61,10 +61,10 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
     public static function getInfoList(): array
     {
         return [
-            TextEntry::make('agent_id')
-                ->label('ID Agent Mistral')
+            TextEntry::make('model')
+                ->label('Modèle IA')
                 ->copyable()
-                ->copyMessage('Agent ID copié!')
+                ->copyMessage('Modèle copié!')
                 ->icon('heroicon-o-cpu-chip'),
 
             TextEntry::make('regex_code')
@@ -136,13 +136,12 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
             $codeOptions = $this->getResult('code_options', []);
             $lang        = array_key_first($codeOptions) ?: 'xx';
             $createNew   = (bool)($codeOptions['n'] ?? false); // [n] = créer nouveau brouillon
-            $agentId     = $this->getServiceOption('agent_id', static::getDefaults()['agent_id']);
+            $model       = $this->getServiceOption('model', static::getDefaults()['model']);
 
             $clean  = $this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyHtml);
-            $prompt = '[' . $lang . ']' . $clean;
 
             if ($mode === 'test') {
-                $translated = (new MistralAgentService())->callAgent($agentId, $prompt);
+                $translated = app(PrismTextService::class)->translateHtml($clean, $lang, $model);
                 
                 // ✅ Stocker les résultats AVANT finishProcessor
                 $this->setResult('target_language', $lang);
@@ -157,7 +156,7 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
                 return $this->email;
             }
 
-            $translated = (new MistralAgentService())->callAgent($agentId, $prompt);
+            $translated = app(PrismTextService::class)->translateHtml($clean, $lang, $model);
 
             if ($createNew) {
                 // Option [n] : Créer un nouveau brouillon

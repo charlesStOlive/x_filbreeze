@@ -6,19 +6,19 @@ use Log;
 use Filament\Actions\Action;
 use App\Forms\Components\Diff2Html;
 use Filament\Forms\Components\Hidden;
-use App\Services\Ia\IaService;
-use App\Exceptions\MistralException;
+use App\Services\Prism\PrismTextService;
+use RuntimeException;
 
 class IaUtils
 {
     /**
-     * Crée une action pour corriger les textes via Mistral IA.
+     * Crée une action pour corriger les textes via Prism.
      *
      * @param  string  $resource  La classe de la ressource utilisée
      * @param  bool  $hidden  Si l'action doit être cachée
      * @return Action
      */
-    public static function MistralCorrectionAction(string $resource, bool $hidden = false): Action
+    public static function PrismCorrectionAction(string $resource, bool $hidden = false): Action
     {
         return Action::make('Orthographes')
             ->icon('fas-wand-sparkles')
@@ -49,18 +49,17 @@ class IaUtils
     }
 
     /**
-     * Corrige les textes via le service IA
+     * Corrige les textes via Prism.
      *
      * @param string $jsonText
      * @return string
-     * @throws MistralException
+     * @throws RuntimeException
      */
     protected static function correctTexts(string $jsonText): string
     {
         try {
-            $iaService = app(IaService::class);
-            return $iaService->correctText($jsonText);
-        } catch (MistralException $e) {
+            return app(PrismTextService::class)->correctJsonText($jsonText);
+        } catch (RuntimeException $e) {
             Log::error('Erreur lors de la correction de texte', [
                 'error' => $e->getMessage(),
             ]);

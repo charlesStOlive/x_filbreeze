@@ -91,7 +91,7 @@ class EditInvoice extends EditRecord
     {
         return [
             StateUtils::getStateSaveButton(),
-            IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
+            IaUtils::PrismCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
             ActionGroup::make([
                 StateFusionAction::make('state_submited')
                     ->transitionTo(Submited::class)

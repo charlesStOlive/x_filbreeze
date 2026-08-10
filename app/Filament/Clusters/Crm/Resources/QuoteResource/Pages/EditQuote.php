@@ -111,7 +111,7 @@ class EditQuote extends EditRecord
         return [
             // Le bouton Save est maintenant dans le header
             StateUtils::getStateSaveButton()->color('success'),
-            IaUtils::MistralCorrectionAction(static::$resource, $this->record->state->isSaveHidden)->color('info'),
+            IaUtils::PrismCorrectionAction(static::$resource, $this->record->state->isSaveHidden)->color('info'),
             $this->getCancelFormAction()
         ];
     }
