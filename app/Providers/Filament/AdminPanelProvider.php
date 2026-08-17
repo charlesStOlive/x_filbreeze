@@ -17,6 +17,7 @@ use Pboivin\FilamentPeek\FilamentPeekPlugin;
 use CharlesStOlive\FilamentStateFusionEnhanced\FilamentStateFusionEnhancedPlugin;
 use CharlesStOlive\FilamentPermissionManager\FilamentPermissionManagerPlugin;
 use CharlesStOlive\MsGraphFilament\MsGraphFilamentPlugin;
+use CharlesStOlive\FilamentQonto\FilamentQontoPlugin;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -51,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 FilamentStateFusionEnhancedPlugin::make(),
                 MsGraphFilamentPlugin::make(),
+                FilamentQontoPlugin::make(),
             ])
             ->colors([
                 'primary' => '#DB8E57',

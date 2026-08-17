@@ -21,7 +21,7 @@
     "dependencies": {
         "diff2html": "^3.4.48",
         "jquery": "^3.7.1",
-        "puppeteer": "^23.10.2",
+        "puppeteer": "^25.8.0",
         "sortablejs": "^1.15.6"
     }
 }

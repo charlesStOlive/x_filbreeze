@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 LABEL maintainer="Charles"
 
 ARG WWWGROUP
-ARG NODE_VERSION=18
+ARG NODE_VERSION=24
 ARG MYSQL_CLIENT="mysql-client"
 
 WORKDIR /var/www/html

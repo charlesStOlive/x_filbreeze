@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use CharlesStOlive\FilamentQonto\Models\QontoSupplierInvoice;
+use CharlesStOlive\FilamentQonto\Models\QontoTransaction;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,11 +28,23 @@ class Supplier extends Model
 
     protected $casts = [
         'alternative_names' => 'array',
+        'qonto_last_synced_at' => 'datetime',
+        'qonto_raw' => 'array',
     ];
 
     public function invoices()
     {
         return $this->hasMany(SupplierInvoice::class, 'supplier_id', 'id');
+    }
+
+    public function qontoTransactions()
+    {
+        return $this->hasMany(QontoTransaction::class, 'supplier_id', 'id');
+    }
+
+    public function qontoSupplierInvoices()
+    {
+        return $this->hasMany(QontoSupplierInvoice::class, 'supplier_id', 'id');
     }
 
     public function canAccessPanel(Panel $panel): bool

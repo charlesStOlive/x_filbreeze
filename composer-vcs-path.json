@@ -27,6 +27,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        "filament-qonto-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-qonto",
+            "options": {
+                "symlink": true
+            }
         }
     },
     "repositories-vcs****************************": {
@@ -45,6 +52,10 @@
         "filament-state-fusion-enhanced-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-state-fusion-enhanced.git"
+        },
+        "filament-qonto-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-qonto.git"
         }
     }
 }

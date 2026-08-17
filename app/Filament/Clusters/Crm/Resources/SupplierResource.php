@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use CharlesStOlive\FilamentQonto\Filament\RelationManagers\QontoSupplierInvoicesRelationManager;
+use CharlesStOlive\FilamentQonto\Filament\RelationManagers\QontoTransactionsRelationManager;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Actions\EditAction;
@@ -64,7 +66,7 @@ class SupplierResource extends Resource
                         TextInput::make('incoming_email')
                             ->email()
                             ->nullable()
-                            ->unique(table: 'suppliers', column: 'incoming_email') // Assure l'unicité 
+                            ->unique(table: 'crm_suppliers', column: 'incoming_email') // Assure l'unicité 
                             ->label('Incoming Email'),
 
                         TextInput::make('incoming_email_title_filter')
@@ -74,6 +76,43 @@ class SupplierResource extends Resource
                             ->hintIcon('heroicon-s-information-circle')
                             ->label('Filtre titre email de facture')
                             ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
+                Section::make('Facturation / Qonto')
+                    ->schema([
+                        TextInput::make('legal_name')
+                            ->label('Nom légal'),
+
+                        TextInput::make('qonto_supplier_id')
+                            ->label('ID fournisseur Qonto')
+                            ->helperText('Renseigné automatiquement quand Qonto fournit un identifiant fournisseur.'),
+
+                        TextInput::make('qonto_supplier_name')
+                            ->label('Nom Qonto')
+                            ->disabled(),
+
+                        TextInput::make('vat_number')
+                            ->label('TVA intracom'),
+
+                        TextInput::make('tax_identification_number')
+                            ->label('TIN / identifiant fiscal'),
+
+                        TextInput::make('siren')
+                            ->label('SIREN'),
+
+                        TextInput::make('siret')
+                            ->label('SIRET'),
+
+                        TextInput::make('iban')
+                            ->label('IBAN'),
+
+                        TextInput::make('bic')
+                            ->label('BIC'),
+
+                        TextInput::make('qonto_last_synced_at')
+                            ->label('Dernière synchro Qonto')
+                            ->disabled(),
                     ])
                     ->columns(2),
 
@@ -88,6 +127,9 @@ class SupplierResource extends Resource
 
                         TextInput::make('city')
                             ->label('City'),
+
+                        TextInput::make('postal_code')
+                            ->label('Code postal'),
 
                         TextInput::make('country')
                             ->label('Country'),
@@ -111,6 +153,10 @@ class SupplierResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->sortable()->searchable()->label('Supplier Name'),
+                TextColumn::make('legal_name')->sortable()->searchable()->label('Nom légal')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('qonto_supplier_id')->label('Qonto')->searchable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('vat_number')->label('TVA')->searchable()->toggleable(),
+                TextColumn::make('siret')->label('SIRET')->searchable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('email')->sortable()->searchable()->label('Email'),
                 TextColumn::make('phone')->label('Phone'),
                 TextColumn::make('city')->label('City'),
@@ -123,6 +169,14 @@ class SupplierResource extends Resource
                 EditAction::make()->iconButton(),
                 DeleteAction::make()->iconButton(),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            QontoTransactionsRelationManager::class,
+            QontoSupplierInvoicesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

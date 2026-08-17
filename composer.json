@@ -23,6 +23,10 @@
         "filament-state-fusion-enhanced-vcs": {
             "type": "vcs",
             "url": "https://github.com//charlesStOlive/filament-state-fusion-enhancedV2.git"
+        },
+        "filament-qonto-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-qonto.git"
         }
     },
     "require": {
@@ -55,7 +59,8 @@
         "spatie/laravel-model-states": "^2.9",
         "spatie/laravel-permission": "*",
         "spatie/laravel-settings": "^3.4",
-        "thiagoalessio/tesseract_ocr": "^2.13"
+        "thiagoalessio/tesseract_ocr": "^2.13",
+        "charlesstolive/filament-qonto": "*@dev"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.6",
