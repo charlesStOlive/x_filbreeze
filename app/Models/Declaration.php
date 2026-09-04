@@ -59,21 +59,43 @@ class Declaration extends Model
 
     protected function turnoverExcludingTax(): Attribute
     {
-        return Attribute::get(fn (): float => $this->turnover_excluding_tax_cents / 100);
+        return Attribute::make(
+            get: fn (): float => $this->turnover_excluding_tax_cents / 100,
+            set: fn (mixed $value): array => ['turnover_excluding_tax_cents' => $this->toCents($value)],
+        );
     }
 
     protected function vatCollected(): Attribute
     {
-        return Attribute::get(fn (): float => $this->vat_collected_cents / 100);
+        return Attribute::make(
+            get: fn (): float => $this->vat_collected_cents / 100,
+            set: fn (mixed $value): array => ['vat_collected_cents' => $this->toCents($value)],
+        );
     }
 
     protected function vatDeductible(): Attribute
     {
-        return Attribute::get(fn (): float => $this->vat_deductible_cents / 100);
+        return Attribute::make(
+            get: fn (): float => $this->vat_deductible_cents / 100,
+            set: fn (mixed $value): array => ['vat_deductible_cents' => $this->toCents($value)],
+        );
     }
 
     protected function vatDue(): Attribute
     {
-        return Attribute::get(fn (): float => $this->vat_due_cents / 100);
+        return Attribute::make(
+            get: fn (): float => $this->vat_due_cents / 100,
+            set: fn (mixed $value): array => ['vat_due_cents' => $this->toCents($value)],
+        );
+    }
+
+    protected function vatCredit(): Attribute
+    {
+        return Attribute::get(fn (): float => max(0, $this->vat_deductible_cents - $this->vat_collected_cents) / 100);
+    }
+
+    private function toCents(mixed $value): int
+    {
+        return (int) round(((float) ($value ?? 0)) * 100);
     }
 }

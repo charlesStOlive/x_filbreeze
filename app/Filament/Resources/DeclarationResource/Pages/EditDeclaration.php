@@ -42,23 +42,42 @@ class EditDeclaration extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        /** @var Declaration $declaration */
+        $declaration = $this->getRecord();
+
+        return array_merge($data, [
+            'turnover_excluding_tax' => $declaration->turnover_excluding_tax,
+            'vat_collected' => $declaration->vat_collected,
+            'vat_deductible' => $declaration->vat_deductible,
+            'vat_due' => $declaration->vat_due,
+            'vat_credit' => $declaration->vat_credit,
+        ]);
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         if ($this->getRecord()->calculation_mode !== Declaration::MODE_MANUAL) {
             return $data;
         }
 
+        $vatCollectedCents = $this->toCents($data['vat_collected'] ?? $this->getRecord()->vat_collected);
+        $vatDeductibleCents = $this->toCents($data['vat_deductible'] ?? $this->getRecord()->vat_deductible);
+
         $amountFields = [
             'turnover_excluding_tax' => 'turnover_excluding_tax_cents',
             'vat_collected' => 'vat_collected_cents',
             'vat_deductible' => 'vat_deductible_cents',
-            'vat_due' => 'vat_due_cents',
         ];
 
         foreach ($amountFields as $formField => $databaseField) {
             $data[$databaseField] = $this->toCents($data[$formField] ?? $this->getRecord()->{$formField});
             unset($data[$formField]);
         }
+
+        $data['vat_due_cents'] = max(0, $vatCollectedCents - $vatDeductibleCents);
+        unset($data['vat_due'], $data['vat_credit']);
 
         $data['calculation_details'] = array_merge(
             $this->getRecord()->calculation_details ?? [],

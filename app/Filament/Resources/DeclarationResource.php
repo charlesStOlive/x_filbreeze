@@ -115,37 +115,47 @@ class DeclarationResource extends Resource
                             ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_URSSAF)
                             ->suffix('EUR')
                             ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
-                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
+                            ->dehydrated()
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_URSSAF),
 
                         TextInput::make('vat_collected')
                             ->label('TVA collectée')
                             ->numeric()
+                            ->live(debounce: 400)
                             ->minValue(0)
                             ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_VAT)
                             ->suffix('EUR')
                             ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
-                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
+                            ->dehydrated()
+                            ->afterStateUpdated(fn (callable $set, callable $get) => self::updateVatBalance($set, $get))
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
 
                         TextInput::make('vat_deductible')
                             ->label('TVA déductible')
                             ->numeric()
+                            ->live(debounce: 400)
                             ->minValue(0)
                             ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_VAT)
                             ->suffix('EUR')
                             ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
-                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
+                            ->dehydrated()
+                            ->afterStateUpdated(fn (callable $set, callable $get) => self::updateVatBalance($set, $get))
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
 
                         TextInput::make('vat_due')
                             ->label('TVA à décaisser')
                             ->numeric()
-                            ->minValue(0)
-                            ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_VAT)
                             ->suffix('EUR')
-                            ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
-                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
+                            ->readOnly()
+                            ->dehydrated(false)
+                            ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
+
+                        TextInput::make('vat_credit')
+                            ->label('Crédit de TVA')
+                            ->numeric()
+                            ->suffix('EUR')
+                            ->readOnly()
+                            ->dehydrated(false)
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
                     ])
                     ->columns(3),
@@ -236,6 +246,7 @@ class DeclarationResource extends Resource
             $set('vat_collected', null);
             $set('vat_deductible', null);
             $set('vat_due', null);
+            $set('vat_credit', null);
 
             return;
         }
@@ -245,5 +256,15 @@ class DeclarationResource extends Resource
         $set('vat_collected', $preview['vat_collected_cents'] / 100);
         $set('vat_deductible', $preview['vat_deductible_cents'] / 100);
         $set('vat_due', $preview['vat_due_cents'] / 100);
+        $set('vat_credit', max(0, $preview['vat_deductible_cents'] - $preview['vat_collected_cents']) / 100);
+    }
+
+    private static function updateVatBalance(callable $set, callable $get): void
+    {
+        $collected = (float) ($get('vat_collected') ?? 0);
+        $deductible = (float) ($get('vat_deductible') ?? 0);
+
+        $set('vat_due', round(max(0, $collected - $deductible), 2));
+        $set('vat_credit', round(max(0, $deductible - $collected), 2));
     }
 }

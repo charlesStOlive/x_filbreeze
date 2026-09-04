@@ -34,6 +34,7 @@ class CreateDeclaration extends CreateRecord
             'vat_collected' => $preview['vat_collected_cents'] / 100,
             'vat_deductible' => $preview['vat_deductible_cents'] / 100,
             'vat_due' => $preview['vat_due_cents'] / 100,
+            'vat_credit' => max(0, $preview['vat_deductible_cents'] - $preview['vat_collected_cents']) / 100,
         ]);
     }
 
@@ -59,23 +60,23 @@ class CreateDeclaration extends CreateRecord
     {
         if (($data['calculation_mode'] ?? Declaration::MODE_AUTOMATIC) === Declaration::MODE_MANUAL) {
             $period = app(DeclarationCalculator::class)->next($data['type']);
+            $vatCollectedCents = $data['type'] === Declaration::TYPE_VAT
+                ? $this->toCents($data['vat_collected'] ?? 0)
+                : 0;
+            $vatDeductibleCents = $data['type'] === Declaration::TYPE_VAT
+                ? $this->toCents($data['vat_deductible'] ?? 0)
+                : 0;
 
             $manualAmounts = [
                 'turnover_excluding_tax_cents' => $data['type'] === Declaration::TYPE_URSSAF
                     ? $this->toCents($data['turnover_excluding_tax'] ?? 0)
                     : 0,
-                'vat_collected_cents' => $data['type'] === Declaration::TYPE_VAT
-                    ? $this->toCents($data['vat_collected'] ?? 0)
-                    : 0,
-                'vat_deductible_cents' => $data['type'] === Declaration::TYPE_VAT
-                    ? $this->toCents($data['vat_deductible'] ?? 0)
-                    : 0,
-                'vat_due_cents' => $data['type'] === Declaration::TYPE_VAT
-                    ? $this->toCents($data['vat_due'] ?? 0)
-                    : 0,
+                'vat_collected_cents' => $vatCollectedCents,
+                'vat_deductible_cents' => $vatDeductibleCents,
+                'vat_due_cents' => max(0, $vatCollectedCents - $vatDeductibleCents),
             ];
 
-            unset($data['turnover_excluding_tax'], $data['vat_collected'], $data['vat_deductible'], $data['vat_due']);
+            unset($data['turnover_excluding_tax'], $data['vat_collected'], $data['vat_deductible'], $data['vat_due'], $data['vat_credit']);
 
             return array_merge($data, $manualAmounts, [
                 'period_start' => $period['period_start'],
