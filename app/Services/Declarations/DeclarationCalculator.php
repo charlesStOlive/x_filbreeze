@@ -55,9 +55,9 @@ class DeclarationCalculator
 
         if ($type === Declaration::TYPE_VAT) {
             $supplierInvoices = QontoSupplierInvoice::query()
-                ->whereHas('qontoTransaction', fn ($query) => $query
-                    ->whereBetween('settled_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]))
-                ->get(['id', 'supplier_invoice_id', 'account_vat_cents', 'vat_cents']);
+                ->whereDate('invoice_at', '>=', $start->toDateString())
+                ->whereDate('invoice_at', '<=', $end->toDateString())
+                ->get(['id', 'supplier_invoice_id', 'currency', 'vat_cents', 'account_currency', 'account_vat_cents']);
 
             $localSupplierInvoiceIds = $supplierInvoices
                 ->pluck('supplier_invoice_id')
@@ -81,7 +81,7 @@ class DeclarationCalculator
         }
 
         $supplierVatCents = $supplierInvoices->sum(
-            fn (QontoSupplierInvoice $invoice): int => (int) ($invoice->account_vat_cents ?? $invoice->vat_cents ?? 0),
+            fn (QontoSupplierInvoice $invoice): int => $this->supplierVatCents($invoice),
         );
         $expenseVatCents = $expenseNotes->sum(fn (QontoExpenseNote $note): int => (int) ($note->vat_cents ?? 0));
         $vatDeductibleCents = $supplierVatCents + $expenseVatCents;
@@ -119,6 +119,19 @@ class DeclarationCalculator
         }
 
         return $months;
+    }
+
+    private function supplierVatCents(QontoSupplierInvoice $invoice): int
+    {
+        if (strtoupper((string) $invoice->account_currency) === 'EUR' && $invoice->account_vat_cents !== null) {
+            return (int) $invoice->account_vat_cents;
+        }
+
+        if (strtoupper((string) $invoice->currency) === 'EUR') {
+            return (int) ($invoice->vat_cents ?? 0);
+        }
+
+        return 0;
     }
 
     private function toCents(mixed $amount): int

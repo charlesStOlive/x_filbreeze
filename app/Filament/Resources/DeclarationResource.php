@@ -44,7 +44,20 @@ class DeclarationResource extends Resource
                             ->required()
                             ->live()
                             ->disabledOn('edit')
-                            ->afterStateUpdated(fn ($state, callable $set) => self::fillPreview($state, $set)),
+                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview(
+                                $state,
+                                $set,
+                                $get('calculation_mode') ?? Declaration::MODE_AUTOMATIC,
+                            )),
+
+                        Select::make('calculation_mode')
+                            ->label('Mode de calcul')
+                            ->options(Declaration::modeOptions())
+                            ->default(Declaration::MODE_AUTOMATIC)
+                            ->required()
+                            ->live()
+                            ->disabledOn('edit')
+                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview($get('type'), $set, $state)),
 
                         DatePicker::make('period_start')
                             ->label('Du')
@@ -68,50 +81,71 @@ class DeclarationResource extends Resource
                     ])
                     ->columns(4),
 
-                Section::make('Montants calculés')
-                    ->description('Les montants sont figés lors de la création afin de conserver une trace vérifiable de la déclaration.')
+                Section::make('Montants de la déclaration')
+                    ->description('En automatique, les montants viennent des factures synchronisées. En manuel, ils sont saisis librement.')
                     ->schema([
                         TextInput::make('client_invoice_count')
                             ->label('Factures clients retenues')
                             ->integer()
                             ->readOnly()
                             ->dehydrated(false)
+                            ->visible(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
                             ->afterStateHydrated(function (TextInput $component, ?Declaration $record): void {
                                 if ($record) {
                                     $component->state(count($record->calculation_details['client_invoice_ids'] ?? []));
                                 }
                             }),
 
+                        TextInput::make('supplier_invoice_count')
+                            ->label('Factures fournisseurs Qonto retenues')
+                            ->integer()
+                            ->readOnly()
+                            ->dehydrated(false)
+                            ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT && $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
+                            ->afterStateHydrated(function (TextInput $component, ?Declaration $record): void {
+                                if ($record) {
+                                    $component->state(count($record->calculation_details['qonto_supplier_invoice_ids'] ?? []));
+                                }
+
+                            }),
                         TextInput::make('turnover_excluding_tax')
                             ->label('Chiffre d’affaires HT à déclarer')
                             ->numeric()
+                            ->minValue(0)
+                            ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_URSSAF)
                             ->suffix('EUR')
-                            ->readOnly()
-                            ->dehydrated(false)
+                            ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
+                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_URSSAF),
 
                         TextInput::make('vat_collected')
                             ->label('TVA collectée')
                             ->numeric()
+                            ->minValue(0)
+                            ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_VAT)
                             ->suffix('EUR')
-                            ->readOnly()
-                            ->dehydrated(false)
+                            ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
+                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
 
                         TextInput::make('vat_deductible')
                             ->label('TVA déductible')
                             ->numeric()
+                            ->minValue(0)
+                            ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_VAT)
                             ->suffix('EUR')
-                            ->readOnly()
-                            ->dehydrated(false)
+                            ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
+                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
 
                         TextInput::make('vat_due')
                             ->label('TVA à décaisser')
                             ->numeric()
+                            ->minValue(0)
+                            ->required(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL && $get('type') === Declaration::TYPE_VAT)
                             ->suffix('EUR')
-                            ->readOnly()
-                            ->dehydrated(false)
+                            ->readOnly(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_AUTOMATIC)
+                            ->dehydrated(fn (callable $get): bool => $get('calculation_mode') === Declaration::MODE_MANUAL)
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
                     ])
                     ->columns(3),
@@ -139,6 +173,10 @@ class DeclarationResource extends Resource
                 TextColumn::make('type')
                     ->label('Type')
                     ->formatStateUsing(fn (string $state): string => Declaration::typeOptions()[$state] ?? $state)
+                    ->badge(),
+                TextColumn::make('calculation_mode')
+                    ->label('Mode')
+                    ->formatStateUsing(fn (string $state): string => Declaration::modeOptions()[$state] ?? $state)
                     ->badge(),
                 TextColumn::make('covered_months')
                     ->label('Mois couverts')
@@ -179,7 +217,7 @@ class DeclarationResource extends Resource
         ];
     }
 
-    private static function fillPreview(?string $type, callable $set): void
+    private static function fillPreview(?string $type, callable $set, ?string $mode = Declaration::MODE_AUTOMATIC): void
     {
         if (! array_key_exists((string) $type, Declaration::typeOptions())) {
             return;
@@ -190,7 +228,19 @@ class DeclarationResource extends Resource
         $set('period_start', $preview['period_start']);
         $set('period_end', $preview['period_end']);
         $set('covered_months_display', implode(', ', $preview['covered_months']));
+
+        if ($mode === Declaration::MODE_MANUAL) {
+            $set('client_invoice_count', null);
+            $set('supplier_invoice_count', null);
+            $set('turnover_excluding_tax', null);
+            $set('vat_collected', null);
+            $set('vat_deductible', null);
+            $set('vat_due', null);
+
+            return;
+        }
         $set('client_invoice_count', count($preview['calculation_details']['client_invoice_ids'] ?? []));
+        $set('supplier_invoice_count', count($preview['calculation_details']['qonto_supplier_invoice_ids'] ?? []));
         $set('turnover_excluding_tax', $preview['turnover_excluding_tax_cents'] / 100);
         $set('vat_collected', $preview['vat_collected_cents'] / 100);
         $set('vat_deductible', $preview['vat_deductible_cents'] / 100);

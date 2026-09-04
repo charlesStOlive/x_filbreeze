@@ -20,7 +20,7 @@ class EditDeclaration extends EditRecord
             Action::make('refreshCalculation')
                 ->label('Rafraîchir le calcul')
                 ->icon('heroicon-o-arrow-path')
-                ->visible(fn (): bool => $this->getRecord()->status === 'draft')
+                ->visible(fn (): bool => $this->getRecord()->status === 'draft' && $this->getRecord()->calculation_mode === Declaration::MODE_AUTOMATIC)
                 ->action(function (): void {
                     /** @var Declaration $declaration */
                     $declaration = $this->getRecord();
@@ -40,5 +40,39 @@ class EditDeclaration extends EditRecord
             DeleteAction::make()
                 ->visible(fn (): bool => $this->getRecord()->status === 'draft'),
         ];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($this->getRecord()->calculation_mode !== Declaration::MODE_MANUAL) {
+            return $data;
+        }
+
+        $amountFields = [
+            'turnover_excluding_tax' => 'turnover_excluding_tax_cents',
+            'vat_collected' => 'vat_collected_cents',
+            'vat_deductible' => 'vat_deductible_cents',
+            'vat_due' => 'vat_due_cents',
+        ];
+
+        foreach ($amountFields as $formField => $databaseField) {
+            $data[$databaseField] = $this->toCents($data[$formField] ?? $this->getRecord()->{$formField});
+            unset($data[$formField]);
+        }
+
+        $data['calculation_details'] = array_merge(
+            $this->getRecord()->calculation_details ?? [],
+            [
+                'mode' => Declaration::MODE_MANUAL,
+                'updated_at' => now()->toIso8601String(),
+            ],
+        );
+
+        return $data;
+    }
+
+    private function toCents(mixed $amount): int
+    {
+        return (int) round(((float) ($amount ?? 0)) * 100);
     }
 }

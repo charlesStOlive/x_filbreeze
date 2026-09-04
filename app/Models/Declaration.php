@@ -12,6 +12,10 @@ class Declaration extends Model
 
     public const TYPE_URSSAF = 'urssaf';
 
+    public const MODE_AUTOMATIC = 'automatic';
+
+    public const MODE_MANUAL = 'manual';
+
     protected $guarded = ['id'];
 
     protected $casts = [
@@ -28,6 +32,14 @@ class Declaration extends Model
         return [
             self::TYPE_VAT => 'TVA',
             self::TYPE_URSSAF => 'URSSAF',
+        ];
+    }
+
+    public static function modeOptions(): array
+    {
+        return [
+            self::MODE_AUTOMATIC => 'Automatique',
+            self::MODE_MANUAL => 'Manuel',
         ];
     }
 
