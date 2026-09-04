@@ -6,6 +6,10 @@ use Closure;
 use Filament\Forms;
 use App\Models\Invoice;
 use App\Services\Qonto\CrmInvoiceQontoService;
+use Filament\Notifications\Notification;
+use Filament\Support\Exceptions\Halt;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 use Spatie\ModelStates\Transition;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
@@ -40,12 +44,36 @@ class ToCanceled extends Transition implements FilamentSpatieTransition ,HasColo
 
      public function handle(): Invoice
     {
-        app(CrmInvoiceQontoService::class)->cancel($this->invoice);
+        try {
+            app(CrmInvoiceQontoService::class)->cancel($this->invoice);
 
-        $this->invoice->state = new Canceled($this->invoice);
-        $this->invoice->save();
+            $this->invoice->state = new Canceled($this->invoice);
+            $this->invoice->save();
 
-        return $this->invoice;
+            return $this->invoice;
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first() ?: $exception->getMessage();
+
+            Notification::make()
+                ->title('Annulation impossible')
+                ->body($message)
+                ->danger()
+                ->persistent()
+                ->send();
+
+            throw new Halt();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('Erreur pendant l’annulation Qonto')
+                ->body($exception->getMessage())
+                ->danger()
+                ->persistent()
+                ->send();
+
+            throw new Halt();
+        }
     }
 
 }

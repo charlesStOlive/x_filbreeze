@@ -67,6 +67,7 @@ class EditInvoice extends EditRecord
                 ->icon('fas-code-branch')
                 ->button()
                 ->color('primary'),
+            $this->getQontoActionGroup(),
             InvoiceResource::getDuplicateAction(),
             ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft')
@@ -111,6 +112,7 @@ class EditInvoice extends EditRecord
             ])->label('Etats')->icon('fas-code-branch')
                 ->button()
                 ->color('primary'),
+            $this->getQontoActionGroup(),
             ActionGroup::make([
                 GenerateMsGraphEmailDraft::make('generateEmailDraft'),
                 GeneratePdfDownload::make('downloadPdf')
@@ -125,6 +127,91 @@ class EditInvoice extends EditRecord
                 ->color('gray'),
             $this->getCancelFormAction(),
         ];
+    }
+
+    protected function getQontoActionGroup(): ActionGroup
+    {
+        return ActionGroup::make([
+            Action::make('sync_qonto_draft')
+                ->label(fn($record): string => filled($record?->qonto_invoice_id) ? 'Mettre à jour brouillon' : 'Créer brouillon')
+                ->icon('heroicon-o-cloud-arrow-up')
+                ->color('gray')
+                ->modalHeading('Synchroniser le brouillon Qonto')
+                ->modalDescription('La facture reste modifiable et supprimable côté Qonto tant qu’elle reste en brouillon.')
+                ->requiresConfirmation(fn($record): bool => filled($record?->qonto_invoice_id))
+                ->visible(fn($record): bool => $record?->state == 'draft')
+                ->action(fn() => $this->handleQontoAction(
+                    fn() => app(\App\Services\Qonto\CrmInvoiceQontoService::class)->syncDraft($this->getRecord()->refresh()),
+                    'Brouillon Qonto synchronisé',
+                )),
+            Action::make('refresh_qonto_invoice')
+                ->label('Synchroniser statut')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->visible(fn($record): bool => filled($record?->qonto_invoice_id))
+                ->action(fn() => $this->handleQontoAction(
+                    fn() => app(\App\Services\Qonto\CrmInvoiceQontoService::class)->refreshFromQonto($this->getRecord()->refresh()),
+                    'Statut Qonto actualisé',
+                    saveBefore: false,
+                )),
+            Action::make('send_qonto_einvoice')
+                ->label('Envoyer e-invoicing')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->requiresConfirmation()
+                ->modalHeading('Envoyer la facture en e-invoicing')
+                ->modalDescription('Cette action demande à Qonto d’envoyer la facture via sa plateforme agréée. Elle ne doit être utilisée que lorsque le client est joignable sur le réseau e-invoicing.')
+                ->visible(fn($record): bool => filled($record?->qonto_invoice_id) && $record?->state != 'draft' && ! in_array($record?->qonto_status, ['draft', 'canceled', 'deleted', 'paid'], true))
+                ->disabled(fn($record): bool => $record?->company?->qonto_e_invoicing_reachable === false)
+                ->action(fn() => $this->handleQontoAction(
+                    fn() => app(\App\Services\Qonto\CrmInvoiceQontoService::class)->sendByEinvoice($this->getRecord()->refresh()),
+                    'Envoi e-invoicing demandé à Qonto',
+                    saveBefore: false,
+                )),
+        ])->label('Qonto')
+            ->icon('heroicon-o-building-library')
+            ->button()
+            ->color('gray');
+    }
+
+    protected function handleQontoAction(\Closure $callback, string $successTitle, bool $saveBefore = true): void
+    {
+        try {
+            if ($saveBefore) {
+                $this->save(false, false);
+            }
+
+            $invoice = $callback();
+
+            \Filament\Notifications\Notification::make()
+                ->title($successTitle)
+                ->success()
+                ->send();
+
+            $this->redirect(InvoiceResource::getUrl('edit', ['record' => $invoice ?: $this->getRecord()]));
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first() ?: $exception->getMessage();
+
+            \Filament\Notifications\Notification::make()
+                ->title('Action Qonto impossible')
+                ->body($message)
+                ->danger()
+                ->persistent()
+                ->send();
+
+            throw new \Filament\Support\Exceptions\Halt();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            \Filament\Notifications\Notification::make()
+                ->title('Erreur Qonto')
+                ->body($exception->getMessage())
+                ->danger()
+                ->persistent()
+                ->send();
+
+            throw new \Filament\Support\Exceptions\Halt();
+        }
     }
 
     public function form(Schema $schema): Schema

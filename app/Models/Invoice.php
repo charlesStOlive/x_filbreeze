@@ -264,6 +264,21 @@ class Invoice extends Model
         unset($newRecord->payed_at);
         unset($newRecord->payed_at_qy);
         unset($newRecord->payed_at_my);
+        foreach ([
+            'qonto_invoice_id',
+            'qonto_invoice_number',
+            'qonto_invoice_url',
+            'qonto_attachment_id',
+            'qonto_status',
+            'qonto_einvoicing_status',
+            'qonto_pdf_disk',
+            'qonto_pdf_path',
+            'qonto_synced_at',
+            'qonto_finalized_at',
+            'qonto_raw',
+        ] as $qontoField) {
+            unset($newRecord->{$qontoField});
+        }
         $newRecord->save();
         return $newRecord;
     }

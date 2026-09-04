@@ -32,7 +32,7 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
 
     public function getLabel(): string
     {
-        return __('Soumettre');
+        return __('Finaliser Factur-X');
     }
 
     public function getColor(): string
@@ -42,7 +42,7 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
 
     public function getIcon(): string
     {
-        return 'heroicon-o-paper-airplane';
+        return 'heroicon-o-lock-closed';
     }
 
 
@@ -105,10 +105,10 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
     {
         return [
             DateTimePicker::make('submited_at')
-                ->label('Soumis le')
+                ->label('Date d’émission')
                 ->default(now())
                 ->required()
-                ->helperText(__('Date utilisée comme date d’émission de la facture Qonto.'))
+                ->helperText(__('Cette action finalise le brouillon Qonto et génère le PDF Factur-X. La facture ne pourra plus revenir en brouillon côté Qonto.'))
         ];
     }
 }

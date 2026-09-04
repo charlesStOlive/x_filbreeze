@@ -12,7 +12,7 @@ class Submited extends InvoiceState implements HasDescription, HasColor, HasIcon
 
     public function getLabel(): string
     {
-        return 'Soumise';
+        return 'Finalisée';
     }
  
     public function getColor(): string
@@ -27,7 +27,7 @@ class Submited extends InvoiceState implements HasDescription, HasColor, HasIcon
  
     public function getDescription(): ?string
     {
-        return 'Facture soumise.X';
+        return 'Facture finalisée chez Qonto avec PDF Factur-X.';
     }
 
     public static function rules(): array

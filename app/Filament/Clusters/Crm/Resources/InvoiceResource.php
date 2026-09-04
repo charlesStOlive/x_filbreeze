@@ -128,6 +128,40 @@ class InvoiceResource extends Resource
                     ->url(fn (Invoice $record): ?string => $record->qonto_invoice_url)
                     ->openUrlInNewTab()
                     ->visible(fn (Invoice $record): bool => filled($record->qonto_invoice_url)),
+                Action::make('syncQontoStatus')
+                    ->label('Synchroniser statut Qonto')
+                    ->icon('heroicon-o-arrow-path')
+                    ->iconButton()
+                    ->color('gray')
+                    ->visible(fn (Invoice $record): bool => filled($record->qonto_invoice_id))
+                    ->action(function (Invoice $record): void {
+                        try {
+                            app(\App\Services\Qonto\CrmInvoiceQontoService::class)->refreshFromQonto($record);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Statut Qonto synchronisé')
+                                ->success()
+                                ->send();
+                        } catch (\Illuminate\Validation\ValidationException $exception) {
+                            $message = collect($exception->errors())->flatten()->first() ?: $exception->getMessage();
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Synchronisation Qonto impossible')
+                                ->body($message)
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        } catch (\Throwable $exception) {
+                            report($exception);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Erreur Qonto')
+                                ->body($exception->getMessage())
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
                 EditAction::make()
                     ->iconButton(),
                 Action::make('voir_schema')

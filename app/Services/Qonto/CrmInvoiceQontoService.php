@@ -22,11 +22,11 @@ class CrmInvoiceQontoService
         protected BankAccountsService $bankAccounts,
     ) {}
 
-    public function submit(Invoice $invoice): Invoice
+    public function syncDraft(Invoice $invoice): Invoice
     {
-        \Log::info('Submitting invoice', ['invoice_id' => $invoice->id]);
+        \Log::info('Syncing Qonto invoice draft', ['invoice_id' => $invoice->id]);
         $invoice->loadMissing(['company', 'contact']);
-        \Log::info('Ensuring client for company', ['company_id' => $invoice->company->id]);
+        \Log::info('Ensuring client for company', ['company_id' => $invoice->company?->id]);
         $client = $this->ensureClient($invoice->company, $invoice);
 
         $payload = $this->invoicePayload($invoice, $client);
@@ -35,19 +35,64 @@ class CrmInvoiceQontoService
         if ($invoice->qonto_invoice_id) {
             $qontoInvoice = $this->clientInvoices->retrieve($invoice->qonto_invoice_id);
 
-            if ($qontoInvoice->status === 'draft') {
-                $qontoInvoice = $this->clientInvoices->updateDraft($invoice->qonto_invoice_id, $payload);
+            if ($qontoInvoice->status !== 'draft') {
+                $this->storeInvoice($invoice, $qontoInvoice);
+
+                throw ValidationException::withMessages([
+                    'qonto_invoice_id' => 'La facture Qonto n’est plus un brouillon. Elle ne peut plus être mise à jour, seulement annulée si Qonto l’autorise.',
+                ]);
             }
+
+            $qontoInvoice = $this->clientInvoices->updateDraft($invoice->qonto_invoice_id, $payload);
         } else {
-            \Log::info('Pas encore soumise ', ['payload' => $payload]);
+            \Log::info('Qonto invoice draft does not exist yet, creating it', ['payload' => $payload]);
             $qontoInvoice = $this->clientInvoices->create($payload);
-            $this->storeInvoice($invoice, $qontoInvoice);
         }
 
-        \Log::info('Invoice submitted', ['invoice_id' => $invoice->id]);
+        $this->storeInvoice($invoice, $qontoInvoice);
+
+        \Log::info('Qonto invoice draft synced', [
+            'invoice_id' => $invoice->id,
+            'qonto_invoice_id' => $qontoInvoice->id,
+            'qonto_status' => $qontoInvoice->status,
+        ]);
+
+        return $invoice->refresh();
+    }
+
+    public function submit(Invoice $invoice): Invoice
+    {
+        \Log::info('Submitting invoice to Qonto', ['invoice_id' => $invoice->id]);
+
+        if (! $invoice->qonto_invoice_id) {
+            $invoice = $this->syncDraft($invoice);
+        } else {
+            $invoice->loadMissing(['company', 'contact']);
+            $client = $this->ensureClient($invoice->company, $invoice);
+            $qontoInvoice = $this->clientInvoices->retrieve($invoice->qonto_invoice_id);
+
+            if ($qontoInvoice->status === 'draft') {
+                $qontoInvoice = $this->clientInvoices->updateDraft(
+                    $invoice->qonto_invoice_id,
+                    $this->invoicePayload($invoice, $client),
+                );
+                $this->storeInvoice($invoice, $qontoInvoice);
+            } elseif ($qontoInvoice->status === 'canceled') {
+                $this->storeInvoice($invoice, $qontoInvoice);
+
+                throw ValidationException::withMessages([
+                    'qonto_invoice_id' => 'La facture Qonto est annulée. Crée une nouvelle facture ou duplique celle-ci pour repartir proprement.',
+                ]);
+            }
+        }
+
+        \Log::info('Finalizing Qonto invoice and downloading Factur-X', [
+            'invoice_id' => $invoice->id,
+            'qonto_invoice_id' => $invoice->qonto_invoice_id,
+        ]);
 
         $downloaded = $this->clientInvoices->downloadFacturX(
-            $invoice->qonto_invoice_id ?: $qontoInvoice->id,
+            $invoice->qonto_invoice_id,
             true,
             ($invoice->code ?: 'facture-' . $invoice->getKey()) . '.pdf',
         );
@@ -59,6 +104,8 @@ class CrmInvoiceQontoService
         if ((bool) config('qonto.client_invoices.auto_send_by_einvoice', false)) {
             $this->sendByEinvoice($invoice);
         }
+
+        \Log::info('Invoice submitted to Qonto', ['invoice_id' => $invoice->id]);
 
         return $invoice->refresh();
     }
@@ -121,6 +168,20 @@ class CrmInvoiceQontoService
         }
 
         $this->clientInvoices->sendByEinvoice($invoice->qonto_invoice_id);
+        $qontoInvoice = $this->clientInvoices->retrieve($invoice->qonto_invoice_id);
+        $this->storeInvoice($invoice, $qontoInvoice);
+
+        return $invoice->refresh();
+    }
+
+    public function refreshFromQonto(Invoice $invoice): Invoice
+    {
+        if (! $invoice->qonto_invoice_id) {
+            throw ValidationException::withMessages([
+                'qonto_invoice_id' => 'La facture n’existe pas encore chez Qonto.',
+            ]);
+        }
+
         $qontoInvoice = $this->clientInvoices->retrieve($invoice->qonto_invoice_id);
         $this->storeInvoice($invoice, $qontoInvoice);
 
