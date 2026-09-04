@@ -5,6 +5,7 @@ namespace App\Models\States\Invoice;
 use Closure;
 use Filament\Forms;
 use App\Models\Invoice;
+use App\Services\Qonto\CrmInvoiceQontoService;
 use Spatie\ModelStates\Transition;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
@@ -39,8 +40,11 @@ class ToCanceled extends Transition implements FilamentSpatieTransition ,HasColo
 
      public function handle(): Invoice
     {
+        app(CrmInvoiceQontoService::class)->cancel($this->invoice);
+
         $this->invoice->state = new Canceled($this->invoice);
         $this->invoice->save();
+
         return $this->invoice;
     }
 

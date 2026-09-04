@@ -9,6 +9,7 @@ use App\Models\Quote;
 use App\Enums\CompanyType;
 use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -40,6 +41,9 @@ class Company extends Model implements HasMedia
 
     protected $casts = [
         'others' => 'json',
+        'qonto_raw' => 'array',
+        'qonto_client_synced_at' => 'datetime',
+        'qonto_e_invoicing_reachable' => 'boolean',
         'type' => CompanyType::class,
         'country' => Country::class,
     ];
@@ -94,5 +98,86 @@ class Company extends Model implements HasMedia
     public function countryName(): Attribute
     {
         return Attribute::get(fn() => $this->country?->label());
+    }
+
+    public function qontoExportStatus(): Attribute
+    {
+        return Attribute::get(function (): string {
+            if (filled($this->qonto_client_id)) {
+                return 'referenced';
+            }
+
+            return $this->isReadyForQontoExport() ? 'ready' : 'missing';
+        });
+    }
+
+    public function qontoExportStatusLabel(): Attribute
+    {
+        return Attribute::get(fn (): string => match ($this->qonto_export_status) {
+            'referenced' => 'Référencé Qonto',
+            'ready' => 'Prêt Qonto',
+            default => 'À compléter',
+        });
+    }
+
+    public function qontoExportStatusIcon(): Attribute
+    {
+        return Attribute::get(fn (): string => match ($this->qonto_export_status) {
+            'referenced' => 'heroicon-o-check-badge',
+            'ready' => 'heroicon-o-cloud-arrow-up',
+            default => 'heroicon-o-exclamation-triangle',
+        });
+    }
+
+    public function qontoExportStatusColor(): Attribute
+    {
+        return Attribute::get(fn (): string => match ($this->qonto_export_status) {
+            'referenced' => 'success',
+            'ready' => 'info',
+            default => 'warning',
+        });
+    }
+
+    public function qontoExportStatusDescription(): Attribute
+    {
+        return Attribute::get(function (): string {
+            if ($this->qonto_export_status !== 'missing') {
+                return $this->qonto_export_status_label;
+            }
+
+            return 'À compléter : ' . implode(', ', $this->missingQontoExportFields());
+        });
+    }
+
+    public function isReadyForQontoExport(): bool
+    {
+        return $this->missingQontoExportFields() === [];
+    }
+
+    public function missingQontoExportFields(): array
+    {
+        $missing = [];
+
+        if (! filled($this->title)) {
+            $missing[] = 'nom';
+        }
+
+        if (! filled($this->address)) {
+            $missing[] = 'adresse';
+        }
+
+        if (! filled($this->city)) {
+            $missing[] = 'ville';
+        }
+
+        if (! filled($this->cp)) {
+            $missing[] = 'code postal';
+        }
+
+        if (! filled($this->tax_identification_number) && ! filled($this->siret) && ! filled($this->vat_number)) {
+            $missing[] = 'SIREN/SIRET ou TVA';
+        }
+
+        return $missing;
     }
 }

@@ -210,8 +210,48 @@ class EditInvoice extends EditRecord
                                     ->label('État')
                                     ->badge(),
                             ]),
-                        TextEntry::make('modalite')
-                            ->label('modalite'),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('company.title')
+                                    ->label('Client')
+                                    ->placeholder('Non défini')
+                                    ->icon(fn($record): ?string => $record->company ? 'heroicon-o-arrow-top-right-on-square' : null)
+                                    ->iconColor('gray')
+                                    ->url(fn($record): ?string => $record->company ? route('filament.admin.crm.resources.companies.edit', ['record' => $record->company]) : null),
+                                TextEntry::make('modalite')
+                                    ->label('Modalité')
+                                    ->placeholder('Non définie'),
+                                TextEntry::make('company.qonto_export_status_label')
+                                    ->label('Client Qonto')
+                                    ->badge()
+                                    ->icon(fn($record): ?string => $record->company?->qonto_export_status_icon)
+                                    ->color(fn($record): ?string => $record->company?->qonto_export_status_color)
+                                    ->tooltip(fn($record): ?string => $record->company?->qonto_export_status_description),
+                                TextEntry::make('contact.full_name')
+                                    ->label('Contact')
+                                    ->placeholder('Non défini')
+                                    ->icon(fn($record): ?string => $record->contact ? 'heroicon-o-arrow-top-right-on-square' : null)
+                                    ->iconColor('gray')
+                                    ->url(fn($record): ?string => $record->contact ? route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact]) : null),
+                                TextEntry::make('submited_at')
+                                    ->label('Soumise le')
+                                    ->date('d/m/Y')
+                                    ->placeholder('Non soumise'),
+                            ]),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('qonto_invoice_number')
+                                    ->label('Facture Qonto')
+                                    ->placeholder('Non créée')
+                                    ->icon(fn($record): ?string => $record->qonto_invoice_url ? 'heroicon-o-arrow-top-right-on-square' : null)
+                                    ->iconColor('gray')
+                                    ->url(fn($record): ?string => $record->qonto_invoice_url),
+                                TextEntry::make('qonto_status')
+                                    ->label('Statut Qonto')
+                                    ->badge()
+                                    ->placeholder('Non synchronisée'),
+                            ])
+                            ->visible(fn($record): bool => filled($record->qonto_invoice_id) || filled($record->qonto_status)),
                         Grid::make(2)
                             ->schema([
                                 TextEntry::make('total_ht_br')

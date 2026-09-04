@@ -23,6 +23,7 @@ abstract class InvoiceState extends State implements HasFilamentStateFusion
             ->allowTransition(Draft::class, Submited::class, ToSubmited::class)
             ->allowTransition(Submited::class, Payed::class, ToPayed::class)
             ->allowTransition(Draft::class, Canceled::class, ToCanceled::class)
+            ->allowTransition(Submited::class, Canceled::class, ToCanceled::class)
             
         ;
     }

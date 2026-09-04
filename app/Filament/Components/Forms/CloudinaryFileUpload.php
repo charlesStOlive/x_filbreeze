@@ -11,8 +11,6 @@ use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class CloudinaryFileUpload extends FileUpload
 {
-    protected string $view = 'filament.forms.components.cloudinary-file-upload';
-
     protected ?int $previewWidth = 200;
     protected string|int|null $previewHeight = null;
     protected string $relationName = 'logo_cloudinary';

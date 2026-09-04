@@ -16,6 +16,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -31,6 +32,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use App\Filament\Clusters\Crm;
 use Filament\Resources\Resource;
+use Filament\Notifications\Notification;
 use App\Filament\Utils\ImageUtils;
 use Filament\Forms\Components\FileUpload;
 use App\Filament\Components\Tables\DateColumn;
@@ -102,18 +104,74 @@ class CompanyResource extends Resource
                                     ->maxLength(255),
                                 TextInput::make('siret')
                                     ->maxLength(255),
+                                TextInput::make('vat_number')
+                                    ->label('TVA intracom')
+                                    ->maxLength(255),
+                                TextInput::make('tax_identification_number')
+                                    ->label('Identifiant fiscal')
+                                    ->helperText('Pour la France : SIREN ou SIRET. Utilisé par Qonto pour la facturation.')
+                                    ->maxLength(255),
+                                TextInput::make('e_invoicing_address')
+                                    ->label('Adresse e-invoicing')
+                                    ->helperText('Adresse Annuaire pour la facture électronique française si différente du SIREN/SIRET.')
+                                    ->maxLength(255),
+                                TextInput::make('qonto_client_id')
+                                    ->label('ID client Qonto')
+                                    ->helperText('Renseigné automatiquement après création ou rapprochement Qonto.')
+                                    ->maxLength(255),
+                                Toggle::make('qonto_e_invoicing_reachable')
+                                    ->label('Joignable e-invoicing Qonto')
+                                    ->disabled(),
                             ])
                             ->columns([
                                 'sm' => 1, // Mobile: 1 colonne
                                 'md' => 2, // Écran normal: 4 colonnes
                             ]),
-                        Fieldset::make('Localisation')
+                        Section::make('Localisation')
+                            ->headerActions([
+                                Action::make('extractAddress')
+                                    ->label('Extraire adresse')
+                                    ->icon('heroicon-o-map-pin')
+                                    ->schema([
+                                        Textarea::make('raw_address')
+                                            ->label('Adresse complète')
+                                            ->rows(5)
+                                            ->required(),
+                                    ])
+                                    ->modalSubmitActionLabel('Extraire')
+                                    ->action(function (array $data, callable $set): void {
+                                        $parsed = self::parsePostalAddress((string) ($data['raw_address'] ?? ''));
+
+                                        foreach ($parsed as $field => $value) {
+                                            if (filled($value)) {
+                                                $set($field, $value);
+                                            }
+                                        }
+
+                                        Notification::make()
+                                            ->title('Adresse extraite')
+                                            ->body($parsed['cp'] ? 'Code postal et ville détectés.' : 'Adresse reprise, code postal non détecté.')
+                                            ->success()
+                                            ->send();
+                                    }),
+                            ])
                             ->schema([
                                 Textarea::make('address')
+                                    ->label('Adresse')
+                                    ->rows(3)
                                     ->columnSpanFull(),
+                                TextInput::make('cp')
+                                    ->label('Code postal')
+                                    ->maxLength(20),
                                 TextInput::make('city')
+                                    ->label('Ville')
                                     ->maxLength(255),
+                                Select::make('country')
+                                    ->label('Pays')
+                                    ->options(Country::options())
+                                    ->default(Country::France->value),
                                 TextInput::make('tel')
+                                    ->label('Téléphone')
                                     ->tel()
                                     ->maxLength(255),
                                 TextInput::make('longitude')
@@ -122,9 +180,6 @@ class CompanyResource extends Resource
                                     ->numeric(),
                                 TextInput::make('distance')
                                     ->numeric(),
-                                Select::make('country')
-                                    ->label('Pays')
-                                    ->options(Country::options()),
                             ])
                             ->columns([
                                 'sm' => 1,
@@ -166,6 +221,82 @@ class CompanyResource extends Resource
             ]);
     }
 
+    protected static function parsePostalAddress(string $rawAddress): array
+    {
+        $lines = collect(preg_split('/\R+/', trim($rawAddress)) ?: [])
+            ->map(fn (string $line): string => trim(preg_replace('/\s+/', ' ', $line)))
+            ->filter()
+            ->values();
+
+        $country = Country::France->value;
+
+        if ($lines->isNotEmpty()) {
+            $lastLine = $lines->last();
+            $countryCode = self::countryCodeFromLine($lastLine);
+
+            if ($countryCode) {
+                $country = $countryCode;
+                $lines = $lines->slice(0, -1)->values();
+            }
+        }
+
+        $addressLines = $lines->all();
+        $zipCode = null;
+        $city = null;
+
+        foreach ($lines as $index => $line) {
+            if (! preg_match('/\b(?:[A-Z]{1,3}[-\s])?(\d{4,5})\b\s*(.*)$/u', $line, $matches, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+
+            $zipCode = $matches[1][0];
+            $city = trim($matches[2][0] ?? '');
+            $lineAddress = trim(substr($line, 0, $matches[0][1]));
+            $addressLines = array_slice($lines->all(), 0, $index);
+
+            if ($lineAddress !== '') {
+                $addressLines[] = $lineAddress;
+            }
+
+            if ($city === '' && $lines->has($index + 1)) {
+                $city = $lines->get($index + 1);
+            }
+
+            break;
+        }
+
+        $city = self::cleanParsedCity((string) $city);
+
+        return [
+            'address' => trim(implode(PHP_EOL, array_filter($addressLines))),
+            'cp' => $zipCode,
+            'city' => $city !== '' ? $city : null,
+            'country' => $country,
+        ];
+    }
+
+    protected static function countryCodeFromLine(string $line): ?string
+    {
+        $normalized = Str::of($line)->ascii()->upper()->trim()->toString();
+
+        if (in_array($normalized, ['FR', 'FRA', 'FRANCE'], true)) {
+            return Country::France->value;
+        }
+
+        foreach (Country::cases() as $country) {
+            if (in_array($normalized, [Str::of($country->label())->ascii()->upper()->toString(), $country->value], true)) {
+                return $country->value;
+            }
+        }
+
+        return null;
+    }
+
+    protected static function cleanParsedCity(string $city): string
+    {
+        return trim(preg_replace('/\b(FR|FRA|FRANCE)\b/iu', '', $city));
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -177,8 +308,25 @@ class CompanyResource extends Resource
                     ->searchable()
                     ->description(fn($record): string => \Str::limit($record->slug, 35))
                     ->searchable(['slug', 'title']),
+                IconColumn::make('qonto_export_status')
+                    ->label('Qonto')
+                    ->icon(fn (Company $record): string => $record->qonto_export_status_icon)
+                    ->color(fn (Company $record): string => $record->qonto_export_status_color)
+                    ->tooltip(fn (Company $record): string => $record->qonto_export_status_description),
                 TextColumn::make('sector.title')
                     ->sortable()->searchable(),
+                TextColumn::make('qonto_client_id')
+                    ->label('ID Qonto')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('qonto_e_invoicing_reachable')
+                    ->label('E-invoicing')
+                    ->boolean()
+                    ->toggleable(),
+                TextColumn::make('vat_number')
+                    ->label('TVA')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('contacts_count')
                     ->label('NB contacts')
                     ->counts('contacts')
@@ -205,6 +353,8 @@ class CompanyResource extends Resource
                 SelectFilter::make('sector')
                     ->label('Secteur')
                     ->relationship('sector', 'title'), // Assuming 'company' is a valid relationship
+                TernaryFilter::make('qonto_e_invoicing_reachable')
+                    ->label('Joignable e-invoicing Qonto'),
             ])
             ->recordActions([
                 EditAction::make()

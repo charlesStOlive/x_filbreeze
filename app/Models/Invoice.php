@@ -38,6 +38,17 @@ class Invoice extends Model
      */
     protected $fillable = [
         'code',
+        'qonto_invoice_id',
+        'qonto_invoice_number',
+        'qonto_invoice_url',
+        'qonto_attachment_id',
+        'qonto_status',
+        'qonto_einvoicing_status',
+        'qonto_pdf_disk',
+        'qonto_pdf_path',
+        'qonto_synced_at',
+        'qonto_finalized_at',
+        'qonto_raw',
         'title',
         'state',
         'modalite',
@@ -52,7 +63,6 @@ class Invoice extends Model
         'tva',
         'total_ttc',
         'payed_at',
-        'validated_at',
         'created_at',
         'updated_at',
     ];
@@ -70,8 +80,11 @@ class Invoice extends Model
 
     protected $casts = [
         'items' => 'json',
+        'qonto_raw' => 'array',
         'submited_at' => 'datetime',
         'payed_at' => 'datetime',
+        'qonto_synced_at' => 'datetime',
+        'qonto_finalized_at' => 'datetime',
         'state' => InvoiceState::class,
 
     ];
@@ -109,6 +122,10 @@ class Invoice extends Model
             }
         });
 
+        static::saving(function ($invoice) {
+            $invoice->recalculateTotalsFromItems();
+        });
+
         static::saved(function ($invoice) {
             if (isset($invoice->items)) {
                 $quotesData = collect($invoice->items)
@@ -135,6 +152,50 @@ class Invoice extends Model
     /**
      * Attributs
      */
+    public function recalculateTotalsFromItems(): self
+    {
+        if (! is_array($this->items) || $this->items === []) {
+            return $this;
+        }
+
+        $totals = collect($this->items)->partition(fn ($item) => ($item['type'] ?? null) === 'remise');
+
+        $totalRemise = $totals[0]
+            ->map(fn ($item) => $this->lineTotalFromItem($item))
+            ->sum();
+
+        $totalHtBr = $totals[1]
+            ->map(fn ($item) => $this->lineTotalFromItem($item))
+            ->sum();
+
+        $totalHt = round($totalHtBr - $totalRemise, 2);
+        $tva = round($totalHt * (float) ($this->tx_tva ?? 0), 2);
+
+        $this->total_ht_br = round($totalHtBr, 2);
+        $this->total_ht = $totalHt;
+        $this->tva = $tva;
+        $this->total_ttc = round($totalHt + $tva, 2);
+
+        return $this;
+    }
+
+    protected function lineTotalFromItem(array $item): float
+    {
+        $type = $item['type'] ?? null;
+        $data = $item['data'] ?? [];
+        $productType = $data['type'] ?? null;
+
+        if (in_array($type, ['tasks', 'tma'], true) && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        if ($type === 'product' && in_array($productType, ['heures', 'jours', 'forfait_m', 'forfait_u'], true) && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        return round((float) data_get($item, 'data.total', 0), 2);
+    }
+
     public static function syncLinkedQuoteAmountLeft($invoice, $quotesData) {
         //\Log::info('quotesData!!!', $quotesData);
         foreach ($quotesData as $quoteId => $pivotData) {

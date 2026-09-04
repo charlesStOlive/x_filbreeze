@@ -7,6 +7,7 @@ use Closure;
 use DateTime;
 use Filament\Forms;
 use App\Models\Invoice;
+use App\Services\Qonto\CrmInvoiceQontoService;
 use Spatie\ModelStates\Transition;
 // use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
 // use App\Filament\ModelStates\Concerns\ProvidesSpatieTransitionToFilament;
@@ -51,10 +52,14 @@ class ToPayed extends Transition implements FilamentSpatieTransition, HasIcon, H
 
     public function handle(): Invoice
     {
-        $this->invoice->state = new Payed($this->invoice);
         $this->invoice->payed_at = $this->data['payed_at'];
+
+        app(CrmInvoiceQontoService::class)->markPaid($this->invoice, $this->invoice->payed_at);
+
+        $this->invoice->state = new Payed($this->invoice);
         // $this->invoice->payed_at = $this->payed_at;
         $this->invoice->save();
+
         return $this->invoice;
     }
 

@@ -22,6 +22,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -81,6 +82,15 @@ class InvoiceResource extends Resource
                     ->searchable(['code', 'title']),
                 TextColumn::make('state')
                     ->badge(),
+                TextColumn::make('qonto_status')
+                    ->label('Qonto')
+                    ->badge()
+                    ->toggleable(),
+                IconColumn::make('qonto_invoice_url')
+                    ->label('Lien Qonto')
+                    ->boolean()
+                    ->state(fn (Invoice $record): bool => filled($record->qonto_invoice_url))
+                    ->toggleable(),
                 TextColumn::make('company.title')
                     ->sortable()
                     ->description(fn($record): string => $record->contact->full_name),
@@ -111,6 +121,13 @@ class InvoiceResource extends Resource
                     ->multiple()->default(['draft', 'submited', 'payed'])
             ])
             ->recordActions([
+                Action::make('openQontoInvoice')
+                    ->label('Ouvrir Qonto')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->iconButton()
+                    ->url(fn (Invoice $record): ?string => $record->qonto_invoice_url)
+                    ->openUrlInNewTab()
+                    ->visible(fn (Invoice $record): bool => filled($record->qonto_invoice_url)),
                 EditAction::make()
                     ->iconButton(),
                 Action::make('voir_schema')
@@ -281,7 +298,7 @@ class InvoiceResource extends Resource
                             ->toArray()
                     )
                     ->live()
-                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire, $component) {
                         if (!$state) return;
 
                         $product = Product::with('companies')->find($state);
@@ -289,11 +306,17 @@ class InvoiceResource extends Resource
 
                         $companyId = $get('../../../../company_id');
                         $company = $companyId ? Company::find($companyId) : null;
+                        $price = ProductFormHelper::getPriceForCompany($product, $company);
 
-                        $set('cu', ProductFormHelper::getPriceForCompany($product, $company));
+                        $set('cu', $price);
                         $set('product_title', $product->title);
                         $set('product_code', $product->code);
                         $set('type', $product->type->value);
+
+                        if ($product->type->value === 'forfait_a') {
+                            $set('total', round($price, 2));
+                            self::updateItemsTotal($set, $get, $livewire, true, ['total' => round($price, 2)], self::currentItemKey($component));
+                        }
 
                         if (!$get('title')) {
                             $set('title', $product->title);
@@ -335,12 +358,19 @@ class InvoiceResource extends Resource
                         $get('type')
                             ? ProductFormHelper::getDynamicFormFields(
                                 $get('type'),
-                                function ($set, $get, $livewire) {
+                                function ($set, $get, $livewire, $component = null) {
                                     $type = $get('type');
                                     if ($type === 'forfait_a') {
-                                        self::updateItemsTotal($set, $get, $livewire, true);
+                                        self::updateItemsTotal(
+                                            $set,
+                                            $get,
+                                            $livewire,
+                                            true,
+                                            ['total' => (float) ($get('total') ?? 0)],
+                                            self::currentItemKey($component),
+                                        );
                                     } else {
-                                        self::updateProductTotal($set, $get, $livewire);
+                                        self::updateProductTotal($set, $get, $livewire, $component);
                                     }
                                 }
                             )
@@ -381,15 +411,17 @@ class InvoiceResource extends Resource
                     ->label('Nombre Heures facturables')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire, $component) => self::updateTaskTotal($set, $get, $livewire, $component)),
                 TextInput::make('cu')
                     ->label('Cout heure')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire, $component) => self::updateTaskTotal($set, $get, $livewire, $component)),
                 TextInput::make('total')
                     ->label('total')
-                    ->numeric(),
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn($state, callable $set, callable $get, $livewire, $component) => self::updateItemsTotal($set, $get, $livewire, true, ['total' => (float) $state], self::currentItemKey($component))),
             ])
             ->columns(3);
     }
@@ -472,12 +504,12 @@ class InvoiceResource extends Resource
                                 self::updateQuoteTotal($set, $get, $livewire, 'total');
                             }),
                     ])
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateQuoteTotal($set, $get, $livewire, 'billing_percentage')),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire, $component) => self::updateQuoteTotal($set, $get, $livewire, 'billing_percentage', $component)),
                 TextInput::make('total')
                     ->label('Total')
                     ->dehydrated()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateQuoteTotal($set, $get, $livewire, 'total'))
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire, $component) => self::updateQuoteTotal($set, $get, $livewire, 'total', $component))
                     ->rule(function (callable $get) {
                         return 'lte:' . ($get('total_quote_left') ?? 0);
                     }),
@@ -537,7 +569,8 @@ class InvoiceResource extends Resource
                 TextInput::make('total')
                     ->label('Total')
                     ->numeric()
-                    ->live(onBlur: true),
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn($state, callable $set, callable $get, $livewire, $component) => self::updateItemsTotal($set, $get, $livewire, true, ['total' => (float) $state], self::currentItemKey($component))),
             ])
             ->columns(2);
     }
@@ -558,6 +591,7 @@ class InvoiceResource extends Resource
                     ->label('Total')
                     ->numeric()
                     ->live(onBlur: true)
+                    ->afterStateUpdated(fn($state, callable $set, callable $get, $livewire, $component) => self::updateItemsTotal($set, $get, $livewire, true, ['total' => (float) $state], self::currentItemKey($component)))
             ])
             ->columns(3);
     }
@@ -578,12 +612,12 @@ class InvoiceResource extends Resource
                     ->label('Total U')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire, $component) => self::updateTaskTotal($set, $get, $livewire, $component)),
                 TextInput::make('qty')
                     ->label('Qty')
                     ->numeric()
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire) => self::updateTaskTotal($set, $get, $livewire)),
+                    ->afterStateUpdated(fn(callable $set, callable $get, $livewire, $component) => self::updateTaskTotal($set, $get, $livewire, $component)),
                 TextInput::make('total')
                     ->label('Total')
                     ->numeric()
@@ -618,37 +652,48 @@ class InvoiceResource extends Resource
             });
     }
 
-    public static function updateProductTotal(callable $set, callable $get, $livewire)
+    public static function updateProductTotal(callable $set, callable $get, $livewire, $component = null)
     {
         $type = $get('type') ?? null;
-        $cu = $get('cu') ?? 0;
-        $qty = $get('qty') ?? 1;
+        $cu = (float) ($get('cu') ?? 0);
+        $qty = (float) ($get('qty') ?? 1);
 
         $total = match ($type) {
             'heures', 'jours', 'forfait_m', 'forfait_u' => $cu * $qty,
-            'forfait_a' => $cu,
+            'forfait_a' => (float) ($get('total') ?? $cu),
             default => 0,
         };
 
-        $set('total', round($total, 2));
-        self::updateItemsTotal($set, $get, $livewire, true);
-    }
-
-
-    public static function updateTaskTotal(callable $set, callable $get, $livewire)
-    {
-        $cu = $get('cu') ?? 0;
-        $qty = $get('qty') ?? 0;
-        $total = $cu * $qty;
+        $total = round($total, 2);
         $set('total', $total);
-        self::updateItemsTotal($set, $get, $livewire, true);
+        self::updateItemsTotal($set, $get, $livewire, true, [
+            'cu' => $cu,
+            'qty' => $qty,
+            'total' => $total,
+        ], self::currentItemKey($component));
     }
 
-    public static function updateQuoteTotal(callable $set, callable $get, $livewire, $fieldSrc)
+
+    public static function updateTaskTotal(callable $set, callable $get, $livewire, $component = null)
     {
-        $billingPercentage = $get('billing_percentage') ?? 0;
-        $totalQuote = $get('total_quote') ?? 0;
-        $total = $get('total') ?? 0;
+        $cu = (float) ($get('cu') ?? 0);
+        $qty = (float) ($get('qty') ?? 0);
+        $total = round($cu * $qty, 2);
+
+        $set('total', $total);
+        self::updateItemsTotal($set, $get, $livewire, true, [
+            'cu' => $cu,
+            'qty' => $qty,
+            'total' => $total,
+        ], self::currentItemKey($component));
+    }
+
+    public static function updateQuoteTotal(callable $set, callable $get, $livewire, $fieldSrc, $component = null)
+    {
+        $billingPercentage = (float) ($get('billing_percentage') ?? 0);
+        $totalQuote = (float) ($get('total_quote') ?? 0);
+        $total = (float) ($get('total') ?? 0);
+
         if ($fieldSrc == 'billing_percentage') {
             $total = round($totalQuote * $billingPercentage / 100, 2);
             $set('total', $total);
@@ -656,34 +701,43 @@ class InvoiceResource extends Resource
             $billingPercentage = $totalQuote ? round(($total / $totalQuote) * 100, 2) : 0;
             $set('billing_percentage', $billingPercentage);
         }
-        self::updateItemsTotal($set, $get, $livewire, true);
+
+        self::updateItemsTotal($set, $get, $livewire, true, [
+            'billing_percentage' => $billingPercentage,
+            'total' => $total,
+        ], self::currentItemKey($component));
     }
 
-    public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false)
+    public static function updateItemsTotal(callable $set, callable $get, $livewire, $parent = false, ?array $currentItemData = null, string|int|null $currentItemKey = null)
     {
         $items = $get('items') ?? [];
         $tx_tva = $get('tx_tva') ?? 0;
+
         if ($parent) {
             $items = $get('../../..') ?? [];
             $tx_tva = $get('../../../tx_tva') ?? 0;
         }
+
+        if ($currentItemData !== null && $currentItemKey !== null && isset($items[$currentItemKey])) {
+            $items[$currentItemKey]['data'] = array_replace($items[$currentItemKey]['data'] ?? [], $currentItemData);
+        }
+
         $totals = collect($items)
-            ->partition(fn($item) => $item['type'] === 'remise');
+            ->partition(fn($item) => ($item['type'] ?? null) === 'remise');
 
-        // Calcule la somme des totaux des remises
         $totalRemise = $totals[0]
-            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->map(fn($item) => self::lineTotalFromItem($item))
             ->sum();
 
-        // Calcule la somme des totaux des autres éléments
         $totalHtBr = $totals[1]
-            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->map(fn($item) => self::lineTotalFromItem($item))
             ->sum();
 
-        // Mettre à jour total_ht_br
-        $totalHt = $totalHtBr - $totalRemise;
-        $tva = round($totalHt * $tx_tva, 2);
+        $totalHtBr = round($totalHtBr, 2);
+        $totalHt = round($totalHtBr - $totalRemise, 2);
+        $tva = round($totalHt * (float) $tx_tva, 2);
         $totalTTC = round($totalHt + $tva, 2);
+
         if ($parent) {
             $set('../../../total_ht_br', $totalHtBr);
             $set('../../../total_ht', $totalHt);
@@ -695,7 +749,37 @@ class InvoiceResource extends Resource
             $set('tva', $tva);
             $set('total_ttc', $totalTTC);
         }
+
         $livewire->dispatch('totalsUpdated');
+    }
+
+    protected static function currentItemKey($component): string|int|null
+    {
+        if (! $component || ! method_exists($component, 'getStatePath')) {
+            return null;
+        }
+
+        $parts = explode('.', (string) $component->getStatePath());
+        $itemsIndex = array_search('items', $parts, true);
+
+        return $itemsIndex === false ? null : ($parts[$itemsIndex + 1] ?? null);
+    }
+
+    protected static function lineTotalFromItem(array $item): float
+    {
+        $type = $item['type'] ?? null;
+        $data = $item['data'] ?? [];
+        $productType = $data['type'] ?? null;
+
+        if (in_array($type, ['tasks', 'tma'], true) && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        if ($type === 'product' && in_array($productType, ['heures', 'jours', 'forfait_m', 'forfait_u'], true) && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        return round((float) ($data['total'] ?? 0), 2);
     }
 
     public static function getBasicItemsField()
