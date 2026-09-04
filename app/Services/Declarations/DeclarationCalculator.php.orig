@@ -1,0 +1,135 @@
+<?php
+
+namespace App\Services\Declarations;
+
+use App\Models\Declaration;
+use App\Models\Invoice;
+use Carbon\CarbonInterface;
+use CharlesStOlive\FilamentQonto\Models\QontoExpenseNote;
+use CharlesStOlive\FilamentQonto\Models\QontoSupplierInvoice;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
+
+class DeclarationCalculator
+{
+    public function next(string $type): array
+    {
+        $this->assertType($type);
+
+        $lastDeclaration = Declaration::query()
+            ->where('type', $type)
+            ->orderByDesc('period_end')
+            ->first();
+
+        $start = $lastDeclaration
+            ? $lastDeclaration->period_end->copy()->addDay()
+            : Carbon::parse(config("declarations.start_from.{$type}"));
+
+        return $this->calculate($type, $start);
+    }
+
+    public function calculate(string $type, CarbonInterface|string $start): array
+    {
+        $this->assertType($type);
+
+        $start = Carbon::parse($start)->startOfDay();
+        $end = $type === Declaration::TYPE_VAT
+            ? $start->copy()->endOfMonth()
+            : $start->copy()->addMonthsNoOverflow(2)->endOfMonth();
+
+        $clientInvoices = Invoice::query()
+            ->whereBetween('payed_at', [$start->toDateString(), $end->toDateString()])
+            ->get(['id', 'total_ht', 'tva']);
+
+        $turnoverCents = $clientInvoices->sum(
+            fn (Invoice $invoice): int => $this->toCents($invoice->total_ht),
+        );
+
+        $vatCollectedCents = $clientInvoices->sum(
+            fn (Invoice $invoice): int => $this->toCents($invoice->tva),
+        );
+
+        $supplierInvoices = collect();
+        $expenseNotes = collect();
+
+        if ($type === Declaration::TYPE_VAT) {
+            $supplierInvoices = QontoSupplierInvoice::query()
+                ->whereHas('qontoTransaction', fn ($query) => $query
+                    ->whereBetween('settled_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]))
+                ->get(['id', 'supplier_invoice_id', 'account_vat_cents', 'vat_cents']);
+
+            $localSupplierInvoiceIds = $supplierInvoices
+                ->pluck('supplier_invoice_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $expenseNotes = QontoExpenseNote::query()
+                ->whereBetween('spent_at', [$start->toDateString(), $end->toDateString()])
+                // Les paiements Qonto sont déjà couverts par les factures fournisseur.
+                // Les notes complètent uniquement les dépenses payées hors de Qonto.
+                ->where('payment_source', '!=', 'qonto_card')
+                ->when(
+                    $localSupplierInvoiceIds->isNotEmpty(),
+                    fn ($query) => $query->where(function ($query) use ($localSupplierInvoiceIds): void {
+                        $query->whereNull('supplier_invoice_id')
+                            ->orWhereNotIn('supplier_invoice_id', $localSupplierInvoiceIds);
+                    }),
+                )
+                ->get(['id', 'supplier_invoice_id', 'vat_cents', 'payment_source']);
+        }
+
+        $supplierVatCents = $supplierInvoices->sum(
+            fn (QontoSupplierInvoice $invoice): int => (int) ($invoice->account_vat_cents ?? $invoice->vat_cents ?? 0),
+        );
+        $expenseVatCents = $expenseNotes->sum(fn (QontoExpenseNote $note): int => (int) ($note->vat_cents ?? 0));
+        $vatDeductibleCents = $supplierVatCents + $expenseVatCents;
+
+        return [
+            'type' => $type,
+            'period_start' => $start->toDateString(),
+            'period_end' => $end->toDateString(),
+            'covered_months' => $this->coveredMonths($start, $end),
+            'turnover_excluding_tax_cents' => $turnoverCents,
+            'vat_collected_cents' => $type === Declaration::TYPE_VAT ? $vatCollectedCents : 0,
+            'vat_deductible_cents' => $type === Declaration::TYPE_VAT ? $vatDeductibleCents : 0,
+            'vat_due_cents' => $type === Declaration::TYPE_VAT ? max(0, $vatCollectedCents - $vatDeductibleCents) : 0,
+            'calculation_details' => [
+                'client_invoice_ids' => $clientInvoices->pluck('id')->all(),
+                'qonto_supplier_invoice_ids' => $supplierInvoices->pluck('id')->all(),
+                'expense_note_ids' => $expenseNotes->pluck('id')->all(),
+                'supplier_vat_cents' => $supplierVatCents,
+                'expense_note_vat_cents' => $expenseVatCents,
+                'calculated_at' => now()->toIso8601String(),
+            ],
+        ];
+    }
+
+    public function coveredMonths(CarbonInterface|string $start, CarbonInterface|string $end): array
+    {
+        $month = Carbon::parse($start)->startOfMonth();
+        $lastMonth = Carbon::parse($end)->startOfMonth();
+        $months = [];
+
+        while ($month->lte($lastMonth)) {
+            $months[] = $month->format('Y-m');
+            $month->addMonth();
+        }
+
+        return $months;
+    }
+
+    private function toCents(mixed $amount): int
+    {
+        return (int) round(((float) ($amount ?? 0)) * 100);
+    }
+
+    private function assertType(string $type): void
+    {
+        if (! array_key_exists($type, Declaration::typeOptions())) {
+            throw ValidationException::withMessages([
+                'type' => 'Le type de déclaration doit être TVA ou URSSAF.',
+            ]);
+        }
+    }
+}
