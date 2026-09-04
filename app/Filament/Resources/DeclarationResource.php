@@ -142,6 +142,15 @@ class DeclarationResource extends Resource
                             ->afterStateUpdated(fn (callable $set, callable $get) => self::updateVatBalance($set, $get))
                             ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
 
+                        TextInput::make('previous_vat_credit')
+                            ->label('Crédit de TVA reporté')
+                            ->helperText('Crédit disponible à la fin de la déclaration de TVA précédente.')
+                            ->numeric()
+                            ->suffix('EUR')
+                            ->readOnly()
+                            ->dehydrated(false)
+                            ->visible(fn (callable $get): bool => $get('type') === Declaration::TYPE_VAT),
+
                         TextInput::make('vat_due')
                             ->label('TVA à décaisser')
                             ->numeric()
@@ -234,10 +243,13 @@ class DeclarationResource extends Resource
         }
 
         $preview = app(DeclarationCalculator::class)->next($type);
+        $previousVatCreditCents = app(DeclarationCalculator::class)
+            ->previousVatCreditCents($preview['period_start']);
 
         $set('period_start', $preview['period_start']);
         $set('period_end', $preview['period_end']);
         $set('covered_months_display', implode(', ', $preview['covered_months']));
+        $set('previous_vat_credit', $previousVatCreditCents / 100);
 
         if ($mode === Declaration::MODE_MANUAL) {
             $set('client_invoice_count', null);
@@ -256,15 +268,19 @@ class DeclarationResource extends Resource
         $set('vat_collected', $preview['vat_collected_cents'] / 100);
         $set('vat_deductible', $preview['vat_deductible_cents'] / 100);
         $set('vat_due', $preview['vat_due_cents'] / 100);
-        $set('vat_credit', max(0, $preview['vat_deductible_cents'] - $preview['vat_collected_cents']) / 100);
+        $set('vat_credit', max(0,
+            $preview['vat_deductible_cents'] + $previousVatCreditCents - $preview['vat_collected_cents'],
+        ) / 100);
     }
 
     private static function updateVatBalance(callable $set, callable $get): void
     {
         $collected = (float) ($get('vat_collected') ?? 0);
         $deductible = (float) ($get('vat_deductible') ?? 0);
+        $previousCredit = (float) ($get('previous_vat_credit') ?? 0);
+        $balance = $collected - $deductible - $previousCredit;
 
-        $set('vat_due', round(max(0, $collected - $deductible), 2));
-        $set('vat_credit', round(max(0, $deductible - $collected), 2));
+        $set('vat_due', round(max(0, $balance), 2));
+        $set('vat_credit', round(max(0, -$balance), 2));
     }
 }

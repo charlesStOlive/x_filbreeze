@@ -49,6 +49,7 @@ class EditDeclaration extends EditRecord
 
         return array_merge($data, [
             'turnover_excluding_tax' => $declaration->turnover_excluding_tax,
+            'previous_vat_credit' => $declaration->previous_vat_credit,
             'vat_collected' => $declaration->vat_collected,
             'vat_deductible' => $declaration->vat_deductible,
             'vat_due' => $declaration->vat_due,
@@ -64,6 +65,13 @@ class EditDeclaration extends EditRecord
 
         $vatCollectedCents = $this->toCents($data['vat_collected'] ?? $this->getRecord()->vat_collected);
         $vatDeductibleCents = $this->toCents($data['vat_deductible'] ?? $this->getRecord()->vat_deductible);
+        $calculator = app(DeclarationCalculator::class);
+        $previousVatCreditCents = $calculator->previousVatCreditCents(
+            $this->getRecord()->period_start,
+            (int) $this->getRecord()->getKey(),
+        );
+        $vatBalance = $calculator
+            ->vatBalanceCents($vatCollectedCents, $vatDeductibleCents, $previousVatCreditCents);
 
         $amountFields = [
             'turnover_excluding_tax' => 'turnover_excluding_tax_cents',
@@ -76,7 +84,7 @@ class EditDeclaration extends EditRecord
             unset($data[$formField]);
         }
 
-        $data['vat_due_cents'] = max(0, $vatCollectedCents - $vatDeductibleCents);
+        $data['vat_due_cents'] = $vatBalance['due'];
         unset($data['vat_due'], $data['vat_credit']);
 
         $data['calculation_details'] = array_merge(

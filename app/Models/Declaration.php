@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Declarations\DeclarationCalculator;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,14 +85,40 @@ class Declaration extends Model
     protected function vatDue(): Attribute
     {
         return Attribute::make(
-            get: fn (): float => $this->vat_due_cents / 100,
+            get: fn (): float => $this->type === self::TYPE_VAT
+                ? app(DeclarationCalculator::class)->vatBalanceCents(
+                    (int) $this->vat_collected_cents,
+                    (int) $this->vat_deductible_cents,
+                    $this->previousVatCreditCents(),
+                )['due'] / 100
+                : $this->vat_due_cents / 100,
             set: fn (mixed $value): array => ['vat_due_cents' => $this->toCents($value)],
         );
     }
 
     protected function vatCredit(): Attribute
     {
-        return Attribute::get(fn (): float => max(0, $this->vat_deductible_cents - $this->vat_collected_cents) / 100);
+        return Attribute::get(fn (): float => max(
+            0,
+            $this->vat_deductible_cents + $this->previousVatCreditCents() - $this->vat_collected_cents,
+        ) / 100);
+    }
+
+    protected function previousVatCredit(): Attribute
+    {
+        return Attribute::get(fn (): float => $this->previousVatCreditCents() / 100);
+    }
+
+    private function previousVatCreditCents(): int
+    {
+        if ($this->type !== self::TYPE_VAT || ! $this->period_start) {
+            return 0;
+        }
+
+        return app(DeclarationCalculator::class)->previousVatCreditCents(
+            $this->period_start,
+            $this->exists ? (int) $this->getKey() : null,
+        );
     }
 
     private function toCents(mixed $value): int

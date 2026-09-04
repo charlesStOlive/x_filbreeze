@@ -21,6 +21,8 @@ class CreateDeclaration extends CreateRecord
     private function fillCalculationPreview(string $type): void
     {
         $preview = app(DeclarationCalculator::class)->next($type);
+        $previousVatCreditCents = app(DeclarationCalculator::class)
+            ->previousVatCreditCents($preview['period_start']);
 
         $this->data = array_merge($this->data ?? [], [
             'type' => $type,
@@ -31,10 +33,13 @@ class CreateDeclaration extends CreateRecord
             'client_invoice_count' => count($preview['calculation_details']['client_invoice_ids'] ?? []),
             'supplier_invoice_count' => count($preview['calculation_details']['qonto_supplier_invoice_ids'] ?? []),
             'turnover_excluding_tax' => $preview['turnover_excluding_tax_cents'] / 100,
+            'previous_vat_credit' => $previousVatCreditCents / 100,
             'vat_collected' => $preview['vat_collected_cents'] / 100,
             'vat_deductible' => $preview['vat_deductible_cents'] / 100,
             'vat_due' => $preview['vat_due_cents'] / 100,
-            'vat_credit' => max(0, $preview['vat_deductible_cents'] - $preview['vat_collected_cents']) / 100,
+            'vat_credit' => max(0,
+                $preview['vat_deductible_cents'] + $previousVatCreditCents - $preview['vat_collected_cents'],
+            ) / 100,
         ]);
     }
 
@@ -66,6 +71,10 @@ class CreateDeclaration extends CreateRecord
             $vatDeductibleCents = $data['type'] === Declaration::TYPE_VAT
                 ? $this->toCents($data['vat_deductible'] ?? 0)
                 : 0;
+            $previousVatCreditCents = app(DeclarationCalculator::class)
+                ->previousVatCreditCents($period['period_start']);
+            $vatBalance = app(DeclarationCalculator::class)
+                ->vatBalanceCents($vatCollectedCents, $vatDeductibleCents, $previousVatCreditCents);
 
             $manualAmounts = [
                 'turnover_excluding_tax_cents' => $data['type'] === Declaration::TYPE_URSSAF
@@ -73,7 +82,7 @@ class CreateDeclaration extends CreateRecord
                     : 0,
                 'vat_collected_cents' => $vatCollectedCents,
                 'vat_deductible_cents' => $vatDeductibleCents,
-                'vat_due_cents' => max(0, $vatCollectedCents - $vatDeductibleCents),
+                'vat_due_cents' => $vatBalance['due'],
             ];
 
             unset($data['turnover_excluding_tax'], $data['vat_collected'], $data['vat_deductible'], $data['vat_due'], $data['vat_credit']);

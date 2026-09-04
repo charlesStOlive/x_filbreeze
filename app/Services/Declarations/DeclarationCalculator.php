@@ -85,6 +85,10 @@ class DeclarationCalculator
         );
         $expenseVatCents = $expenseNotes->sum(fn (QontoExpenseNote $note): int => (int) ($note->vat_cents ?? 0));
         $vatDeductibleCents = $supplierVatCents + $expenseVatCents;
+        $previousVatCreditCents = $type === Declaration::TYPE_VAT
+            ? $this->previousVatCreditCents($start)
+            : 0;
+        $vatBalance = $this->vatBalanceCents($vatCollectedCents, $vatDeductibleCents, $previousVatCreditCents);
 
         return [
             'type' => $type,
@@ -94,7 +98,7 @@ class DeclarationCalculator
             'turnover_excluding_tax_cents' => $turnoverCents,
             'vat_collected_cents' => $type === Declaration::TYPE_VAT ? $vatCollectedCents : 0,
             'vat_deductible_cents' => $type === Declaration::TYPE_VAT ? $vatDeductibleCents : 0,
-            'vat_due_cents' => $type === Declaration::TYPE_VAT ? max(0, $vatCollectedCents - $vatDeductibleCents) : 0,
+            'vat_due_cents' => $type === Declaration::TYPE_VAT ? $vatBalance['due'] : 0,
             'calculation_details' => [
                 'client_invoice_ids' => $clientInvoices->pluck('id')->all(),
                 'qonto_supplier_invoice_ids' => $supplierInvoices->pluck('id')->all(),
@@ -119,6 +123,39 @@ class DeclarationCalculator
         }
 
         return $months;
+    }
+
+    public function previousVatCreditCents(CarbonInterface|string $periodStart, ?int $excludeDeclarationId = null): int
+    {
+        $declarations = Declaration::query()
+            ->where('type', Declaration::TYPE_VAT)
+            ->whereDate('period_end', '<', Carbon::parse($periodStart)->toDateString())
+            ->when(
+                $excludeDeclarationId !== null,
+                fn ($query) => $query->whereKeyNot($excludeDeclarationId),
+            )
+            ->orderBy('period_end')
+            ->get(['vat_collected_cents', 'vat_deductible_cents']);
+
+        return $declarations->reduce(
+            fn (int $credit, Declaration $declaration): int => $this->vatBalanceCents(
+                (int) $declaration->vat_collected_cents,
+                (int) $declaration->vat_deductible_cents,
+                $credit,
+            )['credit'],
+            0,
+        );
+    }
+
+    /** @return array{due: int, credit: int} */
+    public function vatBalanceCents(int $collected, int $deductible, int $previousCredit = 0): array
+    {
+        $balance = $collected - $deductible - $previousCredit;
+
+        return [
+            'due' => max(0, $balance),
+            'credit' => max(0, -$balance),
+        ];
     }
 
     private function supplierVatCents(QontoSupplierInvoice $invoice): int
