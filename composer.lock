@@ -782,12 +782,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:charlesStOlive/filament-qonto.git",
-                "reference": "113c50aae69299cf18eb09cfa442f80e054657a1"
+                "reference": "a553f227a1efe688756c62221eb27521c9874abf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/113c50aae69299cf18eb09cfa442f80e054657a1",
-                "reference": "113c50aae69299cf18eb09cfa442f80e054657a1",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/a553f227a1efe688756c62221eb27521c9874abf",
+                "reference": "a553f227a1efe688756c62221eb27521c9874abf",
                 "shasum": ""
             },
             "require": {
@@ -839,7 +839,7 @@
                 "source": "https://github.com/charlesStOlive/filament-qonto/tree/master",
                 "issues": "https://github.com/charlesStOlive/filament-qonto/issues"
             },
-            "time": "2026-08-17T16:19:34+00:00"
+            "time": "2026-09-04T07:46:27+00:00"
         },
         {
             "name": "charlesstolive/filament-state-fusion-enhanced",
