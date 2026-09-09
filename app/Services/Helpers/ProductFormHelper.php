@@ -2,11 +2,10 @@
 
 namespace App\Services\Helpers;
 
+use App\Enums\ProductType;
 use App\Models\Company;
 use App\Models\Product;
-use App\Enums\ProductType;
 use Filament\Forms\Components\TextInput;
-use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 
 class ProductFormHelper
 {
@@ -29,14 +28,16 @@ class ProductFormHelper
                     ->label($typeEnum->formQtyLabel())
                     ->numeric()
                     ->suffix($typeEnum->suffix())
-                    ->live(onBlur: true)
+                    ->live(debounce: 300)
+                    ->afterStateUpdatedJs(self::lineTotalUpdateJs())
                     ->afterStateUpdated($updateCallback),
 
                 TextInput::make('cu')
                     ->label($typeEnum->formCuLabel())
                     ->numeric()
                     ->suffix('€')
-                    ->live(onBlur: true)
+                    ->live(debounce: 300)
+                    ->afterStateUpdatedJs(self::lineTotalUpdateJs())
                     ->afterStateUpdated($updateCallback),
 
                 TextInput::make('total')
@@ -62,5 +63,12 @@ class ProductFormHelper
 
             default => [],
         };
+    }
+
+    private static function lineTotalUpdateJs(): string
+    {
+        return <<<'JS'
+            $set('total', Math.round(((Number($get('cu')) || 0) * (Number($get('qty')) || 0)) * 100) / 100)
+            JS;
     }
 }

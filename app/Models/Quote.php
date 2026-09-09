@@ -108,6 +108,79 @@ class Quote extends Model
                 $model->is_retained = true;
             }
         });
+
+        static::saving(function ($quote) {
+            $quote->recalculateTotalsFromItems();
+        });
+    }
+
+    public function recalculateTotalsFromItems(): self
+    {
+        if (! is_array($this->items)) {
+            return $this;
+        }
+
+        $items = collect($this->items)->map(function (array $item): array {
+            $type = $item['type'] ?? null;
+            $productType = data_get($item, 'data.type');
+
+            if (
+                $type === 'tasks'
+                || ($type === 'product' && in_array($productType, ['heures', 'jours', 'forfait_m', 'forfait_u'], true))
+            ) {
+                $item['data']['total'] = $this->lineTotalFromItem($item);
+            }
+
+            return $item;
+        });
+
+        $this->items = $items->all();
+
+        $totals = $items->partition(fn ($item) => ($item['type'] ?? null) === 'remise');
+        $billableItems = $totals[1];
+
+        $totalRemise = $totals[0]->sum(fn ($item) => $this->lineTotalFromItem($item));
+        $totalHtBr = $billableItems->sum(fn ($item) => $this->lineTotalFromItem($item));
+        $totalAvantOptions = $billableItems
+            ->filter(fn ($item) => empty($item['data']['is_option']))
+            ->sum(fn ($item) => $this->lineTotalFromItem($item));
+        $totalOptions = $billableItems
+            ->filter(fn ($item) => ! empty($item['data']['is_option']))
+            ->sum(fn ($item) => $this->lineTotalFromItem($item));
+        $totalJours = $billableItems
+            ->filter(fn ($item) => ($item['type'] ?? null) === 'product')
+            ->sum(function ($item): float {
+                return match (data_get($item, 'data.type')) {
+                    'jours' => (float) data_get($item, 'data.qty', 0),
+                    'heures' => (float) data_get($item, 'data.qty', 0) / 8,
+                    default => 0,
+                };
+            });
+
+        $this->total_ht_br = round($totalHtBr, 2);
+        $this->total_ht = round($totalHtBr - $totalRemise, 2);
+        $this->total_avant_options = round($totalAvantOptions, 2);
+        $this->total_options = round($totalOptions, 2);
+        $this->total_jours = round($totalJours, 2);
+
+        return $this;
+    }
+
+    protected function lineTotalFromItem(array $item): float
+    {
+        $type = $item['type'] ?? null;
+        $data = $item['data'] ?? [];
+        $productType = $data['type'] ?? null;
+
+        if ($type === 'tasks' && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        if ($type === 'product' && in_array($productType, ['heures', 'jours', 'forfait_m', 'forfait_u'], true) && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        return round((float) ($data['total'] ?? 0), 2);
     }
 
     public function scopeWithRemainingAmount($query)

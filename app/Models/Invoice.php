@@ -158,7 +158,23 @@ class Invoice extends Model
             return $this;
         }
 
-        $totals = collect($this->items)->partition(fn ($item) => ($item['type'] ?? null) === 'remise');
+        $items = collect($this->items)->map(function (array $item): array {
+            $type = $item['type'] ?? null;
+            $productType = data_get($item, 'data.type');
+
+            if (
+                in_array($type, ['tasks', 'tma'], true)
+                || ($type === 'product' && in_array($productType, ['heures', 'jours', 'forfait_m', 'forfait_u'], true))
+            ) {
+                $item['data']['total'] = $this->lineTotalFromItem($item);
+            }
+
+            return $item;
+        });
+
+        $this->items = $items->all();
+
+        $totals = $items->partition(fn ($item) => ($item['type'] ?? null) === 'remise');
 
         $totalRemise = $totals[0]
             ->map(fn ($item) => $this->lineTotalFromItem($item))

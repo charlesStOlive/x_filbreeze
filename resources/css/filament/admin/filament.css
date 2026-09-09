@@ -10,6 +10,21 @@
 @source '../../../../resources/views/livewire';
 @source '../../../../vendor/solution-forest/filament-tree/resources/**/*.blade.php';
 
+.fi-two-col__main {
+    flex: 1 1 0%;
+}
+
+.fi-two-col__aside {
+    flex: 0 0 100%;
+}
+
+@media (min-width: 768px) {
+    .fi-two-col__aside {
+        flex-basis: var(--fi-two-col-info-width, 25%);
+        width: var(--fi-two-col-info-width, 25%);
+    }
+}
+
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Livewire';
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Filament';
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/resources/views';

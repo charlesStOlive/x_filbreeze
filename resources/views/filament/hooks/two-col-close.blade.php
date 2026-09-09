@@ -1,7 +1,7 @@
 {{-- Ferme la colonne gauche et ajoute l’aside sticky puis ferme le conteneur --}}
 </div>
 
-<aside class="self-start w-full md:w-1/4 sticky top-20">
+<aside class="fi-two-col__aside self-start w-full sticky top-20">
     {{-- Ici, on rend l’infolist du Livewire courant (la Page) --}}
     {{ $this->infolist }}
 </aside>

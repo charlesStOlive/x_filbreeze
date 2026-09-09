@@ -431,22 +431,22 @@ class QuoteResource extends Resource
             ->partition(fn($item) => $item['type'] === 'remise');
 
         $totalRemise = $totals[0]
-            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->map(fn($item) => self::lineTotalFromItem($item))
             ->sum();
 
         $totalHtBr = $totals[1]
-            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->map(fn($item) => self::lineTotalFromItem($item))
             ->sum();
 
         // Ajout : total sans les lignes en option
         $totalAvOption = $totals[1]
             ->filter(fn($item) => empty($item['data']['is_option'])) // lignes non optionnelles
-            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->map(fn($item) => self::lineTotalFromItem($item))
             ->sum();
 
         $totalOptions = $totals[1]
             ->filter(fn($item) => !empty($item['data']['is_option'])) // lignes optionnelles
-            ->map(fn($item) => $item['data']['total'] ?? 0)
+            ->map(fn($item) => self::lineTotalFromItem($item))
             ->sum();
 
         // Calcul du total de jours (uniquement pour les produits type HEURES et JOURS)
@@ -484,6 +484,23 @@ class QuoteResource extends Resource
         }
 
         $livewire->dispatch('totalsUpdated');
+    }
+
+    protected static function lineTotalFromItem(array $item): float
+    {
+        $type = $item['type'] ?? null;
+        $data = $item['data'] ?? [];
+        $productType = $data['type'] ?? null;
+
+        if ($type === 'tasks' && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        if ($type === 'product' && in_array($productType, ['heures', 'jours', 'forfait_m', 'forfait_u'], true) && isset($data['cu'], $data['qty'])) {
+            return round((float) $data['cu'] * (float) $data['qty'], 2);
+        }
+
+        return round((float) ($data['total'] ?? 0), 2);
     }
 
 

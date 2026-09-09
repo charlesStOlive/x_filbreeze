@@ -2,13 +2,22 @@
 
 namespace App\Filament\Resources\DeclarationResource\Pages;
 
+use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use App\Filament\Resources\DeclarationResource;
 use App\Models\Declaration;
+use App\Models\Invoice;
 use App\Services\Declarations\DeclarationCalculator;
+use CharlesStOlive\FilamentQonto\Models\QontoSupplierInvoice;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
+use Illuminate\Support\HtmlString;
 
 class EditDeclaration extends EditRecord
 {
@@ -40,6 +49,108 @@ class EditDeclaration extends EditRecord
             DeleteAction::make()
                 ->visible(fn (): bool => $this->getRecord()->status === 'draft'),
         ];
+    }
+
+    public function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->record($this->getRecord())
+            ->components([
+                Section::make('URSSAF')
+                    ->collapsible()
+                    ->visible(fn (Declaration $record): bool => $record->type === Declaration::TYPE_URSSAF)
+                    ->schema([
+                        RepeatableEntry::make('urssaf_client_invoices')
+                            ->hiddenLabel()
+                            ->state(fn (Declaration $record): array => $this->clientInvoices($record))
+                            ->schema([
+                                TextEntry::make('code')->label('N°')->html()->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
+                                TextEntry::make('client_slug')->label('Clt')->html()->size(TextSize::ExtraSmall),
+                                TextEntry::make('total_ht_k')->label('HT')->size(TextSize::ExtraSmall),
+                            ])
+                            ->columns(4),
+                    ]),
+                Section::make('TVA')
+                    ->collapsible()
+                    ->visible(fn (Declaration $record): bool => $record->type === Declaration::TYPE_VAT)
+                    ->schema([
+                        RepeatableEntry::make('vat_client_invoices')
+                            ->hiddenLabel()
+                            ->state(fn (Declaration $record): array => $this->clientInvoices($record))
+                            ->schema([
+                                TextEntry::make('code')->label('N°')->html()->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
+                                TextEntry::make('client_slug')->label('Clt')->html()->size(TextSize::ExtraSmall),
+                                TextEntry::make('company_name')
+                                    ->label('Soc.')
+                                    ->size(TextSize::ExtraSmall)
+                                    ->limit(18)
+                                    ->tooltip(fn (?string $state): ?string => $state)
+                                    ->extraAttributes(['class' => 'whitespace-nowrap']),
+                                TextEntry::make('total_ht_k')->label('HT')->size(TextSize::ExtraSmall),
+                                TextEntry::make('vat_collected')
+                                    ->label('TVA')
+                                    ->size(TextSize::ExtraSmall)
+                                    ->columnSpan(2),
+                            ])
+                            ->columns(4),
+                        RepeatableEntry::make('vat_supplier_invoices')
+                            ->label('Fournisseurs')
+                            ->state(fn (Declaration $record): array => $this->supplierInvoices($record))
+                            ->schema([
+                                TextEntry::make('number')->label('N°')->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
+                                TextEntry::make('supplier')
+                                    ->label('Four.')
+                                    ->size(TextSize::ExtraSmall)
+                                    ->limit(18)
+                                    ->tooltip(fn (?string $state): ?string => $state)
+                                    ->extraAttributes(['class' => 'whitespace-nowrap'])
+                                    ->columnSpan(2),
+                                TextEntry::make('amount')->label('Mt.')->size(TextSize::ExtraSmall)->columnSpan(1),
+                                TextEntry::make('vat')->label('TVA')->size(TextSize::ExtraSmall)->columnSpan(1),
+                            ])
+                            ->columns(6),
+                    ]),
+            ]);
+    }
+
+    private function clientInvoices(Declaration $declaration): array
+    {
+        return Invoice::query()
+            ->with('company')
+            ->whereKey($declaration->calculation_details['client_invoice_ids'] ?? [])
+            ->get()
+            ->map(fn (Invoice $invoice): array => [
+                'code' => new HtmlString(sprintf(
+                    '<a href="%s" class="text-primary-600 hover:underline">%s</a>',
+                    e(InvoiceResource::getUrl('edit', ['record' => $invoice])),
+                    e($invoice->code ?: 'Facture #'.$invoice->getKey()),
+                )),
+                'client_slug' => $invoice->company
+                    ? new HtmlString(sprintf(
+                        '<a href="%s" class="text-primary-600 hover:underline">%s</a>',
+                        e(route('filament.admin.crm.resources.companies.edit', ['record' => $invoice->company])),
+                        e(strtoupper(substr($invoice->company->slug, 0, 3))),
+                    ))
+                    : 'N/A',
+                'company_name' => $invoice->company?->title ?? 'Société non définie',
+                'total_ht_k' => number_format((float) $invoice->total_ht / 1000, 1, ',', ' ').' K€',
+                'vat_collected' => number_format((float) $invoice->tva, 2, ',', ' ').' €',
+            ])
+            ->all();
+    }
+
+    private function supplierInvoices(Declaration $declaration): array
+    {
+        return QontoSupplierInvoice::query()
+            ->whereKey($declaration->calculation_details['qonto_supplier_invoice_ids'] ?? [])
+            ->get()
+            ->map(fn (QontoSupplierInvoice $invoice): array => [
+                'number' => $invoice->number ?: 'Facture #'.$invoice->getKey(),
+                'supplier' => $invoice->supplier_name ?: 'Fournisseur non défini',
+                'amount' => number_format((float) ($invoice->account_amount ?? $invoice->amount ?? 0), 2, ',', ' ').' €',
+                'vat' => number_format((float) ($invoice->account_vat ?? (($invoice->vat_cents ?? 0) / 100)), 2, ',', ' ').' €',
+            ])
+            ->all();
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
