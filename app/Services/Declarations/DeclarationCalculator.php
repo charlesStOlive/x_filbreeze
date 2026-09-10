@@ -119,6 +119,26 @@ class DeclarationCalculator
         ];
     }
 
+    /**
+     * Sommes dues à l'État au titre des déclarations non payées (TVA + URSSAF),
+     * pour affichage en trésorerie (widget "Trésorerie théorique").
+     */
+    public function outstandingStateDueCents(): int
+    {
+        $urssafRate = (float) config('declarations.urssaf_rate', 0.22);
+
+        return Declaration::query()
+            ->where('status', '!=', 'paid')
+            ->get()
+            ->sum(function (Declaration $declaration) use ($urssafRate): int {
+                return match ($declaration->type) {
+                    Declaration::TYPE_URSSAF => $this->toCents($declaration->turnover_excluding_tax * $urssafRate),
+                    Declaration::TYPE_VAT => $this->toCents($declaration->vat_due),
+                    default => 0,
+                };
+            });
+    }
+
     public function coveredMonths(CarbonInterface|string $start, CarbonInterface|string $end): array
     {
         $month = Carbon::parse($start)->startOfMonth();

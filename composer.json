@@ -8,6 +8,13 @@
     ],
     "license": "MIT",
     "repositories": {
+        "filament-qonto-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-qonto",
+            "options": {
+                "symlink": true
+            }
+        },
         "filament-permission-manager-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
