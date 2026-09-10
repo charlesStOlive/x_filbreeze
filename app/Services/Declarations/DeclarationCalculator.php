@@ -57,7 +57,15 @@ class DeclarationCalculator
             $supplierInvoices = QontoSupplierInvoice::query()
                 ->whereDate('invoice_at', '>=', $start->toDateString())
                 ->whereDate('invoice_at', '<=', $end->toDateString())
-                ->get(['id', 'supplier_invoice_id', 'currency', 'vat_cents', 'account_currency', 'account_vat_cents']);
+                // Un même achat peut remonter plusieurs fois côté Qonto (import en double,
+                // facture rattachée à deux transactions) avec des qonto_id distincts.
+                // On garde une seule occurrence par facture fournisseur identifiée via son numéro,
+                // en priorisant celle rapprochée d'une transaction.
+                ->orderByRaw('matched_at is null')
+                ->orderByDesc('matched_at')
+                ->get(['id', 'supplier_id', 'number', 'supplier_invoice_id', 'currency', 'vat_cents', 'account_currency', 'account_vat_cents', 'matched_at'])
+                ->unique(fn (QontoSupplierInvoice $invoice): string => $this->supplierInvoiceDedupKey($invoice))
+                ->values();
 
             $localSupplierInvoiceIds = $supplierInvoices
                 ->pluck('supplier_invoice_id')
@@ -156,6 +164,23 @@ class DeclarationCalculator
             'due' => max(0, $balance),
             'credit' => max(0, -$balance),
         ];
+    }
+
+    /**
+     * Clé de déduplication d'une facture fournisseur Qonto.
+     *
+     * Sans numéro de facture identifié, on ne peut pas affirmer qu'il s'agit d'un doublon :
+     * la ligne reste seule dans son propre groupe (clé basée sur son id).
+     */
+    private function supplierInvoiceDedupKey(QontoSupplierInvoice $invoice): string
+    {
+        $number = mb_strtoupper(trim((string) $invoice->number));
+
+        if ($number === '') {
+            return 'id:' . $invoice->id;
+        }
+
+        return 'supplier:' . ($invoice->supplier_id ?? 'null') . '|number:' . $number;
     }
 
     private function supplierVatCents(QontoSupplierInvoice $invoice): int
