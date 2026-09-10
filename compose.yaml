@@ -26,6 +26,19 @@ services:
         depends_on:
             - mysql
             - mailpit
+    scheduler:
+        image: 'sail-8.3/app'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+            - '../packages_filament:/var/www/packages_filament'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+        command: php artisan schedule:work
     mysql:
         image: 'mysql:8.0.40'
         ports:
