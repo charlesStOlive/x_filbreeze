@@ -17,6 +17,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cadence des déclarations
+    |--------------------------------------------------------------------------
+    |
+    | "monthly" ou "quarterly". Pilote la durée des périodes ouvertes par les
+    | commandes automatiques (declarations:create-due, next()). La création
+    | manuelle (popup) permet de choisir une cadence différente ponctuellement,
+    | sans toucher à ce réglage.
+    |
+    */
+    'periods' => [
+        'vat' => env('DECLARATIONS_VAT_PERIOD', 'monthly'),
+        'urssaf' => env('DECLARATIONS_URSSAF_PERIOD', 'quarterly'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Taux URSSAF estimé
     |--------------------------------------------------------------------------
     |

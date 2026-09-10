@@ -28,14 +28,15 @@ class DeclarationCalculator
         return $this->calculate($type, $start);
     }
 
-    public function calculate(string $type, CarbonInterface|string $start): array
+    public function calculate(string $type, CarbonInterface|string $start, ?string $cadence = null): array
     {
         $this->assertType($type);
 
+        $cadence ??= Declaration::defaultPeriodFor($type);
         $start = Carbon::parse($start)->startOfDay();
-        $end = $type === Declaration::TYPE_VAT
-            ? $start->copy()->endOfMonth()
-            : $start->copy()->addMonthsNoOverflow(2)->endOfMonth();
+        $end = $cadence === Declaration::PERIOD_QUARTERLY
+            ? $start->copy()->addMonthsNoOverflow(2)->endOfMonth()
+            : $start->copy()->endOfMonth();
 
         $clientInvoices = Invoice::query()
             ->whereDate('payed_at', '>=', $start->toDateString())
@@ -197,10 +198,10 @@ class DeclarationCalculator
         $number = mb_strtoupper(trim((string) $invoice->number));
 
         if ($number === '') {
-            return 'id:' . $invoice->id;
+            return 'id:'.$invoice->id;
         }
 
-        return 'supplier:' . ($invoice->supplier_id ?? 'null') . '|number:' . $number;
+        return 'supplier:'.($invoice->supplier_id ?? 'null').'|number:'.$number;
     }
 
     private function supplierVatCents(QontoSupplierInvoice $invoice): int

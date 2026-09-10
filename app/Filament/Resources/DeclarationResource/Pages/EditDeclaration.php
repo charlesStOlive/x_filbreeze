@@ -56,6 +56,25 @@ class EditDeclaration extends EditRecord
         return $schema
             ->record($this->getRecord())
             ->components([
+                Section::make('Déclaration')
+                    ->description('Fixés à la création, non modifiables.')
+                    ->schema([
+                        TextEntry::make('type')
+                            ->label('Type')
+                            ->formatStateUsing(fn (string $state): string => Declaration::typeOptions()[$state] ?? $state)
+                            ->badge(),
+                        TextEntry::make('frequency_label')->label('Fréquence'),
+                        TextEntry::make('calculation_mode')
+                            ->label('Mode de calcul')
+                            ->formatStateUsing(fn (string $state): string => Declaration::modeOptions()[$state] ?? $state),
+                        TextEntry::make('period_start')->label('Du')->date('d/m/Y'),
+                        TextEntry::make('period_end')->label('Au')->date('d/m/Y'),
+                        TextEntry::make('covered_months')
+                            ->label('Mois couverts')
+                            ->state(fn (Declaration $record): string => implode(', ', $record->covered_months ?? [])),
+                    ])
+                    ->columns(3),
+
                 Section::make('URSSAF')
                     ->collapsible()
                     ->visible(fn (Declaration $record): bool => $record->type === Declaration::TYPE_URSSAF)

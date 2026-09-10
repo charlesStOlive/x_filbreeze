@@ -4,10 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DeclarationResource\Pages;
 use App\Models\Declaration;
-use App\Services\Declarations\DeclarationCalculator;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -34,71 +33,13 @@ class DeclarationResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Période déclarée')
-                    ->description('Les déclarations s’ouvrent automatiquement à leur date. Choisir un mois ci-dessous permet de (re)générer une période particulière.')
-                    ->schema([
-                        Select::make('type')
-                            ->label('Déclaration')
-                            ->options(Declaration::typeOptions())
-                            ->default(Declaration::TYPE_VAT)
-                            ->required()
-                            ->live()
-                            ->disabledOn('edit')
-                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview(
-                                $state,
-                                $set,
-                                $get('calculation_mode') ?? Declaration::MODE_AUTOMATIC,
-                                $get('target_period_start'),
-                            )),
-
-                        Select::make('calculation_mode')
-                            ->label('Mode de calcul')
-                            ->options(Declaration::modeOptions())
-                            ->default(Declaration::MODE_AUTOMATIC)
-                            ->required()
-                            ->live()
-                            ->disabledOn('edit')
-                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview(
-                                $get('type'),
-                                $set,
-                                $state,
-                                $get('target_period_start'),
-                            )),
-
-                        DatePicker::make('target_period_start')
-                            ->label('Mois à (re)générer')
-                            ->helperText('Laisser vide pour la prochaine période.')
-                            ->native(false)
-                            ->live(debounce: 400)
-                            ->hiddenOn('edit')
-                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview(
-                                $get('type'),
-                                $set,
-                                $get('calculation_mode') ?? Declaration::MODE_AUTOMATIC,
-                                $state,
-                            )),
-
-                        DatePicker::make('period_start')
-                            ->label('Du')
-                            ->readOnly()
-                            ->dehydrated(false),
-
-                        DatePicker::make('period_end')
-                            ->label('Au')
-                            ->readOnly()
-                            ->dehydrated(false),
-
-                        TextInput::make('covered_months_display')
-                            ->label('Mois couverts')
-                            ->readOnly()
-                            ->dehydrated(false)
-                            ->afterStateHydrated(function (TextInput $component, ?Declaration $record): void {
-                                if ($record) {
-                                    $component->state(implode(', ', $record->covered_months ?? []));
-                                }
-                            }),
-                    ])
-                    ->columns(4),
+                // Le type, la cadence et la période sont fixés à la création (popup dédié)
+                // et ne se modifient plus ensuite : ils sont affichés en lecture seule dans
+                // le volet info de la page d'édition. On les garde ici en champs cachés
+                // uniquement pour que les conditions ci-dessous (visible/required/readOnly)
+                // puissent continuer à lire $get('type') / $get('calculation_mode').
+                Hidden::make('type'),
+                Hidden::make('calculation_mode'),
 
                 Section::make('Montants de la déclaration')
                     ->description('En automatique, les montants viennent des factures synchronisées. En manuel, ils sont saisis librement.')
@@ -250,48 +191,8 @@ class DeclarationResource extends Resource
     {
         return [
             'index' => Pages\ListDeclarations::route('/'),
-            'create' => Pages\CreateDeclaration::route('/create'),
             'edit' => Pages\EditDeclaration::route('/{record}/edit'),
         ];
-    }
-
-    private static function fillPreview(?string $type, callable $set, ?string $mode = Declaration::MODE_AUTOMATIC, ?string $targetPeriodStart = null): void
-    {
-        if (! array_key_exists((string) $type, Declaration::typeOptions())) {
-            return;
-        }
-
-        $preview = filled($targetPeriodStart)
-            ? app(DeclarationCalculator::class)->calculate($type, $targetPeriodStart)
-            : app(DeclarationCalculator::class)->next($type);
-        $previousVatCreditCents = app(DeclarationCalculator::class)
-            ->previousVatCreditCents($preview['period_start']);
-
-        $set('period_start', $preview['period_start']);
-        $set('period_end', $preview['period_end']);
-        $set('covered_months_display', implode(', ', $preview['covered_months']));
-        $set('previous_vat_credit', $previousVatCreditCents / 100);
-
-        if ($mode === Declaration::MODE_MANUAL) {
-            $set('client_invoice_count', null);
-            $set('supplier_invoice_count', null);
-            $set('turnover_excluding_tax', null);
-            $set('vat_collected', null);
-            $set('vat_deductible', null);
-            $set('vat_due', null);
-            $set('vat_credit', null);
-
-            return;
-        }
-        $set('client_invoice_count', count($preview['calculation_details']['client_invoice_ids'] ?? []));
-        $set('supplier_invoice_count', count($preview['calculation_details']['qonto_supplier_invoice_ids'] ?? []));
-        $set('turnover_excluding_tax', $preview['turnover_excluding_tax_cents'] / 100);
-        $set('vat_collected', $preview['vat_collected_cents'] / 100);
-        $set('vat_deductible', $preview['vat_deductible_cents'] / 100);
-        $set('vat_due', $preview['vat_due_cents'] / 100);
-        $set('vat_credit', max(0,
-            $preview['vat_deductible_cents'] + $previousVatCreditCents - $preview['vat_collected_cents'],
-        ) / 100);
     }
 
     private static function updateVatBalance(callable $set, callable $get): void
