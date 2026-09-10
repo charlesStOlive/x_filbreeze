@@ -33,3 +33,14 @@ Schedule::call(function () {
         $msgUser->refreshSubscription();
     }
 })->dailyAt('18:40')->timezone('Europe/Paris');
+
+// Ouvre automatiquement les déclarations TVA/URSSAF dont la période a commencé,
+// au lieu de compter sur une création manuelle mois par mois.
+Schedule::command('declarations:create-due')->dailyAt('00:10')->timezone('Europe/Paris');
+
+// Rafraîchit les données Qonto locales avant le recalcul du matin.
+Schedule::command('qonto:sync')->dailyAt('07:45')->timezone('Europe/Paris');
+
+// Recalcule les déclarations en cours et détecte les paiements Qonto des
+// déclarations déjà déclarées (le passage à "Déclarée" reste manuel).
+Schedule::command('declarations:refresh')->dailyAt('08:00')->timezone('Europe/Paris');

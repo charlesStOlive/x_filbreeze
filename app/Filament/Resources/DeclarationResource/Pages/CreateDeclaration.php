@@ -18,9 +18,11 @@ class CreateDeclaration extends CreateRecord
         $this->fillCalculationPreview(Declaration::TYPE_VAT);
     }
 
-    private function fillCalculationPreview(string $type): void
+    private function fillCalculationPreview(string $type, ?string $targetPeriodStart = null): void
     {
-        $preview = app(DeclarationCalculator::class)->next($type);
+        $preview = filled($targetPeriodStart)
+            ? app(DeclarationCalculator::class)->calculate($type, $targetPeriodStart)
+            : app(DeclarationCalculator::class)->next($type);
         $previousVatCreditCents = app(DeclarationCalculator::class)
             ->previousVatCreditCents($preview['period_start']);
 
@@ -51,7 +53,10 @@ class CreateDeclaration extends CreateRecord
                 ->icon('heroicon-o-arrow-path')
                 ->visible(fn (): bool => ($this->data['calculation_mode'] ?? Declaration::MODE_AUTOMATIC) === Declaration::MODE_AUTOMATIC)
                 ->action(function (): void {
-                    $this->fillCalculationPreview($this->data['type'] ?? Declaration::TYPE_VAT);
+                    $this->fillCalculationPreview(
+                        $this->data['type'] ?? Declaration::TYPE_VAT,
+                        $this->data['target_period_start'] ?? null,
+                    );
 
                     Notification::make()
                         ->title('Calcul actualisé')
@@ -63,8 +68,13 @@ class CreateDeclaration extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $targetPeriodStart = $data['target_period_start'] ?? null;
+        unset($data['target_period_start']);
+
         if (($data['calculation_mode'] ?? Declaration::MODE_AUTOMATIC) === Declaration::MODE_MANUAL) {
-            $period = app(DeclarationCalculator::class)->next($data['type']);
+            $period = filled($targetPeriodStart)
+                ? app(DeclarationCalculator::class)->calculate($data['type'], $targetPeriodStart)
+                : app(DeclarationCalculator::class)->next($data['type']);
             $vatCollectedCents = $data['type'] === Declaration::TYPE_VAT
                 ? $this->toCents($data['vat_collected'] ?? 0)
                 : 0;
@@ -99,7 +109,9 @@ class CreateDeclaration extends CreateRecord
             ]);
         }
 
-        $calculated = app(DeclarationCalculator::class)->next($data['type']);
+        $calculated = filled($targetPeriodStart)
+            ? app(DeclarationCalculator::class)->calculate($data['type'], $targetPeriodStart)
+            : app(DeclarationCalculator::class)->next($data['type']);
 
         return array_merge($data, $calculated, [
             'calculation_mode' => Declaration::MODE_AUTOMATIC,

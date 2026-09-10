@@ -35,7 +35,7 @@ class DeclarationResource extends Resource
         return $schema
             ->components([
                 Section::make('Période déclarée')
-                    ->description('La prochaine période non couverte est calculée automatiquement à partir de la dernière déclaration enregistrée.')
+                    ->description('Les déclarations s’ouvrent automatiquement à leur date. Choisir un mois ci-dessous permet de (re)générer une période particulière.')
                     ->schema([
                         Select::make('type')
                             ->label('Déclaration')
@@ -48,6 +48,7 @@ class DeclarationResource extends Resource
                                 $state,
                                 $set,
                                 $get('calculation_mode') ?? Declaration::MODE_AUTOMATIC,
+                                $get('target_period_start'),
                             )),
 
                         Select::make('calculation_mode')
@@ -57,7 +58,25 @@ class DeclarationResource extends Resource
                             ->required()
                             ->live()
                             ->disabledOn('edit')
-                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview($get('type'), $set, $state)),
+                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview(
+                                $get('type'),
+                                $set,
+                                $state,
+                                $get('target_period_start'),
+                            )),
+
+                        DatePicker::make('target_period_start')
+                            ->label('Mois à (re)générer')
+                            ->helperText('Laisser vide pour la prochaine période.')
+                            ->native(false)
+                            ->live(debounce: 400)
+                            ->hiddenOn('edit')
+                            ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::fillPreview(
+                                $get('type'),
+                                $set,
+                                $get('calculation_mode') ?? Declaration::MODE_AUTOMATIC,
+                                $state,
+                            )),
 
                         DatePicker::make('period_start')
                             ->label('Du')
@@ -236,13 +255,15 @@ class DeclarationResource extends Resource
         ];
     }
 
-    private static function fillPreview(?string $type, callable $set, ?string $mode = Declaration::MODE_AUTOMATIC): void
+    private static function fillPreview(?string $type, callable $set, ?string $mode = Declaration::MODE_AUTOMATIC, ?string $targetPeriodStart = null): void
     {
         if (! array_key_exists((string) $type, Declaration::typeOptions())) {
             return;
         }
 
-        $preview = app(DeclarationCalculator::class)->next($type);
+        $preview = filled($targetPeriodStart)
+            ? app(DeclarationCalculator::class)->calculate($type, $targetPeriodStart)
+            : app(DeclarationCalculator::class)->next($type);
         $previousVatCreditCents = app(DeclarationCalculator::class)
             ->previousVatCreditCents($preview['period_start']);
 

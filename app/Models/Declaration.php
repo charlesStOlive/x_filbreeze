@@ -58,6 +58,23 @@ class Declaration extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (Declaration $declaration): void {
+            if (! $declaration->isDirty('status')) {
+                return;
+            }
+
+            if ($declaration->status === 'filed' && ! $declaration->filed_at) {
+                $declaration->filed_at = now();
+            }
+
+            if ($declaration->status === 'paid' && ! $declaration->paid_at) {
+                $declaration->paid_at = now();
+            }
+        });
+    }
+
     protected function turnoverExcludingTax(): Attribute
     {
         return Attribute::make(
