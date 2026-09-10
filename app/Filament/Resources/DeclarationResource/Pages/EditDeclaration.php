@@ -64,11 +64,12 @@ class EditDeclaration extends EditRecord
                             ->hiddenLabel()
                             ->state(fn (Declaration $record): array => $this->clientInvoices($record))
                             ->schema([
+                                TextEntry::make('payed_at')->label('Payée')->size(TextSize::ExtraSmall),
                                 TextEntry::make('code')->label('N°')->html()->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
                                 TextEntry::make('client_slug')->label('Clt')->html()->size(TextSize::ExtraSmall),
                                 TextEntry::make('total_ht_k')->label('HT')->size(TextSize::ExtraSmall),
                             ])
-                            ->columns(4),
+                            ->columns(5),
                     ]),
                 Section::make('TVA')
                     ->collapsible()
@@ -78,25 +79,18 @@ class EditDeclaration extends EditRecord
                             ->hiddenLabel()
                             ->state(fn (Declaration $record): array => $this->clientInvoices($record))
                             ->schema([
+                                TextEntry::make('payed_at')->label('Payée')->size(TextSize::ExtraSmall),
                                 TextEntry::make('code')->label('N°')->html()->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
                                 TextEntry::make('client_slug')->label('Clt')->html()->size(TextSize::ExtraSmall),
-                                TextEntry::make('company_name')
-                                    ->label('Soc.')
-                                    ->size(TextSize::ExtraSmall)
-                                    ->limit(18)
-                                    ->tooltip(fn (?string $state): ?string => $state)
-                                    ->extraAttributes(['class' => 'whitespace-nowrap']),
                                 TextEntry::make('total_ht_k')->label('HT')->size(TextSize::ExtraSmall),
-                                TextEntry::make('vat_collected')
-                                    ->label('TVA')
-                                    ->size(TextSize::ExtraSmall)
-                                    ->columnSpan(2),
+                                TextEntry::make('vat_collected')->label('TVA')->size(TextSize::ExtraSmall),
                             ])
-                            ->columns(4),
+                            ->columns(6),
                         RepeatableEntry::make('vat_supplier_invoices')
                             ->label('Fournisseurs')
                             ->state(fn (Declaration $record): array => $this->supplierInvoices($record))
                             ->schema([
+                                TextEntry::make('invoice_at')->label('Facture')->size(TextSize::ExtraSmall),
                                 TextEntry::make('number')->label('N°')->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
                                 TextEntry::make('supplier')
                                     ->label('Four.')
@@ -108,7 +102,7 @@ class EditDeclaration extends EditRecord
                                 TextEntry::make('amount')->label('Mt.')->size(TextSize::ExtraSmall)->columnSpan(1),
                                 TextEntry::make('vat')->label('TVA')->size(TextSize::ExtraSmall)->columnSpan(1),
                             ])
-                            ->columns(6),
+                            ->columns(7),
                     ]),
             ]);
     }
@@ -120,6 +114,8 @@ class EditDeclaration extends EditRecord
             ->whereKey($declaration->calculation_details['client_invoice_ids'] ?? [])
             ->get()
             ->map(fn (Invoice $invoice): array => [
+                // C'est bien la date de paiement qui fait entrer la facture dans la déclaration.
+                'payed_at' => $invoice->payed_at?->format('d/m') ?? '—',
                 'code' => new HtmlString(sprintf(
                     '<a href="%s" class="text-primary-600 hover:underline">%s</a>',
                     e(InvoiceResource::getUrl('edit', ['record' => $invoice])),
@@ -132,7 +128,6 @@ class EditDeclaration extends EditRecord
                         e(strtoupper(substr($invoice->company->slug, 0, 3))),
                     ))
                     : 'N/A',
-                'company_name' => $invoice->company?->title ?? 'Société non définie',
                 'total_ht_k' => number_format((float) $invoice->total_ht / 1000, 1, ',', ' ').' K€',
                 'vat_collected' => number_format((float) $invoice->tva, 2, ',', ' ').' €',
             ])
@@ -145,6 +140,7 @@ class EditDeclaration extends EditRecord
             ->whereKey($declaration->calculation_details['qonto_supplier_invoice_ids'] ?? [])
             ->get()
             ->map(fn (QontoSupplierInvoice $invoice): array => [
+                'invoice_at' => $invoice->invoice_at?->format('d/m') ?? '—',
                 'number' => $invoice->number ?: 'Facture #'.$invoice->getKey(),
                 'supplier' => $invoice->supplier_name ?: 'Fournisseur non défini',
                 'amount' => number_format((float) ($invoice->account_amount ?? $invoice->amount ?? 0), 2, ',', ' ').' €',
