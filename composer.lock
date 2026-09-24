@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fe53348076272eb5039827ad26f17b4e",
+    "content-hash": "1d5669918a6eb59432800595583ee7ea",
     "packages": [
         {
             "name": "a909m/filament-statefusion",
@@ -577,50 +577,6 @@
             "time": "2026-09-06T14:11:38+00:00"
         },
         {
-            "name": "charlesstolive/filament-color-installer",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:charlesStOlive/filament-color-installer.git",
-                "reference": "fed9cda5b00a7c0eabf9546cbd96e5f00b722661"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-color-installer/zipball/fed9cda5b00a7c0eabf9546cbd96e5f00b722661",
-                "reference": "fed9cda5b00a7c0eabf9546cbd96e5f00b722661",
-                "shasum": ""
-            },
-            "require": {
-                "filament/filament": "^5.0",
-                "ozdemirburak/iris": "*",
-                "php": "^8.2|^8.3",
-                "spatie/laravel-package-tools": "^1.16"
-            },
-            "default-branch": true,
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "CharlesStOlive\\FilamentColorInstaller\\Providers\\FilamentColorInstallerServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "CharlesStOlive\\FilamentColorInstaller\\": "src/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "Filament color palette generator and installer",
-            "support": {
-                "source": "https://github.com/charlesStOlive/filament-color-installer/tree/main",
-                "issues": "https://github.com/charlesStOlive/filament-color-installer/issues"
-            },
-            "time": "2026-06-30T12:28:07+00:00"
-        },
-        {
             "name": "charlesstolive/filament-msgraph-email",
             "version": "dev-master",
             "source": {
@@ -933,6 +889,55 @@
                 "states"
             ],
             "time": "2026-08-10T09:40:25+00:00"
+        },
+        {
+            "name": "charlesstolive/filament-ui",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-ui.git",
+                "reference": "9825ba20e94eb649a659ac9c8d03e8ce45c8896d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-ui/zipball/9825ba20e94eb649a659ac9c8d03e8ce45c8896d",
+                "reference": "9825ba20e94eb649a659ac9c8d03e8ce45c8896d",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "php": "^8.3|^8.4",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "CharlesStOlive\\FilamentUi\\FilamentUiServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "CharlesStOlive\\FilamentUi\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament UI toolkit: one color config for the panels and the front, semantic schema macros, and a resizable side-pane layout",
+            "keywords": [
+                "colors",
+                "filament",
+                "laravel",
+                "ui"
+            ],
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-ui/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-ui/issues"
+            },
+            "time": "2026-09-24T15:15:08+00:00"
         },
         {
             "name": "chillerlan/php-qrcode",
@@ -17571,11 +17576,11 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "charlesstolive/filament-color-installer": 20,
         "charlesstolive/filament-msgraph-email": 20,
         "charlesstolive/filament-permission-manager": 20,
         "charlesstolive/filament-qonto": 20,
-        "charlesstolive/filament-state-fusion-enhanced": 20
+        "charlesstolive/filament-state-fusion-enhanced": 20,
+        "charlesstolive/filament-ui": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
