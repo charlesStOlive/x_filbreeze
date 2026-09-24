@@ -70,8 +70,10 @@ class SidePaneTest extends TestCase
         ]);
 
         $this->assertSidePane(EditDeclaration::class, $declaration->getKey(), 40, 'Fournisseurs')
-            // Pas de bandeau : seulement les sections « Déclaration » et « TVA ».
-            ->assertDontSeeHtml('data-split-pane-header');
+            // Seulement les sections « Déclaration » et « TVA » : ni bandeau, ni cadre, ni fond.
+            ->assertDontSeeHtml('data-split-pane-header')
+            ->assertSeeHtml('data-ui-border="none"')
+            ->assertSeeHtml('data-ui-background="none"');
     }
 
     /** @param  class-string  $page */

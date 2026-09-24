@@ -17,7 +17,6 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\TextSize;
@@ -30,8 +29,9 @@ class EditDeclaration extends EditRecord
     protected static string $resource = DeclarationResource::class;
 
     /**
-     * L'infolist dans le volet latéral de filament-ui : ouvert en permanence, sans bandeau (ses sections
-     * portent leurs titres), à 40 % de la largeur par défaut.
+     * L'infolist dans le volet latéral de filament-ui : ouvert en permanence, à 40 % de la largeur par
+     * défaut. Ni bandeau, ni cadre, ni fond, ni marge : seulement ses sections, qui ont leurs titres et
+     * leurs cartes.
      *
      * @return array<string, SidePane>
      */
@@ -43,7 +43,9 @@ class EditDeclaration extends EditRecord
                 ->icon('heroicon-o-list-bullet')
                 ->closable(false)
                 ->hiddenHeader()
-                ->schema([Group::make([EmbeddedSchema::make('infolist')])->extraAttributes(['class' => 'p-4'])]),
+                ->borderNone()
+                ->backgroundNone()
+                ->schema([EmbeddedSchema::make('infolist')]),
         ];
     }
 
