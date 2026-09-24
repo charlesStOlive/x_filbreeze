@@ -23,9 +23,9 @@ return [
     */
     // filament-ui:colors:start
     'colors' => [
-        'primary' => '#3B82F6',
-        'secondary' => '#8B5CF6',
-        'tertiary' => '#F59E0B',
+        'primary' => '#DB8E57',
+        'secondary' => '#55CEC4',
+        'tertiary' => '#737ACF',
     ],
     // filament-ui:colors:end
 

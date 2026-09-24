@@ -54,14 +54,6 @@ class AdminPanelProvider extends PanelProvider
                 MsGraphFilamentPlugin::make(),
                 FilamentQontoPlugin::make(),
             ])
-            ->colors([
-                'primary' => '#DB8E57',
-                'secondary' => '#55cec4',
-                'success' => '#33c233',
-                'error' => '#972121',
-                'warning' => '#b26e2b',
-                'info' => '#3e79b4',
-            ])
             ->maxContentWidth(Width::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
