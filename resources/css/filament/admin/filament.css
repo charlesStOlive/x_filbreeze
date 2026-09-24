@@ -30,16 +30,6 @@
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Filament';
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/resources/views';
 
-/* Test CSS pour debug */
-
-
-/* Couleurs personnalisées pour Filament */
-:root {
-    --color-primary-base: #F87F04;
-    --color-primary-light: #FF9F36;
-    --color-primary-dark: #C46303;
-}
-
 /* ===== HOOKS CSS POUR LA SIDEBAR - EXEMPLE 1: AVEC @apply ===== */
 
 
