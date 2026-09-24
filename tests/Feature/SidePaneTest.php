@@ -11,13 +11,15 @@ use App\Models\Declaration;
 use App\Models\Invoice;
 use App\Models\Quote;
 use App\Models\User;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Devis, factures et déclarations : le contenu à gauche, l'infolist dans le volet
- * latéral de filament-ui, ouvert d'emblée et refermable par le bouton d'en-tête.
+ * latéral de filament-ui, ouvert en permanence — ni bouton pour l'ouvrir, ni croix
+ * pour le fermer. Devis et factures ont leur action de modification dans le bandeau.
  */
 class SidePaneTest extends TestCase
 {
@@ -35,7 +37,12 @@ class SidePaneTest extends TestCase
         [$company, $contact] = $this->customer();
         $quote = Quote::create(['title' => 'Refonte', 'company_id' => $company->getKey(), 'contact_id' => $contact->getKey(), 'items' => []]);
 
-        $this->assertSidePane(EditQuote::class, $quote->getKey(), 25, 'Total HT');
+        $test = $this->assertSidePane(EditQuote::class, $quote->getKey(), 25, 'Total HT');
+
+        // L'action de modification, dans le bandeau du volet, agit sur le devis édité.
+        $test->callAction(TestAction::make('edit')->schemaComponent('split-view', 'content'), ['end_at' => '2026-12-31'])
+            ->assertHasNoFormErrors();
+        $this->assertStringStartsWith('2026-12-31', (string) $quote->refresh()->end_at);
     }
 
     public function test_the_invoice_shows_its_infolist_in_the_side_pane(): void
@@ -43,7 +50,11 @@ class SidePaneTest extends TestCase
         [$company, $contact] = $this->customer();
         $invoice = Invoice::create(['title' => 'Acompte', 'company_id' => $company->getKey(), 'contact_id' => $contact->getKey(), 'items' => [], 'state' => 'draft']);
 
-        $this->assertSidePane(EditInvoice::class, $invoice->getKey(), 25, 'Total TTC');
+        $test = $this->assertSidePane(EditInvoice::class, $invoice->getKey(), 25, 'Total TTC');
+
+        $test->callAction(TestAction::make('edit')->schemaComponent('split-view', 'content'), ['title' => 'Solde', 'modalite' => '30 jours'])
+            ->assertHasNoFormErrors();
+        $this->assertSame('Solde', $invoice->refresh()->title);
     }
 
     public function test_the_declaration_shows_its_invoice_lists_in_the_side_pane(): void
@@ -61,7 +72,7 @@ class SidePaneTest extends TestCase
     }
 
     /** @param  class-string  $page */
-    protected function assertSidePane(string $page, int $record, int $width, string $infolistText): void
+    protected function assertSidePane(string $page, int $record, int $width, string $infolistText): mixed
     {
         $test = Livewire::test($page, ['record' => $record]);
 
@@ -71,13 +82,11 @@ class SidePaneTest extends TestCase
             ->assertSeeHtml("--pane-width: {$width}%")
             ->assertSee($infolistText);
 
-        // Le bouton d'en-tête le ferme, puis le rouvre.
-        $test->callAction('paneInfo');
-        $this->assertNull($test->get('sidePane'));
-        $test->assertSeeHtml('data-split-view')->assertDontSeeHtml('data-split-pane');
+        // Toujours ouvert : ni croix dans le bandeau, ni bouton d'en-tête pour le basculer.
+        $test->assertDontSeeHtml('Fermer le volet')
+            ->assertActionDoesNotExist('paneInfo');
 
-        $test->callAction('paneInfo');
-        $this->assertTrue($test->instance()->isSidePaneOpen('info'));
+        return $test;
     }
 
     /** @return array{Company, Contact} */

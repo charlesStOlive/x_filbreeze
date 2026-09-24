@@ -20,9 +20,9 @@ use App\Models\States\Invoice\Submited;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Group;
 use CharlesStOlive\FilamentUi\Split\SidePane;
 use CharlesStOlive\FilamentUi\Split\HasSidePane;
-use Filament\Schemas\Components\Section;
 use CharlesStOlive\FilamentStateFusionEnhanced\Actions\StateFusionAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\TextEntry;
@@ -48,7 +48,8 @@ class EditInvoice extends EditRecord
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
 
     /**
-     * L'infolist dans le volet latéral de filament-ui, ouvert d'emblée à 25 % de la largeur.
+     * L'infolist dans le volet latéral de filament-ui : ouvert en permanence (sans croix), à 25 % de la
+     * largeur par défaut, avec l'action de modification dans son bandeau.
      *
      * @return array<string, SidePane>
      */
@@ -58,7 +59,9 @@ class EditInvoice extends EditRecord
             'info' => SidePane::make('info')
                 ->label('Infos')
                 ->icon('heroicon-o-information-circle')
-                ->schema([EmbeddedSchema::make('infolist')]),
+                ->headerActions([$this->getInfoEditAction()])
+                ->closable(false)
+                ->schema([Group::make([EmbeddedSchema::make('infolist')])->extraAttributes(['class' => 'p-4'])]),
         ];
     }
 
@@ -113,7 +116,6 @@ class EditInvoice extends EditRecord
                 ->icon('fas-file-export')
                 ->button()
                 ->color('gray'),
-            $this->getSidePanes()['info']->toggleAction(),
         ];
     }
 
@@ -264,127 +266,127 @@ class EditInvoice extends EditRecord
         $this->infolist->record($data);
     }
 
+    /** Modifier les informations du document : l'action du bandeau du volet. */
+    protected function getInfoEditAction(): Action
+    {
+        return Action::make('edit')
+            ->fillForm(fn($record): array => [
+                'company_id' => $record->company_id,
+                'description' => $record->description,
+                'title' => $record->title,
+                'contact_id' => $record->contact_id,
+                'modalite' => $record->modalite,
+                'tx_tva' => $record->tx_tva,
+                'submited_at' => $record->submited_at,
+            ])
+            ->schema([
+                Grid::make(2)
+                    ->schema([
+                        ...InvoiceResource::getContactAndCompanyFields(false),
+                        TextInput::make('title')
+                            ->label('Titre')
+                            ->required()
+                            ->columnSpan(fn($record) => $record->state == 'draft' ? 1 : 2),
+                        MarkdownEditor::make('description')
+                            ->label('Description de la facture')
+                            ->columnSpanFull(),
+                        DatePicker::make('submited_at')
+                            ->label('Date de soumission')
+                            ->required()
+                            ->visible(fn($record) => $record->state == 'draft' ? false : true)
+                            ->dehydrated(fn($state) => filled($state)),
+                        TextInput::make('modalite')
+                            ->label('Modalité')
+                            ->default('fin de mois')
+                            ->required(),
+                        Select::make('tx_tva')
+                            ->label('TVA')
+                            ->options([
+                                '0' => '0%',
+                                '0.2' => '20%',
+                            ])
+                            ->default('0.2')
+                            ->selectablePlaceholder(false)
+                    ])
+            ])
+            ->action(function (array $data, $record): void {
+                //\Log::info('Editing invoice', ['data' => $data]);
+                $record->update($data);
+            })
+            ->slideOver();
+    }
+
     public function infolist(Schema $schema): Schema
     {
         return $schema
             ->record($this->getRecord())
             ->components([
-                Section::make('info')
-                    ->headerActions([
-                        Action::make('edit')
-                            ->fillForm(fn($record): array => [
-                                'company_id' => $record->company_id,
-                                'description' => $record->description,
-                                'title' => $record->title,
-                                'contact_id' => $record->contact_id,
-                                'modalite' => $record->modalite,
-                                'tx_tva' => $record->tx_tva,
-                                'submited_at' => $record->submited_at,
-                            ])
-                            ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                        ...InvoiceResource::getContactAndCompanyFields(false),
-                                        TextInput::make('title')
-                                            ->label('Titre')
-                                            ->required()
-                                            ->columnSpan(fn($record) => $record->state == 'draft' ? 1 : 2),
-                                        MarkdownEditor::make('description')
-                                            ->label('Description de la facture')
-                                            ->columnSpanFull(),
-                                        DatePicker::make('submited_at')
-                                            ->label('Date de soumission')
-                                            ->required()
-                                            ->visible(fn($record) => $record->state == 'draft' ? false : true)
-                                            ->dehydrated(fn($state) => filled($state)),
-                                        TextInput::make('modalite')
-                                            ->label('Modalité')
-                                            ->default('fin de mois')
-                                            ->required(),
-                                        Select::make('tx_tva')
-                                            ->label('TVA')
-                                            ->options([
-                                                '0' => '0%',
-                                                '0.2' => '20%',
-                                            ])
-                                            ->default('0.2')
-                                            ->selectablePlaceholder(false)
-                                    ])
-                            ])
-                            ->action(function (array $data, $record): void {
-                                //\Log::info('Editing invoice', ['data' => $data]);
-                                $record->update($data);
-                            })
-                            ->slideOver(),
-                    ])
+                Grid::make(2)
                     ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('code')
-                                    ->label('Code'),
-                                TextEntry::make('state')
-                                    ->label('État')
-                                    ->badge(),
-                            ]),
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('company.title')
-                                    ->label('Client')
-                                    ->placeholder('Non défini')
-                                    ->icon(fn($record): ?string => $record->company ? 'heroicon-o-arrow-top-right-on-square' : null)
-                                    ->iconColor('gray')
-                                    ->url(fn($record): ?string => $record->company ? route('filament.admin.crm.resources.companies.edit', ['record' => $record->company]) : null),
-                                TextEntry::make('modalite')
-                                    ->label('Modalité')
-                                    ->placeholder('Non définie'),
-                                TextEntry::make('company.qonto_export_status_label')
-                                    ->label('Client Qonto')
-                                    ->badge()
-                                    ->icon(fn($record): ?string => $record->company?->qonto_export_status_icon)
-                                    ->color(fn($record): ?string => $record->company?->qonto_export_status_color)
-                                    ->tooltip(fn($record): ?string => $record->company?->qonto_export_status_description),
-                                TextEntry::make('contact.full_name')
-                                    ->label('Contact')
-                                    ->placeholder('Non défini')
-                                    ->icon(fn($record): ?string => $record->contact ? 'heroicon-o-arrow-top-right-on-square' : null)
-                                    ->iconColor('gray')
-                                    ->url(fn($record): ?string => $record->contact ? route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact]) : null),
-                                TextEntry::make('submited_at')
-                                    ->label('Soumise le')
-                                    ->date('d/m/Y')
-                                    ->placeholder('Non soumise'),
-                            ]),
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('qonto_invoice_number')
-                                    ->label('Facture Qonto')
-                                    ->placeholder('Non créée')
-                                    ->icon(fn($record): ?string => $record->qonto_invoice_url ? 'heroicon-o-arrow-top-right-on-square' : null)
-                                    ->iconColor('gray')
-                                    ->url(fn($record): ?string => $record->qonto_invoice_url),
-                                TextEntry::make('qonto_status')
-                                    ->label('Statut Qonto')
-                                    ->badge()
-                                    ->placeholder('Non synchronisée'),
-                            ])
-                            ->visible(fn($record): bool => filled($record->qonto_invoice_id) || filled($record->qonto_status)),
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('total_ht_br')
-                                    ->label('Total avant remise HT')->money('EUR'),
-                                TextEntry::make('total_ht')
-                                    ->label('Total HT')->money('EUR'),
-                            ]),
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('tx_tva')
-                                    ->label('Taux TVA'),
-                                TextEntry::make('tva')
-                                    ->label('Montant TVA')->money('EUR'),
-                            ]),
-                        TextEntry::make('total_ttc')->money('EUR')
-                            ->label('Total TTC'),
+                        TextEntry::make('code')
+                            ->label('Code'),
+                        TextEntry::make('state')
+                            ->label('État')
+                            ->badge(),
+                    ]),
+                Grid::make(2)
+                    ->schema([
+                        TextEntry::make('company.title')
+                            ->label('Client')
+                            ->placeholder('Non défini')
+                            ->icon(fn($record): ?string => $record->company ? 'heroicon-o-arrow-top-right-on-square' : null)
+                            ->iconColor('gray')
+                            ->url(fn($record): ?string => $record->company ? route('filament.admin.crm.resources.companies.edit', ['record' => $record->company]) : null),
+                        TextEntry::make('modalite')
+                            ->label('Modalité')
+                            ->placeholder('Non définie'),
+                        TextEntry::make('company.qonto_export_status_label')
+                            ->label('Client Qonto')
+                            ->badge()
+                            ->icon(fn($record): ?string => $record->company?->qonto_export_status_icon)
+                            ->color(fn($record): ?string => $record->company?->qonto_export_status_color)
+                            ->tooltip(fn($record): ?string => $record->company?->qonto_export_status_description),
+                        TextEntry::make('contact.full_name')
+                            ->label('Contact')
+                            ->placeholder('Non défini')
+                            ->icon(fn($record): ?string => $record->contact ? 'heroicon-o-arrow-top-right-on-square' : null)
+                            ->iconColor('gray')
+                            ->url(fn($record): ?string => $record->contact ? route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact]) : null),
+                        TextEntry::make('submited_at')
+                            ->label('Soumise le')
+                            ->date('d/m/Y')
+                            ->placeholder('Non soumise'),
+                    ]),
+                Grid::make(2)
+                    ->schema([
+                        TextEntry::make('qonto_invoice_number')
+                            ->label('Facture Qonto')
+                            ->placeholder('Non créée')
+                            ->icon(fn($record): ?string => $record->qonto_invoice_url ? 'heroicon-o-arrow-top-right-on-square' : null)
+                            ->iconColor('gray')
+                            ->url(fn($record): ?string => $record->qonto_invoice_url),
+                        TextEntry::make('qonto_status')
+                            ->label('Statut Qonto')
+                            ->badge()
+                            ->placeholder('Non synchronisée'),
                     ])
-            ])->columns(3);
+                    ->visible(fn($record): bool => filled($record->qonto_invoice_id) || filled($record->qonto_status)),
+                Grid::make(2)
+                    ->schema([
+                        TextEntry::make('total_ht_br')
+                            ->label('Total avant remise HT')->money('EUR'),
+                        TextEntry::make('total_ht')
+                            ->label('Total HT')->money('EUR'),
+                    ]),
+                Grid::make(2)
+                    ->schema([
+                        TextEntry::make('tx_tva')
+                            ->label('Taux TVA'),
+                        TextEntry::make('tva')
+                            ->label('Montant TVA')->money('EUR'),
+                    ]),
+                TextEntry::make('total_ttc')->money('EUR')
+                    ->label('Total TTC'),
+            ]);
     }
 }
