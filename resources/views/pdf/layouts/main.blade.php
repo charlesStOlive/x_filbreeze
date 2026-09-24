@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>@yield('title')</title>
     <link href="{{ $cssPath }}" rel="stylesheet">
+    <x-filament-ui::colors />
     <style>
         :root {
             --font-family: 'Inter', sans-serif;
