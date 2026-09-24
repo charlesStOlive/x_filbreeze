@@ -896,12 +896,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:charlesStOlive/filament-ui.git",
-                "reference": "9825ba20e94eb649a659ac9c8d03e8ce45c8896d"
+                "reference": "ee1a7ab5c8500886a9b47a23b5335b11d60e8b04"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-ui/zipball/9825ba20e94eb649a659ac9c8d03e8ce45c8896d",
-                "reference": "9825ba20e94eb649a659ac9c8d03e8ce45c8896d",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-ui/zipball/ee1a7ab5c8500886a9b47a23b5335b11d60e8b04",
+                "reference": "ee1a7ab5c8500886a9b47a23b5335b11d60e8b04",
                 "shasum": ""
             },
             "require": {
@@ -937,7 +937,7 @@
                 "source": "https://github.com/charlesStOlive/filament-ui/tree/main",
                 "issues": "https://github.com/charlesStOlive/filament-ui/issues"
             },
-            "time": "2026-09-24T15:15:08+00:00"
+            "time": "2026-09-24T17:10:22+00:00"
         },
         {
             "name": "chillerlan/php-qrcode",
