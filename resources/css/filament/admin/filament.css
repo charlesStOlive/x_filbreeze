@@ -2,6 +2,7 @@
 @import '../../../../vendor/solution-forest/filament-tree/resources/css/jquery.nestable.css';
 @import '../../../../vendor/solution-forest/filament-tree/resources/css/button.css';
 @import '../../../../vendor/solution-forest/filament-tree/resources/css/custom-nestable-item.css';
+@import '../../../../vendor/charlesstolive/filament-ui/resources/css/filament-ui.css';
 
 
 @source '../../../../app/Filament';
