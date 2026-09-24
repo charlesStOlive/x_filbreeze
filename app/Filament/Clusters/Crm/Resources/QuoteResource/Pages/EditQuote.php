@@ -8,7 +8,7 @@ use Filament\Infolists;
 use Filament\Forms\Form;
 use Filament\Actions\Action;
 use Filament\Schemas\Schema;
-use App\Filament\Utils\IaUtils;
+use App\Filament\Concerns\HasAiCorrection;
 use Filament\Actions\ActionGroup;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Quote\Draft;
@@ -41,6 +41,7 @@ class EditQuote extends EditRecord
     protected static string $resource = QuoteResource::class;
     use HasPreviewModal;
     use HasSidePane;
+    use HasAiCorrection;
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
 
@@ -142,7 +143,7 @@ class EditQuote extends EditRecord
         return [
             // Le bouton Save est maintenant dans le header
             StateUtils::getStateSaveButton()->color('success'),
-            IaUtils::PrismCorrectionAction(static::$resource, $this->record->state->isSaveHidden)->color('info'),
+            $this->getAiCorrectionAction()->color('info'),
             $this->getCancelFormAction()
         ];
     }

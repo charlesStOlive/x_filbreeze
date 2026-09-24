@@ -11,8 +11,6 @@ use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Assets\AlpineComponent;
-use Filament\Support\Assets\Css;
-use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
@@ -78,9 +76,6 @@ class AppServiceProvider extends ServiceProvider
         Section::configureUsing(fn (Section $section) => $section
             ->columnSpanFull());
         FilamentAsset::register([
-            Js::make('diff-js', 'https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js'),
-            Js::make('diff2html-js', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js'),
-            Css::make('diff2html-css', 'https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css'),
             AlpineComponent::make('mermaid-diagram', __DIR__.'/../../resources/js/dist/components/mermaid-diagram.js')->loadedOnRequest(),
         ]);
         FilamentColor::register([

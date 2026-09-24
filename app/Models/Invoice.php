@@ -5,7 +5,8 @@ namespace App\Models;
 use App\Models\Company;
 use App\Models\Contact;
 
-use App\Traits\HasTextExtraction;
+use App\Traits\CorrectableWithItems;
+use CharlesStOlive\FilamentPrism\Support\CorrectionSubject;
 use CharlesStOlive\FilamentStateFusionEnhanced\Traits\HasMermaidStateDiagram;
 use Spatie\ModelStates\HasStates;
 use Illuminate\Database\Eloquent\Model;
@@ -16,10 +17,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 /**
  * @mixin IdeHelperInvoice
  */
-class Invoice extends Model
+class Invoice extends Model implements CorrectionSubject
 {
     use HasFactory;
-    use HasTextExtraction;
+    use CorrectableWithItems;
     use HasMermaidStateDiagram;
     use HasStates;
 
@@ -66,17 +67,6 @@ class Invoice extends Model
         'created_at',
         'updated_at',
     ];
-
-    /**
-     * Configuration des champs à extraire et injecter trait 
-     */
-    protected $getTextes = [
-        'title',
-        'description',
-        'items.*.data.title',
-        'items.*.data.description',
-    ];
-
 
     protected $casts = [
         'items' => 'json',

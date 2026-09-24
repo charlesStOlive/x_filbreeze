@@ -7,7 +7,7 @@ use Filament\Actions;
 use Filament\Infolists;
 use Filament\Actions\Action;
 use Filament\Schemas\Schema;
-use App\Filament\Utils\IaUtils;
+use App\Filament\Concerns\HasAiCorrection;
 use Filament\Actions\ActionGroup;
 use App\Filament\Utils\StateUtils;
 use App\Models\States\Invoice\Payed;
@@ -43,6 +43,7 @@ class EditInvoice extends EditRecord
     protected static string $resource = InvoiceResource::class;
     use HasPreviewModal;
     use HasSidePane;
+    use HasAiCorrection;
 
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
@@ -123,7 +124,7 @@ class EditInvoice extends EditRecord
     {
         return [
             StateUtils::getStateSaveButton(),
-            IaUtils::PrismCorrectionAction(static::$resource, $this->record->state->isSaveHidden),
+            $this->getAiCorrectionAction(),
             ActionGroup::make([
                 StateFusionAction::make('state_submited')
                     ->transitionTo(Submited::class)

@@ -9,21 +9,6 @@ use Throwable;
 
 class PrismTextService
 {
-    public function correctJsonText(string $jsonText): string
-    {
-        $text = $this->generateText(
-            systemPrompt: "Tu es un correcteur orthographique et grammatical francophone.
-Tu reçois un JSON contenant des textes applicatifs.
-Corrige uniquement l'orthographe, la grammaire, les accords et la ponctuation des valeurs textuelles.
-Conserve strictement la structure JSON, les clés, les types, les nombres, les dates, les identifiants et les balises éventuelles.
-Réponds uniquement avec le JSON corrigé, sans markdown ni commentaire.",
-            prompt: $jsonText,
-            model: config('ai.orthography.model')
-        );
-
-        return $this->extractJson($text);
-    }
-
     public function translateHtml(string $html, string $targetLanguage, ?string $model = null): string
     {
         return $this->generateText(
@@ -57,40 +42,5 @@ Contenu HTML:
 
             throw new RuntimeException('Erreur lors de l’appel au service IA : ' . $e->getMessage(), previous: $e);
         }
-    }
-
-    protected function extractJson(string $text): string
-    {
-        $text = trim($text);
-
-        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/s', $text, $matches)) {
-            $text = trim($matches[1]);
-        }
-
-        $decoded = json_decode($text, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $startCandidates = array_filter([
-                strpos($text, '{'),
-                strpos($text, '['),
-            ], fn($position) => $position !== false);
-
-            $end = max(strrpos($text, '}') ?: -1, strrpos($text, ']') ?: -1);
-
-            if ($startCandidates !== [] && $end >= 0) {
-                $start = min($startCandidates);
-
-                if ($end >= $start) {
-                    $text = substr($text, $start, $end - $start + 1);
-                    $decoded = json_decode($text, true);
-                }
-            }
-        }
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException('Réponse IA invalide : format JSON incorrect.');
-        }
-
-        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

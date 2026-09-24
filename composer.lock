@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1d5669918a6eb59432800595583ee7ea",
+    "content-hash": "7ab378e91deb21f5c58f59a9de9b60ff",
     "packages": [
         {
             "name": "a909m/filament-statefusion",
@@ -738,6 +738,51 @@
             "time": "2026-07-03T19:04:41+00:00"
         },
         {
+            "name": "charlesstolive/filament-prism",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "../packages_filament/filament-prism",
+                "reference": "3b00f43153f87fe589de449fb29519bb11234c0b"
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "php": "^8.3|^8.4",
+                "prism-php/prism": "^0.99",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "suggest": {
+                "charlesstolive/filament-ui": "Adds CorrectionSidePane, the side-pane variant of CorrectionAction"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "CharlesStOlive\\FilamentPrism\\FilamentPrismServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "CharlesStOlive\\FilamentPrism\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A registry of Prism-backed AI services (correction, extraction, ...) for Filament, with durable interaction logging and token usage tracking",
+            "keywords": [
+                "ai",
+                "filament",
+                "laravel",
+                "prism"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "charlesstolive/filament-qonto",
             "version": "dev-master",
             "source": {
@@ -893,23 +938,16 @@
         {
             "name": "charlesstolive/filament-ui",
             "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:charlesStOlive/filament-ui.git",
-                "reference": "ee1a7ab5c8500886a9b47a23b5335b11d60e8b04"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-ui/zipball/ee1a7ab5c8500886a9b47a23b5335b11d60e8b04",
-                "reference": "ee1a7ab5c8500886a9b47a23b5335b11d60e8b04",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages_filament/filament-ui",
+                "reference": "78fbb868f6c81bc28c77a24200a8502f02adf561"
             },
             "require": {
                 "filament/filament": "^5.0",
                 "php": "^8.3|^8.4",
                 "spatie/laravel-package-tools": "^1.16"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -933,11 +971,10 @@
                 "laravel",
                 "ui"
             ],
-            "support": {
-                "source": "https://github.com/charlesStOlive/filament-ui/tree/main",
-                "issues": "https://github.com/charlesStOlive/filament-ui/issues"
-            },
-            "time": "2026-09-24T17:10:22+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "chillerlan/php-qrcode",
@@ -17578,6 +17615,7 @@
     "stability-flags": {
         "charlesstolive/filament-msgraph-email": 20,
         "charlesstolive/filament-permission-manager": 20,
+        "charlesstolive/filament-prism": 20,
         "charlesstolive/filament-qonto": 20,
         "charlesstolive/filament-state-fusion-enhanced": 20,
         "charlesstolive/filament-ui": 20

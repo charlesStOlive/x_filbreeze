@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use App\Traits\HasTextExtraction;
+use App\Traits\CorrectableWithItems;
+use CharlesStOlive\FilamentPrism\Support\CorrectionSubject;
 use Spatie\ModelStates\HasStates;
 use App\Services\Models\ItemsManager;
 use App\Models\States\Quote\QuoteState;
@@ -12,10 +13,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 /**
  * @mixin IdeHelperQuote
  */
-class Quote extends Model
+class Quote extends Model implements CorrectionSubject
 {
     use HasFactory;
-    use HasTextExtraction;
+    use CorrectableWithItems;
     use HasStates;
 
     /**
@@ -52,18 +53,6 @@ class Quote extends Model
         'payed_at',
         'submited_at',
     ];
-
-    /**
-     * Configuration des champs à extraire et injecter trait 
-     */
-    protected $getTextes = [
-        'title',
-        'description',
-        'items.*.data.title',
-        'items.*.data.description',
-    ];
-
-
 
     protected $casts = [
         'items' => 'json',

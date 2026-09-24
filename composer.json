@@ -8,6 +8,20 @@
     ],
     "license": "MIT",
     "repositories": {
+        "filament-ui-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-ui",
+            "options": {
+                "symlink": true
+            }
+        },
+        "filament-prism-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-prism",
+            "options": {
+                "symlink": true
+            }
+        },
         "filament-permission-manager-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
@@ -27,6 +41,10 @@
         "filament-qonto-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-qonto.git"
+        },
+        "filament-prism-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-prism.git"
         }
     },
     "require": {
@@ -34,6 +52,7 @@
         "barryvdh/laravel-snappy": "^1.0",
         "charlesstolive/filament-msgraph-email": "dev-master",
         "charlesstolive/filament-permission-manager": "@dev",
+        "charlesstolive/filament-prism": "dev-master",
         "charlesstolive/filament-state-fusion-enhanced": "dev-master",
         "charlesstolive/filament-ui": "dev-main",
         "cloudinary-labs/cloudinary-laravel": "^3.0",
