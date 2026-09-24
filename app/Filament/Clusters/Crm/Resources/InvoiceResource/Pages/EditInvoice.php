@@ -19,6 +19,9 @@ use App\Models\States\Invoice\Canceled;
 use App\Models\States\Invoice\Submited;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\EmbeddedSchema;
+use CharlesStOlive\FilamentUi\Split\SidePane;
+use CharlesStOlive\FilamentUi\Split\HasSidePane;
 use Filament\Schemas\Components\Section;
 use CharlesStOlive\FilamentStateFusionEnhanced\Actions\StateFusionAction;
 use Filament\Forms\Components\DatePicker;
@@ -39,9 +42,35 @@ class EditInvoice extends EditRecord
 {
     protected static string $resource = InvoiceResource::class;
     use HasPreviewModal;
+    use HasSidePane;
 
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
+
+    /**
+     * L'infolist dans le volet latéral de filament-ui, ouvert d'emblée à 25 % de la largeur.
+     *
+     * @return array<string, SidePane>
+     */
+    protected function getSidePanes(): array
+    {
+        return [
+            'info' => SidePane::make('info')
+                ->label('Infos')
+                ->icon('heroicon-o-information-circle')
+                ->schema([EmbeddedSchema::make('infolist')]),
+        ];
+    }
+
+    protected function getDefaultSidePane(): ?string
+    {
+        return 'info';
+    }
+
+    protected function getSidePaneWidth(): int
+    {
+        return 25;
+    }
 
     protected function getHeaderActions(): array
     {
@@ -84,7 +113,7 @@ class EditInvoice extends EditRecord
                 ->icon('fas-file-export')
                 ->button()
                 ->color('gray'),
-
+            $this->getSidePanes()['info']->toggleAction(),
         ];
     }
 

@@ -8,12 +8,15 @@ use App\Models\Declaration;
 use App\Models\Invoice;
 use App\Services\Declarations\DeclarationCalculator;
 use CharlesStOlive\FilamentQonto\Models\QontoSupplierInvoice;
+use CharlesStOlive\FilamentUi\Split\HasSidePane;
+use CharlesStOlive\FilamentUi\Split\SidePane;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\TextSize;
@@ -21,7 +24,34 @@ use Illuminate\Support\HtmlString;
 
 class EditDeclaration extends EditRecord
 {
+    use HasSidePane;
+
     protected static string $resource = DeclarationResource::class;
+
+    /**
+     * L'infolist dans le volet latéral de filament-ui, ouvert d'emblée à 40 % de la largeur.
+     *
+     * @return array<string, SidePane>
+     */
+    protected function getSidePanes(): array
+    {
+        return [
+            'info' => SidePane::make('info')
+                ->label('Détail')
+                ->icon('heroicon-o-list-bullet')
+                ->schema([EmbeddedSchema::make('infolist')]),
+        ];
+    }
+
+    protected function getDefaultSidePane(): ?string
+    {
+        return 'info';
+    }
+
+    protected function getSidePaneWidth(): int
+    {
+        return 40;
+    }
 
     protected function getHeaderActions(): array
     {
@@ -48,6 +78,7 @@ class EditDeclaration extends EditRecord
                 }),
             DeleteAction::make()
                 ->visible(fn (): bool => $this->getRecord()->status === 'draft'),
+            $this->getSidePanes()['info']->toggleAction(),
         ];
     }
 

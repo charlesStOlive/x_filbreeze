@@ -20,6 +20,9 @@ use App\Models\States\Quote\Validated;
 use App\Models\States\Quote\QuoteState;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\EmbeddedSchema;
+use CharlesStOlive\FilamentUi\Split\SidePane;
+use CharlesStOlive\FilamentUi\Split\HasSidePane;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\TextEntry;
@@ -37,8 +40,34 @@ class EditQuote extends EditRecord
 {
     protected static string $resource = QuoteResource::class;
     use HasPreviewModal;
+    use HasSidePane;
 
     protected $listeners = ['totalsUpdated' => 'refreshInfolist'];
+
+    /**
+     * L'infolist dans le volet latéral de filament-ui, ouvert d'emblée à 25 % de la largeur.
+     *
+     * @return array<string, SidePane>
+     */
+    protected function getSidePanes(): array
+    {
+        return [
+            'info' => SidePane::make('info')
+                ->label('Infos')
+                ->icon('heroicon-o-information-circle')
+                ->schema([EmbeddedSchema::make('infolist')]),
+        ];
+    }
+
+    protected function getDefaultSidePane(): ?string
+    {
+        return 'info';
+    }
+
+    protected function getSidePaneWidth(): int
+    {
+        return 25;
+    }
 
     protected function getHeaderActions(): array
     {
@@ -82,7 +111,8 @@ class EditQuote extends EditRecord
                 ->icon('fas-file-export')
                 ->button()
                 ->color('gray'),
-            DeleteAction::make()->hidden(fn($record) => $record->state->isSaveHidden)
+            DeleteAction::make()->hidden(fn($record) => $record->state->isSaveHidden),
+            $this->getSidePanes()['info']->toggleAction(),
         ];
     }
 

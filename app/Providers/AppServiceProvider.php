@@ -2,9 +2,6 @@
 
 namespace App\Providers;
 
-use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
-use App\Filament\Clusters\Crm\Resources\QuoteResource\Pages\EditQuote;
-use App\Filament\Resources\DeclarationResource\Pages\EditDeclaration;
 use App\Listeners\SupplierInvoiceFileAdded;
 use App\Models\Company;
 use App\Policies\CompanyPolicy;
@@ -89,42 +86,5 @@ class AppServiceProvider extends ServiceProvider
         FilamentColor::register([
             'indigo' => Color::Fuchsia,
         ]);
-
-        FilamentView::registerRenderHook(
-            PanelsRenderHook::PAGE_HEADER_WIDGETS_AFTER,
-            fn (): string => view('filament.hooks.two-col-open', [
-                'infoWidth' => '25%',
-            ])->render(),
-            // Limite aux pages concernées (IMPORTANT pour éviter d’affecter toutes les pages)
-            scopes: [
-                EditQuote::class,
-                EditInvoice::class,
-                // ajoute ici d'autres pages si besoin
-            ],
-        );
-
-        FilamentView::registerRenderHook(
-            PanelsRenderHook::PAGE_HEADER_WIDGETS_AFTER,
-            fn (): string => view('filament.hooks.two-col-open', [
-                'infoWidth' => '35%',
-            ])->render(),
-            scopes: [EditDeclaration::class],
-        );
-
-        // Ferme le layout + injecte l’infolist juste avant les footer widgets
-        FilamentView::registerRenderHook(
-            PanelsRenderHook::PAGE_FOOTER_WIDGETS_BEFORE,
-            fn (): string => view('filament.hooks.two-col-close')->render(),
-            scopes: [
-                EditQuote::class,
-                EditInvoice::class,
-            ],
-        );
-
-        FilamentView::registerRenderHook(
-            PanelsRenderHook::PAGE_FOOTER_WIDGETS_BEFORE,
-            fn (): string => view('filament.hooks.two-col-close')->render(),
-            scopes: [EditDeclaration::class],
-        );
     }
 }
