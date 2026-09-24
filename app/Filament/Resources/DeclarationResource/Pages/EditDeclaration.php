@@ -30,8 +30,8 @@ class EditDeclaration extends EditRecord
     protected static string $resource = DeclarationResource::class;
 
     /**
-     * L'infolist dans le volet latéral de filament-ui : ouvert en permanence (sans croix), à 40 % de la
-     * largeur par défaut.
+     * L'infolist dans le volet latéral de filament-ui : ouvert en permanence, sans bandeau (ses sections
+     * portent leurs titres), à 40 % de la largeur par défaut.
      *
      * @return array<string, SidePane>
      */
@@ -42,6 +42,7 @@ class EditDeclaration extends EditRecord
                 ->label('Détail')
                 ->icon('heroicon-o-list-bullet')
                 ->closable(false)
+                ->hiddenHeader()
                 ->schema([Group::make([EmbeddedSchema::make('infolist')])->extraAttributes(['class' => 'p-4'])]),
         ];
     }

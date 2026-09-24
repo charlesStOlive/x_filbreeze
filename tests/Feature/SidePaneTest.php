@@ -37,7 +37,8 @@ class SidePaneTest extends TestCase
         [$company, $contact] = $this->customer();
         $quote = Quote::create(['title' => 'Refonte', 'company_id' => $company->getKey(), 'contact_id' => $contact->getKey(), 'items' => []]);
 
-        $test = $this->assertSidePane(EditQuote::class, $quote->getKey(), 25, 'Total HT');
+        $test = $this->assertSidePane(EditQuote::class, $quote->getKey(), 25, 'Total HT')
+            ->assertSeeHtml('data-split-pane-header');
 
         // L'action de modification, dans le bandeau du volet, agit sur le devis édité.
         $test->callAction(TestAction::make('edit')->schemaComponent('split-view', 'content'), ['end_at' => '2026-12-31'])
@@ -68,7 +69,9 @@ class SidePaneTest extends TestCase
             'calculation_details' => ['client_invoice_ids' => [], 'qonto_supplier_invoice_ids' => []],
         ]);
 
-        $this->assertSidePane(EditDeclaration::class, $declaration->getKey(), 40, 'Fournisseurs');
+        $this->assertSidePane(EditDeclaration::class, $declaration->getKey(), 40, 'Fournisseurs')
+            // Pas de bandeau : seulement les sections « Déclaration » et « TVA ».
+            ->assertDontSeeHtml('data-split-pane-header');
     }
 
     /** @param  class-string  $page */
