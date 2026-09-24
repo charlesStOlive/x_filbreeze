@@ -4,7 +4,7 @@
 			"path": "../.."
 		},
 		{
-			"path": "../../../packages_filament/filament-color-installer"
+			"path": "../../../packages_filament/filament-ui"
 		},
 		{
 			"path": "../../../packages_filament/filament-msgraph-email"

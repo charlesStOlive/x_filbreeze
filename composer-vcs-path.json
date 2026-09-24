@@ -7,9 +7,9 @@
                 "symlink": true
             }
         },
-        "filament-color-installer-local": {
+        "filament-ui-local": {
             "type": "path",
-            "url": "../packages_filament/filament-color-installer",
+            "url": "../packages_filament/filament-ui",
             "options": {
                 "symlink": true
             }
@@ -41,9 +41,9 @@
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
         },
-        "filament-color-installer-vcs": {
+        "filament-ui-vcs": {
             "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-color-installer.git"
+            "url": "https://github.com/charlesStOlive/filament-ui.git"
         },
         "filament-msgraph-email-vcs": {
             "type": "vcs",
