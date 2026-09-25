@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\Processors\Emails\CorrectEmailProcessor;
 use App\Services\Processors\Emails\TradEmailProcessor;
 use Carbon\CarbonImmutable;
 use CharlesStOlive\FilamentPrism\Models\AiInteraction;
@@ -12,15 +13,17 @@ use CharlesStOlive\MsGraphFilament\Models\MsgUserDraft;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Testing\PrismFake;
+use Prism\Prism\Testing\StructuredResponseFake;
 use Prism\Prism\Testing\TextResponseFake;
 use Prism\Prism\ValueObjects\Usage;
 use Tests\TestCase;
 
 /**
- * Traduction automatique des brouillons Outlook (processeur `d-trad`, ressource IA
- * `email-translation`) : sans interface, le processeur appelle l'IA et applique lui-même.
+ * Traitement automatique des brouillons Outlook par l'IA (`AiDraftProcessor`) : traduction
+ * (`d-trad`, ressource `email-translation`) et correction (`d-cor`, ressource `orthography`).
+ * Sans interface : le processeur appelle l'IA et applique lui-même le résultat.
  */
-class EmailTranslationTest extends TestCase
+class EmailDraftAiProcessorsTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -125,7 +128,7 @@ class EmailTranslationTest extends TestCase
         $email = $this->runProcessor('actif', ['en' => true], body: "<html><body>\n<p>## traduit -en ##</p>\n<div id=\"appendonsend\"></div><div id=\"divRplyFwdMsg\">De : Paul</div></body></html>");
 
         $this->assertSame('error', $email->getServiceResult('d-trad', 'status'));
-        $this->assertStringContainsString('Rien à traduire', $email->getServiceResult('d-trad', 'message'));
+        $this->assertStringContainsString('Rien à traiter', $email->getServiceResult('d-trad', 'message'));
         $fake->assertCallCount(0);
         $this->assertSame([], $this->client->updates);
     }
@@ -150,7 +153,7 @@ class EmailTranslationTest extends TestCase
 
         $this->assertSame([], $this->client->updates);
         $this->assertSame([], $this->client->categories);
-        $this->assertSame('<p>Hello</p>', $email->getServiceResult('d-trad', 'translated_content'));
+        $this->assertSame('<p>Hello</p>', $email->getServiceResult('d-trad', 'content'));
         $this->assertSame('discarded', AiInteraction::sole()->status);
     }
 
@@ -165,6 +168,35 @@ class EmailTranslationTest extends TestCase
         $fake->assertCallCount(0);
     }
 
+    public function test_correction_goes_through_the_orthography_resource_and_keeps_the_history(): void
+    {
+        $fake = Prism::fake([
+            StructuredResponseFake::make()->withStructured(['message' => '<p>Bonjour Paul, voici le devis.</p>'])->withUsage(new Usage(10, 5)),
+        ]);
+        $history = '<div id="appendonsend"></div><div id="divRplyFwdMsg"><b>De :</b> Paul</div><p>Ou en est le devi ?</p>';
+
+        $email = $this->runProcessor(
+            'actif',
+            [],
+            body: "<html><body>\n<p>## corrige ##</p>\n<p>Bonjour Paul, voisi le devis.</p>{$history}</body></html>",
+            processor: CorrectEmailProcessor::class,
+        );
+
+        $fake->assertRequest(function (array $requests): void {
+            $this->assertSame('orthography', AiInteraction::sole()->task);
+            $this->assertStringContainsString('voisi le devis', $requests[0]->prompt());
+            $this->assertStringNotContainsString('Ou en est le devi', $requests[0]->prompt(), 'L’historique n’est pas corrigé.');
+        });
+
+        $this->assertSame(
+            "<html><body><p>Bonjour Paul, voici le devis.</p>{$history}</body></html>",
+            $this->client->updates[0]['body']['content'],
+        );
+        $this->assertSame('Email corrigé et mis à jour', $email->getServiceResult('d-cor', 'message'));
+        $this->assertSame(15, $email->getServiceResult('d-cor', 'tokens'));
+        $this->assertSame('applied', AiInteraction::sole()->status);
+    }
+
     private function fakeTranslation(string $text): PrismFake
     {
         return Prism::fake([
@@ -177,11 +209,11 @@ class EmailTranslationTest extends TestCase
      *
      * @param  array<string, mixed>  $options  Les options du code (## traduit -en ## → ['en' => true]).
      */
-    private function runProcessor(string $mode, array $options, bool $queue = true, string $body = "<p>## traduit ##</p>\n<p>Bonjour</p>"): MsgEmailDraft
+    private function runProcessor(string $mode, array $options, bool $queue = true, string $body = "<p>## traduit ##</p>\n<p>Bonjour</p>", string $processor = TradEmailProcessor::class): MsgEmailDraft
     {
         $user = new MsgUserDraft([
             'email' => 'moi@example.com',
-            'services_options' => ['d-trad' => ['mode' => $mode, 'regex_code' => 'traduit']],
+            'services_options' => [$processor::getKey() => ['mode' => $mode, 'regex_code' => $processor::getDefaultTriggerCode()]],
         ]);
 
         $email = MsgEmailDraft::create(['email_id' => 'draft-1', 'status' => 'processing', 'active_jobs' => 0]);
@@ -193,14 +225,14 @@ class EmailTranslationTest extends TestCase
             contentType: 'HTML', bodyHtml: $body, bodyText: strip_tags($body),
             toEmails: [], ccEmails: [], bccEmails: [], fromName: '', fromEmail: 'moi@example.com',
             webLink: '', inferenceClassification: 'focused', attachments: [],
-            regexCode: 'traduit', regexOptions: $options,
+            regexCode: $processor::getDefaultTriggerCode(), regexOptions: $options,
         );
 
-        $processor = new TradEmailProcessor($user, $dto, $email, $this->client);
+        $job = new $processor($user, $dto, $email, $this->client);
 
-        if ($processor->preflight()->proceed && $queue) {
+        if ($job->preflight()->proceed && $queue) {
             $email->increment('active_jobs');
-            $processor->handle();
+            $job->handle();
         }
 
         return $email->refresh();

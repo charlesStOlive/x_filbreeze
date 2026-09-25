@@ -39,8 +39,8 @@ return [
     ],
     'email-draft' => [
         \App\Services\Processors\Emails\HelloWorldDraftProcessor::class,
-        // \App\Services\Processors\Emails\DraftEmailProcessor::class,
         \App\Services\Processors\Emails\TradEmailProcessor::class,
+        \App\Services\Processors\Emails\CorrectEmailProcessor::class,
     ],
 
 

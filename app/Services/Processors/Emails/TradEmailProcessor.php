@@ -2,30 +2,22 @@
 
 namespace App\Services\Processors\Emails;
 
-use Exception;
-use RuntimeException;
 use App\Ai\EmailTranslation;
+use CharlesStOlive\FilamentPrism\Models\AiInteraction;
 use CharlesStOlive\FilamentPrism\Services\AiRunner;
-use CharlesStOlive\MsGraphFilament\Models\MsgEmailDraft;
 use CharlesStOlive\MsGraphFilament\Enums\ProcessorStatus;
-use CharlesStOlive\MsGraphFilament\Processors\BaseEmailDraftProcessor;
-use CharlesStOlive\MsGraphFilament\Support\DraftBody;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 
 /**
- * Traduit un brouillon Outlook qui commence par `## traduit -en ##` (la langue cible est la
- * première option ; `-n` crée un nouveau brouillon au lieu de modifier celui-ci). Seul le
- * message rédigé est traduit, l'historique de la conversation reste intact (`DraftBody`).
+ * Traduit un brouillon Outlook qui commence par `## traduit -en ##` : la langue cible est la
+ * première option (voir `AiDraftProcessor` pour -n, le mode test et l'historique conservé).
  *
  * L'appel à l'IA est décrit par la ressource `App\Ai\EmailTranslation` (prompt, modèle via
- * `AI_TRANSLATION_MODEL`) ; ce processeur ne fait que l'appeler et appliquer le résultat.
+ * `AI_TRANSLATION_MODEL`).
  */
-class TradEmailProcessor extends BaseEmailDraftProcessor
+class TradEmailProcessor extends AiDraftProcessor
 {
-    /** L'option qui demande un nouveau brouillon : ce n'est pas une langue. */
-    private const NEW_DRAFT_OPTION = 'n';
-
     public static function getKey(): string
     {
         return 'd-trad';
@@ -90,34 +82,7 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
                 ->icon('heroicon-o-language')
                 ->visible(fn($state) => !empty($state)),
 
-            TextEntry::make('translated_content')
-                ->label('Contenu traduit')
-                ->limit(1000)
-                ->tooltip(fn($state) => $state)
-                ->visible(fn($state) => !empty($state)),
-
-            TextEntry::make('processing_mode')
-                ->label('Mode de traitement')
-                ->badge()
-                ->color(fn($state) => match ($state) {
-                    'new_draft' => 'success',
-                    'update'    => 'warning',
-                    'test'      => 'info',
-                    default     => 'gray'
-                })
-                ->visible(fn($state) => !empty($state)),
-
-            TextEntry::make('new_draft_id')
-                ->label('ID nouveau brouillon')
-                ->copyable()
-                ->copyMessage('ID copié!')
-                ->icon('heroicon-o-document-duplicate')
-                ->visible(fn($state) => !empty($state)),
-
-            TextEntry::make('tokens')
-                ->label('Tokens consommés')
-                ->icon('heroicon-o-cpu-chip')
-                ->visible(fn($state) => !empty($state)),
+            ...static::commonResultsInfoList('Contenu traduit'),
         ];
     }
 
@@ -139,88 +104,34 @@ class TradEmailProcessor extends BaseEmailDraftProcessor
         return ProcessorStatus::Success;
     }
 
-    /**
-     * Phase 2: Action durant la queue
-     * Traduction du brouillon avec l'IA
-     */
-    protected function perform(): MsgEmailDraft
+    protected function runAi(string $message): AiInteraction
     {
-        try {
-            $language  = $this->targetLanguage();
-            $createNew = (bool) ($this->getResult('code_options', [])[self::NEW_DRAFT_OPTION] ?? false);
+        $this->setResult('target_language', $this->targetLanguage());
 
-            // Seul le message rédigé est traduit : l'historique de la conversation cité en
-            // dessous (et l'enveloppe HTML du document) est remis tel quel autour de la traduction
-            $body = DraftBody::fromHtml($this->removeRegexKeyAndLineIfEmptyHTML($this->emailData->bodyHtml));
-
-            if ($body->messageIsEmpty()) {
-                throw new RuntimeException('Rien à traduire : le brouillon ne contient pas de message au-dessus de l\'historique');
-            }
-
-            // Rattachée au brouillon : si le job est relancé avec le même contenu, la réponse
-            // déjà payée est réutilisée
-            $interaction = app(AiRunner::class)->run(
-                app(EmailTranslation::class),
-                input: [
-                    'html'     => $body->message,
-                    'language' => $language,
-                ],
-                attachTo: $this->email,
-            );
-
-            $translated = $interaction->output['text'] ?? '';
-
-            if ($translated === '') {
-                throw new RuntimeException('L\'IA a renvoyé une traduction vide');
-            }
-
-            // ✅ Stocker les résultats AVANT finishProcessor
-            $this->setResult('target_language', $language);
-            $this->setResult('translated_content', $translated);
-            $this->setResult('tokens', $interaction->total_tokens);
-
-            $translatedBody = $body->withMessage($translated);
-
-            if ($this->isTestMode()) {
-                // Rien n'est écrit dans Outlook : la traduction n'est pas appliquée
-                $interaction->markDiscarded();
-                $this->setResult('processing_mode', 'test');
-                $this->finishProcessor(ProcessorStatus::Success, "Traduction testée vers {$language}");
-                return $this->email;
-            }
-
-            if ($createNew) {
-                // Option -n : Créer un nouveau brouillon
-                $resp = $this->emailClient->createDraft($this->user, $this->emailData->with(['bodyHtml' => $translatedBody]));
-                $this->setResult('new_draft_id', $resp['id'] ?? null);
-                $this->setResult('processing_mode', 'new_draft');
-                $message = "Nouveau brouillon traduit vers {$language} créé";
-            } else {
-                // Par défaut : Update du brouillon existant
-                $this->updateBody($translatedBody);
-                $this->setResult('processing_mode', 'update');
-                $message = "Email traduit vers {$language} et mis à jour";
-            }
-
-            $this->markDraftAsCompleted();
-            $interaction->markApplied();
-
-            $this->finishProcessor(ProcessorStatus::Success, $message);
-        } catch (Exception $e) {
-            $this->finishProcessor(ProcessorStatus::Error, $e->getMessage());
-        }
-
-        return $this->email;
+        return app(AiRunner::class)->run(
+            app(EmailTranslation::class),
+            input: ['html' => $message, 'language' => $this->targetLanguage()],
+            attachTo: $this->email,
+        );
     }
 
-    /**
-     * La langue cible : la première option du code qui n'est pas -n (## traduit -en -n ## → en)
-     */
+    protected function outputHtml(AiInteraction $interaction): string
+    {
+        return $interaction->output['text'] ?? '';
+    }
+
+    protected function successMessage(string $processingMode): string
+    {
+        return match ($processingMode) {
+            'test'      => "Traduction testée vers {$this->targetLanguage()}",
+            'new_draft' => "Nouveau brouillon traduit vers {$this->targetLanguage()} créé",
+            default     => "Email traduit vers {$this->targetLanguage()} et mis à jour",
+        };
+    }
+
+    /** La langue cible : la première option du code qui n'est pas -n (## traduit -n -en ## → en) */
     private function targetLanguage(): ?string
     {
-        $options = array_keys($this->getResult('code_options', []) ?? []);
-        $language = collect($options)->first(fn($option) => $option !== self::NEW_DRAFT_OPTION);
-
-        return $language === null ? null : (string) $language;
+        return $this->codeOptions()[0] ?? null;
     }
 }
