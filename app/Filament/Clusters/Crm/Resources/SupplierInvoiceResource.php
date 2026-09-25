@@ -38,7 +38,6 @@ use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\RelationManagers
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\EditSupplierInvoice;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\ListSupplierInvoices;
 use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreateSupplierInvoice;
-use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreatSupplieFromFileV2;
 
 
 class SupplierInvoiceResource extends Resource
@@ -300,7 +299,6 @@ class SupplierInvoiceResource extends Resource
             'index' => ListSupplierInvoices::route('/'),
             'create' => CreateSupplierInvoice::route('/create'),
             'edit' => EditSupplierInvoice::route('/{record}/edit'),
-            'createfromfile' => CreatSupplieFromFileV2::route('/createfromfile'),
         ];
     }
 }

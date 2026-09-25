@@ -83,9 +83,7 @@ class FileProcessor
      */
     private function processImage(string $imagePath): array
     {
-        $text = (new TesseractOCR($imagePath))
-            ->lang('eng') // Modifier la langue si nécessaire (ex. 'fra' pour le français)
-            ->run();
+        $text = $this->ocr($imagePath);
 
         if (strlen(trim($text)) === 0) {
             throw new FileEmptyException('Le contenu extrait de l\'image est vide.');
@@ -118,13 +116,11 @@ class FileProcessor
 
             // Traiter chaque page du PDF
             foreach ($imagick as $pageIndex => $page) {
-                $tempImagePath = sys_get_temp_dir() . '/temp_page_' . $pageIndex . '.jpg';
+                // Nom unique : deux analyses simultanées ne doivent pas s'écraser leurs pages.
+                $tempImagePath = sys_get_temp_dir() . '/ocr_' . bin2hex(random_bytes(8)) . '_' . $pageIndex . '.jpg';
                 $page->writeImage($tempImagePath);
 
-                // Exécuter Tesseract OCR sur l'image
-                $text = (new TesseractOCR($tempImagePath))
-                    ->lang('eng') // Modifier la langue si nécessaire
-                    ->run();
+                $text = $this->ocr($tempImagePath);
 
                 $fullText .= $text . "\n";
 
@@ -144,5 +140,17 @@ class FileProcessor
             $imagick->clear();
             $imagick->destroy();
         }
+    }
+
+    /**
+     * Français d'abord (accents, dates, montants), anglais en secours — parmi les langues
+     * réellement installées : sans le paquet tesseract-ocr-fra, seul l'anglais est lu.
+     */
+    private function ocr(string $imagePath): string
+    {
+        $ocr = new TesseractOCR($imagePath);
+        $languages = array_values(array_intersect(['fra', 'eng'], $ocr->availableLanguages()));
+
+        return $ocr->lang(...($languages ?: ['eng']))->run();
     }
 }

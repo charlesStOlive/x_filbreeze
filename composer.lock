@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7ab378e91deb21f5c58f59a9de9b60ff",
+    "content-hash": "c6cc9baf0a35fe395f005b03fbae79ad",
     "packages": [
         {
             "name": "a909m/filament-statefusion",
@@ -579,16 +579,10 @@
         {
             "name": "charlesstolive/filament-msgraph-email",
             "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:charlesStOlive/filament-msgraph-email.git",
-                "reference": "79301487bf2744a5fcd22cd4054867f6c12c10ae"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-msgraph-email/zipball/79301487bf2744a5fcd22cd4054867f6c12c10ae",
-                "reference": "79301487bf2744a5fcd22cd4054867f6c12c10ae",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages_filament/filament-msgraph-email",
+                "reference": "79301487bf2744a5fcd22cd4054867f6c12c10ae"
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -602,7 +596,6 @@
                 "orchestra/testbench": "^9.0|^10.0|^11.0",
                 "phpunit/phpunit": "^10.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -631,11 +624,10 @@
                 }
             ],
             "description": "Microsoft Graph Email Processing Plugin for Filament",
-            "support": {
-                "source": "https://github.com/charlesStOlive/filament-msgraph-email/tree/master",
-                "issues": "https://github.com/charlesStOlive/filament-msgraph-email/issues"
-            },
-            "time": "2026-06-10T16:50:13+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "charlesstolive/filament-permission-manager",

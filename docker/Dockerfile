@@ -68,6 +68,7 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y $MYSQL_CLIENT \
     && apt-get install -y \
         tesseract-ocr \
+        tesseract-ocr-fra \
         libtesseract-dev \
     && apt-get -y autoremove \
     && apt-get clean \
