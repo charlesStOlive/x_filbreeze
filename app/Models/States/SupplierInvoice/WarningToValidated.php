@@ -55,7 +55,7 @@ class WarningToValidated extends Transition implements FilamentSpatieTransition,
 
         // Si pas de numéro de facture, ajouter une note
         if (empty($this->supplierInvoice->invoice_number)) {
-            $date = now()->format('d/m/Y H:i');
+            $date = now(\Filament\Support\Facades\FilamentTimezone::get())->format('d/m/Y H:i');
             $user = auth()->user() ? auth()->user()->name : 'Utilisateur inconnu';
             $note = "Cette facture a été validée sans numéro le {$date} par {$user}.";
 

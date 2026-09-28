@@ -71,7 +71,7 @@ class QuoteResource extends Resource
                     ->numeric()
                     ->sortable(),
                 DateColumn::make('end_at'),
-                DateColumn::make('validated_at'),
+                DateColumn::make('validated_at')->businessDate(),
                 DateColumn::make('created_at')
                     ->toggleable(isToggledHiddenByDefault: true),
                 DateColumn::make('updated_at')

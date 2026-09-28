@@ -95,8 +95,10 @@ class InvoiceResource extends Resource
                     ->sortable()
                     ->description(fn($record): string => $record->contact->full_name),
                 DateColumn::make('submited_at')
+                    ->businessDate()
                     ->sortable(),
                 DateColumn::make('payed_at')
+                    ->businessDate()
                     ->sortable(),
                 TextColumn::make('total_ht')
                     ->numeric()

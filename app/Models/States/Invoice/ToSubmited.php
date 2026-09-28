@@ -7,6 +7,7 @@ use Closure;
 use DateTime;
 use Filament\Forms;
 use App\Models\Invoice;
+use App\Support\BusinessDate;
 use App\Services\Qonto\CrmInvoiceQontoService;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
@@ -49,7 +50,7 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
     public function handle(): Invoice
     {
         try {
-            $this->invoice->submited_at = $this->data['submited_at'] ?? now();
+            $this->invoice->submited_at = $this->data['submited_at'] ?? BusinessDate::now();
 
             $this->invoice = app(CrmInvoiceQontoService::class)->submit($this->invoice);
 
@@ -104,9 +105,8 @@ class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColo
     public function form(): array | Closure | null
     {
         return [
-            DateTimePicker::make('submited_at')
+            BusinessDate::picker(DateTimePicker::make('submited_at'))
                 ->label('Date d’émission')
-                ->default(now())
                 ->required()
                 ->helperText(__('Cette action finalise le brouillon Qonto et génère le PDF Factur-X. La facture ne pourra plus revenir en brouillon côté Qonto.'))
         ];

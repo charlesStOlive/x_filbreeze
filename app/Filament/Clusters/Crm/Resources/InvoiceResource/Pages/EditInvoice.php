@@ -356,6 +356,7 @@ class EditInvoice extends EditRecord
                         TextEntry::make('submited_at')
                             ->label('Soumise le')
                             ->date('d/m/Y')
+                            ->timezone((string) config('app.timezone')) // date métier, voir App\Support\BusinessDate
                             ->placeholder('Non soumise'),
                     ]),
                 Grid::make(2)

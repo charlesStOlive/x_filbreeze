@@ -20,5 +20,14 @@ class DateColumn extends TextColumn
             ->sortable() // Ajoute le tri par défaut
             ->dateTime('d/m/y'); // Définit le format par défaut
     }
+
+    /**
+     * Une date métier (émission, paiement, validation) : affichée telle qu'elle a été saisie, sans
+     * passer au fuseau de l'utilisateur (voir App\Support\BusinessDate).
+     */
+    public function businessDate(): static
+    {
+        return $this->timezone((string) config('app.timezone'));
+    }
    
 }

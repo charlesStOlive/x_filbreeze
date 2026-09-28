@@ -6,6 +6,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Closure;
 use Filament\Forms;
 use App\Models\Quote;
+use App\Support\BusinessDate;
 use Spatie\ModelStates\Transition;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
@@ -55,9 +56,8 @@ class ToValidated extends Transition implements FilamentSpatieTransition, HasCol
     public function form(): array | Closure | null
     {
         return [
-            DateTimePicker::make('validated_at')
+            BusinessDate::picker(DateTimePicker::make('validated_at'))
                 ->label('Validé le')
-                ->default(now())
                 ->helperText(__('Date de validation'))
         ];
     }

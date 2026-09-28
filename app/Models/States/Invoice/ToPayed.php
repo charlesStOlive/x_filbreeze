@@ -7,6 +7,7 @@ use Closure;
 use DateTime;
 use Filament\Forms;
 use App\Models\Invoice;
+use App\Support\BusinessDate;
 use App\Services\Qonto\CrmInvoiceQontoService;
 use Spatie\ModelStates\Transition;
 // use App\Filament\ModelStates\Contracts\FilamentSpatieTransition;
@@ -74,9 +75,8 @@ class ToPayed extends Transition implements FilamentSpatieTransition, HasIcon, H
     public function form(): array | Closure | null
     {
         return [
-            DateTimePicker::make('payed_at')
+            BusinessDate::picker(DateTimePicker::make('payed_at'))
                 ->label('Payé le')
-                ->default(now())
                 ->helperText(__('Vous devez saisir une date de paiement.'))
         ];
     }

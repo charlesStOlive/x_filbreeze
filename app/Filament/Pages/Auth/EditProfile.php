@@ -42,7 +42,7 @@ class EditProfile extends BaseEditProfile
             ->map(fn($t) => [
                 'id'         => (string) $t->id,
                 'name'       => $t->name,
-                'created_at' => $t->created_at->format('d/m/Y H:i'),
+                'created_at' => $t->created_at->timezone(\Filament\Support\Facades\FilamentTimezone::get())->format('d/m/Y H:i'),
             ])
             ->toArray();
     }
