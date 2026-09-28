@@ -90,6 +90,7 @@ class EditDeclaration extends EditRecord
             ->record($this->getRecord())
             ->components([
                 Section::make('Déclaration')
+                    ->compact()
                     ->description('Fixés à la création, non modifiables.')
                     ->schema([
                         TextEntry::make('type')
@@ -109,6 +110,7 @@ class EditDeclaration extends EditRecord
                     ->columns(3),
 
                 Section::make('URSSAF')
+                    ->compact()
                     ->collapsible()
                     ->visible(fn (Declaration $record): bool => $record->type === Declaration::TYPE_URSSAF)
                     ->schema([
@@ -124,6 +126,7 @@ class EditDeclaration extends EditRecord
                             ->columns(5),
                     ]),
                 Section::make('TVA')
+                    ->compact()
                     ->collapsible()
                     ->visible(fn (Declaration $record): bool => $record->type === Declaration::TYPE_VAT)
                     ->schema([

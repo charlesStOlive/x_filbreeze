@@ -14,6 +14,7 @@ use App\Models\States\Invoice\Payed;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use App\Models\States\Invoice\Canceled;
 
 use App\Models\States\Invoice\Submited;
@@ -316,78 +317,91 @@ class EditInvoice extends EditRecord
             ->slideOver();
     }
 
+    /**
+     * Le contenu du volet, en cartes compactes posées sur son fond : la facture et son client, son
+     * pendant chez Qonto (une fois créée), puis ses montants.
+     */
     public function infolist(Schema $schema): Schema
     {
         return $schema
             ->record($this->getRecord())
             ->components([
-                Grid::make(2)
+                Section::make('Facture')
+                    ->compact()
                     ->schema([
-                        TextEntry::make('code')
-                            ->label('Code'),
-                        TextEntry::make('state')
-                            ->label('État')
-                            ->badge(),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('code')
+                                    ->label('Code'),
+                                TextEntry::make('state')
+                                    ->label('État')
+                                    ->badge(),
+                            ]),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('company.title')
+                                    ->label('Client')
+                                    ->placeholder('Non défini')
+                                    ->icon(fn($record): ?string => $record->company ? 'heroicon-o-arrow-top-right-on-square' : null)
+                                    ->iconColor('gray')
+                                    ->url(fn($record): ?string => $record->company ? route('filament.admin.crm.resources.companies.edit', ['record' => $record->company]) : null),
+                                TextEntry::make('modalite')
+                                    ->label('Modalité')
+                                    ->placeholder('Non définie'),
+                                TextEntry::make('company.qonto_export_status_label')
+                                    ->label('Client Qonto')
+                                    ->badge()
+                                    ->icon(fn($record): ?string => $record->company?->qonto_export_status_icon)
+                                    ->color(fn($record): ?string => $record->company?->qonto_export_status_color)
+                                    ->tooltip(fn($record): ?string => $record->company?->qonto_export_status_description),
+                                TextEntry::make('contact.full_name')
+                                    ->label('Contact')
+                                    ->placeholder('Non défini')
+                                    ->icon(fn($record): ?string => $record->contact ? 'heroicon-o-arrow-top-right-on-square' : null)
+                                    ->iconColor('gray')
+                                    ->url(fn($record): ?string => $record->contact ? route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact]) : null),
+                                TextEntry::make('submited_at')
+                                    ->label('Soumise le')
+                                    ->date('d/m/Y')
+                                    ->timezone((string) config('app.timezone')) // date métier, voir App\Support\BusinessDate
+                                    ->placeholder('Non soumise'),
+                            ]),
                     ]),
-                Grid::make(2)
+                Section::make('Qonto')
+                    ->compact()
+                    ->visible(fn($record): bool => filled($record->qonto_invoice_id) || filled($record->qonto_status))
                     ->schema([
-                        TextEntry::make('company.title')
-                            ->label('Client')
-                            ->placeholder('Non défini')
-                            ->icon(fn($record): ?string => $record->company ? 'heroicon-o-arrow-top-right-on-square' : null)
-                            ->iconColor('gray')
-                            ->url(fn($record): ?string => $record->company ? route('filament.admin.crm.resources.companies.edit', ['record' => $record->company]) : null),
-                        TextEntry::make('modalite')
-                            ->label('Modalité')
-                            ->placeholder('Non définie'),
-                        TextEntry::make('company.qonto_export_status_label')
-                            ->label('Client Qonto')
-                            ->badge()
-                            ->icon(fn($record): ?string => $record->company?->qonto_export_status_icon)
-                            ->color(fn($record): ?string => $record->company?->qonto_export_status_color)
-                            ->tooltip(fn($record): ?string => $record->company?->qonto_export_status_description),
-                        TextEntry::make('contact.full_name')
-                            ->label('Contact')
-                            ->placeholder('Non défini')
-                            ->icon(fn($record): ?string => $record->contact ? 'heroicon-o-arrow-top-right-on-square' : null)
-                            ->iconColor('gray')
-                            ->url(fn($record): ?string => $record->contact ? route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact]) : null),
-                        TextEntry::make('submited_at')
-                            ->label('Soumise le')
-                            ->date('d/m/Y')
-                            ->timezone((string) config('app.timezone')) // date métier, voir App\Support\BusinessDate
-                            ->placeholder('Non soumise'),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('qonto_invoice_number')
+                                    ->label('Facture Qonto')
+                                    ->placeholder('Non créée')
+                                    ->icon(fn($record): ?string => $record->qonto_invoice_url ? 'heroicon-o-arrow-top-right-on-square' : null)
+                                    ->iconColor('gray')
+                                    ->url(fn($record): ?string => $record->qonto_invoice_url),
+                                TextEntry::make('qonto_status')
+                                    ->label('Statut Qonto')
+                                    ->badge()
+                                    ->placeholder('Non synchronisée'),
+                            ]),
                     ]),
-                Grid::make(2)
+                Section::make('Montants')
+                    ->compact()
                     ->schema([
-                        TextEntry::make('qonto_invoice_number')
-                            ->label('Facture Qonto')
-                            ->placeholder('Non créée')
-                            ->icon(fn($record): ?string => $record->qonto_invoice_url ? 'heroicon-o-arrow-top-right-on-square' : null)
-                            ->iconColor('gray')
-                            ->url(fn($record): ?string => $record->qonto_invoice_url),
-                        TextEntry::make('qonto_status')
-                            ->label('Statut Qonto')
-                            ->badge()
-                            ->placeholder('Non synchronisée'),
-                    ])
-                    ->visible(fn($record): bool => filled($record->qonto_invoice_id) || filled($record->qonto_status)),
-                Grid::make(2)
-                    ->schema([
-                        TextEntry::make('total_ht_br')
-                            ->label('Total avant remise HT')->money('EUR'),
-                        TextEntry::make('total_ht')
-                            ->label('Total HT')->money('EUR'),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('total_ht_br')
+                                    ->label('Total avant remise HT')->money('EUR'),
+                                TextEntry::make('total_ht')
+                                    ->label('Total HT')->money('EUR'),
+                                TextEntry::make('tx_tva')
+                                    ->label('Taux TVA'),
+                                TextEntry::make('tva')
+                                    ->label('Montant TVA')->money('EUR'),
+                            ]),
+                        TextEntry::make('total_ttc')->money('EUR')
+                            ->label('Total TTC'),
                     ]),
-                Grid::make(2)
-                    ->schema([
-                        TextEntry::make('tx_tva')
-                            ->label('Taux TVA'),
-                        TextEntry::make('tva')
-                            ->label('Montant TVA')->money('EUR'),
-                    ]),
-                TextEntry::make('total_ttc')->money('EUR')
-                    ->label('Total TTC'),
             ]);
     }
 }

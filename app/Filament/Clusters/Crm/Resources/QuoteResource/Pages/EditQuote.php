@@ -16,6 +16,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use App\Models\States\Quote\Validated;
 use App\Models\States\Quote\QuoteState;
 use Filament\Forms\Components\TextInput;
@@ -192,76 +193,88 @@ class EditQuote extends EditRecord
             ->slideOver();
     }
 
+    /**
+     * Le contenu du volet, en cartes compactes posées sur son fond : le devis et son client, ses
+     * montants, puis ses versions.
+     */
     public function infolist(Schema $schema): Schema
     {
         return $schema
             ->record($this->getRecord())
             ->components([
-                Grid::make(3)
+                Section::make('Devis')
+                    ->compact()
                     ->schema([
-                        TextEntry::make('code')
-                            ->label('Code'),
-                        TextEntry::make('state')
-                            ->label('État'),
-                        TextEntry::make('version')
-                            ->label('Version'),
+                        Grid::make(3)
+                            ->schema([
+                                TextEntry::make('code')
+                                    ->label('Code'),
+                                TextEntry::make('state')
+                                    ->label('État'),
+                                TextEntry::make('version')
+                                    ->label('Version'),
+                            ]),
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('company.title')
+                                    ->label('Client')
+                                    ->url(fn($record): string => route('filament.admin.crm.resources.companies.edit', ['record' => $record->company])),
+                                TextEntry::make('contact.full_name')
+                                    ->label('Contact')
+                                    ->url(fn($record): string => route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact])),
+                            ]),
                     ]),
-                Grid::make(2)
+                Section::make('Montants')
+                    ->compact()
                     ->schema([
-                        TextEntry::make('company.title')
-                            ->label('Client')
-                            ->url(fn($record): string => route('filament.admin.crm.resources.companies.edit', ['record' => $record->company])),
-                        TextEntry::make('contact.full_name')
-                            ->label('Contact')
-                            ->url(fn($record): string => route('filament.admin.crm.resources.contacts.edit', ['record' => $record->contact])),
-
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('total_ht_br')->money('EUR')
+                                    ->label('Total Av remise'),
+                                TextEntry::make('total_avant_options')->money('EUR')
+                                    ->label('Total hors options'),
+                                TextEntry::make('total_options')->money('EUR')
+                                    ->label('Total options'),
+                                TextEntry::make('total_ht')->money('EUR')
+                                    ->label('Total HT'),
+                                TextEntry::make('total_jours')
+                                    ->label('Total jours')
+                                    ->suffix(' j')
+                                    ->numeric(decimalPlaces: 2),
+                            ]),
                     ]),
-                Grid::make(2)
+                Section::make('Versions')
+                    ->compact()
                     ->schema([
-                        TextEntry::make('total_ht_br')->money('EUR')
-                            ->label('Total Av remise'),
-                        TextEntry::make('total_avant_options')->money('EUR')
-                            ->label('Total hors options'),
-                        TextEntry::make('total_options')->money('EUR')
-                            ->label('Total options'),
-                        TextEntry::make('total_ht')->money('EUR')
-                            ->label('Total HT'),
-                        TextEntry::make('total_jours')
-                            ->label('Total jours')
-                            ->suffix(' j')
-                            ->numeric(decimalPlaces: 2),
-
+                        ActionGroup::make([
+                            Action::make('activate_v')
+                                ->label('Activer ce devis')
+                                ->hidden(function ($record) {
+                                    $validatedExist = $record->hasOneVersionValidated();
+                                    $alreadyActive = $record->is_retained;
+                                    return $validatedExist || $alreadyActive;
+                                })
+                                ->action(function ($record) {
+                                    $record->swapRetainedQuote();
+                                })
+                                ->color('success'),
+                            Action::make('create_v')
+                                ->label('Nouvelle version')
+                                ->action(function ($record, $component) {
+                                    //\Log::info($this->form->getState());
+                                    $data = $this->form->getState();
+                                    $newRecord = $record->createNewVersion($data);
+                                    return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
+                                })->color('success'),
+                            Action::make('clean')
+                                ->label('Nettoyer autres V')
+                                ->action(function ($record) {
+                                    $record->cleanUnactive();
+                                })
+                                ->color('danger')
+                                ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0))
+                        ])->buttonGroup(),
                     ]),
-                ActionGroup::make([
-                    Action::make('activate_v')
-                        ->label('Activer ce devis')
-                        ->hidden(function ($record) {
-                            $validatedExist = $record->hasOneVersionValidated();
-                            $alreadyActive = $record->is_retained;
-                            return $validatedExist || $alreadyActive;
-                        })
-                        ->action(function ($record) {
-                            $record->swapRetainedQuote();
-                        })
-                        ->color('success'),
-                    Action::make('create_v')
-                        ->label('Nouvelle version')
-                        ->action(function ($record, $component) {
-                            //\Log::info($this->form->getState());
-                            $data = $this->form->getState();
-                            $newRecord = $record->createNewVersion($data);
-                            return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
-                        })->color('success'),
-                    Action::make('clean')
-                        ->label('Nettoyer autres V')
-                        ->action(function ($record) {
-                            $record->cleanUnactive();
-                        })
-                        ->color('danger')
-                        ->disabled(fn($record) => !$record->is_retained || !($record->cleanUnactiveTest() > 0))
-                ])->buttonGroup(),
-
-
             ]);
     }
 }
