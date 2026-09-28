@@ -21,7 +21,6 @@ use App\Models\States\Quote\QuoteState;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
-use Filament\Schemas\Components\Group;
 use CharlesStOlive\FilamentUi\Split\SidePane;
 use CharlesStOlive\FilamentUi\Split\HasSidePane;
 use Filament\Forms\Components\DatePicker;
@@ -59,7 +58,7 @@ class EditQuote extends EditRecord
                 ->icon('heroicon-o-information-circle')
                 ->headerActions([$this->getInfoEditAction()])
                 ->closable(false)
-                ->schema([Group::make([EmbeddedSchema::make('infolist')])->extraAttributes(['class' => 'p-4'])]),
+                ->schema([EmbeddedSchema::make('infolist')]),
         ];
     }
 

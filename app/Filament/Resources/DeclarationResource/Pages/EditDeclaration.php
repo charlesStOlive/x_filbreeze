@@ -30,8 +30,7 @@ class EditDeclaration extends EditRecord
 
     /**
      * L'infolist dans le volet latéral de filament-ui : ouvert en permanence, à 40 % de la largeur par
-     * défaut. Ni bandeau, ni cadre, ni fond, ni marge : seulement ses sections, qui ont leurs titres et
-     * leurs cartes.
+     * défaut. Sans bandeau : ses sections portent leurs titres, leurs cartes se posent sur le fond du volet.
      *
      * @return array<string, SidePane>
      */
@@ -43,8 +42,6 @@ class EditDeclaration extends EditRecord
                 ->icon('heroicon-o-list-bullet')
                 ->closable(false)
                 ->hiddenHeader()
-                ->borderNone()
-                ->backgroundNone()
                 ->schema([EmbeddedSchema::make('infolist')]),
         ];
     }

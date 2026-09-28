@@ -20,7 +20,6 @@ use App\Models\States\Invoice\Submited;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\EmbeddedSchema;
-use Filament\Schemas\Components\Group;
 use CharlesStOlive\FilamentUi\Split\SidePane;
 use CharlesStOlive\FilamentUi\Split\HasSidePane;
 use CharlesStOlive\FilamentStateFusionEnhanced\Actions\StateFusionAction;
@@ -62,7 +61,7 @@ class EditInvoice extends EditRecord
                 ->icon('heroicon-o-information-circle')
                 ->headerActions([$this->getInfoEditAction()])
                 ->closable(false)
-                ->schema([Group::make([EmbeddedSchema::make('infolist')])->extraAttributes(['class' => 'p-4'])]),
+                ->schema([EmbeddedSchema::make('infolist')]),
         ];
     }
 
