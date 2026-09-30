@@ -16,13 +16,8 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // Utiliser notre nouveau seeder de permissions avec wildcards
+        // Rôles et permissions (noms de filament-permission-manager, créés par permissions:sync).
         $this->call(RolePermissionSeeder::class);
-
-        // Seeders générés automatiquement disponibles (générer avec: php artisan permissions:generate-seeder)
-        // $this->call(PermissionSeeder::class);           // Toutes les permissions et rôles
-        // $this->call(CrmPermissionSeeder::class);        // Seulement le cluster CRM
-        // $this->call(PermissionsOnlySeeder::class);      // Seulement les permissions
 
         // Garder les autres seeders
         $this->call(SectorSeeder::class);
