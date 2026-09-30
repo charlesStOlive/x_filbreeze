@@ -9,6 +9,7 @@ use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Quote;
 use App\Models\User;
+use CharlesStOlive\FilamentPrism\Livewire\CorrectionReview;
 use CharlesStOlive\FilamentPrism\Models\AiInteraction;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,9 +65,18 @@ class AiCorrectionTest extends TestCase
         $test = Livewire::test(EditQuote::class, ['record' => $quote->getKey()])
             ->mountAction($this->correctionAction());
 
+        // La revue s'ouvre sur un brouillon ; « Envoyer » part à l'IA, « Tout appliquer » renvoie les valeurs à la page.
         $interaction = AiInteraction::sole();
+        $this->assertTrue($interaction->isDraft());
         $this->assertTrue($interaction->correctable->is($quote));
         $this->assertSame('Ligne 1 — description', $interaction->meta['labels']['item_1_description']);
+
+        Livewire::test(CorrectionReview::class, ['interactionId' => $interaction->getKey(), 'autoApply' => false])
+            ->call('submit')
+            ->call('applyAll');
+
+        $interaction->refresh();
+        $this->assertTrue($interaction->isStatus(AiInteraction::STATUS_ACCEPTED));
 
         // Seules les valeurs de l'interaction en base comptent, pas celles de l'événement.
         $test->dispatch('filament-prism:correction-applied', interactionId: $interaction->getKey(), values: [
@@ -95,7 +105,7 @@ class AiCorrectionTest extends TestCase
             'correctable_id' => $other->getKey(),
             'input' => ['title' => 'Autre'],
             'output' => ['title' => 'Piraté'],
-            'status' => 'applied',
+            'status' => AiInteraction::STATUS_ACCEPTED,
         ]);
 
         Livewire::test(EditInvoice::class, ['record' => $invoice->getKey()])

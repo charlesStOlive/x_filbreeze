@@ -91,7 +91,7 @@ class SupplierInvoiceExtractionTest extends TestCase
 
         $invoice->refresh();
         $this->assertInstanceOf(Validated::class, $invoice->state);
-        $this->assertSame('applied', AiInteraction::sole()->status);
+        $this->assertTrue(AiInteraction::sole()->isStatus(AiInteraction::STATUS_ACCEPTED));
         // Le nom lu sur la facture, différent du sien, devient un nom alternatif du fournisseur.
         $this->assertSame(['Hébergement du Nord'], $this->ovh->refresh()->alternative_names);
     }

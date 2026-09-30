@@ -98,7 +98,7 @@ class EmailDraftAiProcessorsTest extends TestCase
 
         $interaction = AiInteraction::sole();
         $this->assertSame('email-translation', $interaction->task);
-        $this->assertSame('applied', $interaction->status);
+        $this->assertTrue($interaction->isStatus(AiInteraction::STATUS_ACCEPTED));
         $this->assertTrue($interaction->correctable->is($email));
     }
 
@@ -154,7 +154,7 @@ class EmailDraftAiProcessorsTest extends TestCase
         $this->assertSame([], $this->client->updates);
         $this->assertSame([], $this->client->categories);
         $this->assertSame('<p>Hello</p>', $email->getServiceResult('d-trad', 'content'));
-        $this->assertSame('discarded', AiInteraction::sole()->status);
+        $this->assertTrue(AiInteraction::sole()->isStatus(AiInteraction::STATUS_DISCARDED));
     }
 
     public function test_a_code_without_language_is_blocked_before_any_call(): void
@@ -194,7 +194,7 @@ class EmailDraftAiProcessorsTest extends TestCase
         );
         $this->assertSame('Email corrigé et mis à jour', $email->getServiceResult('d-cor', 'message'));
         $this->assertSame(15, $email->getServiceResult('d-cor', 'tokens'));
-        $this->assertSame('applied', AiInteraction::sole()->status);
+        $this->assertTrue(AiInteraction::sole()->isStatus(AiInteraction::STATUS_ACCEPTED));
     }
 
     private function fakeTranslation(string $text): PrismFake
