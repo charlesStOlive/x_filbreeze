@@ -150,7 +150,9 @@ return [
      * See documentation to understand supported syntax.
      */
 
-    'enable_wildcard_permission' => true,
+    // Désactivé, comme dans les autres applications : les jokers (`crm.*`) sont gérés par filament-permission-manager
+    // (PermissionService), un seul mécanisme partout.
+    'enable_wildcard_permission' => false,
 
     /*
      * The class to use for interpreting wildcard permissions.
