@@ -14,6 +14,7 @@
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Livewire';
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Filament';
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/resources/views';
+@source '../../../../vendor/charlesstolive/filament-permission-manager/resources/**/*.blade.php';
 
 /* ===== HOOKS CSS POUR LA SIDEBAR - EXEMPLE 1: AVEC @apply ===== */
 

@@ -3,14 +3,12 @@
 namespace App\Filament\Clusters;
 
 use Filament\Clusters\Cluster;
-use CharlesStOlive\FilamentPermissionManager\Services\PermissionService;
+use CharlesStOlive\FilamentPermissionManager\Traits\HasClusterAuthorization;
 
 class Crm extends Cluster
 {
-    protected static string | \BackedEnum | null $navigationIcon = 'fas-bullseye';
+    // Accessible (menu et adresse) dès qu'une de ses listes l'est ; avant, il fallait le joker de toute la rubrique.
+    use HasClusterAuthorization;
 
-    public static function canAccess(): bool
-    {
-        return PermissionService::can('crm.*');
-    }
+    protected static string | \BackedEnum | null $navigationIcon = 'fas-bullseye';
 }

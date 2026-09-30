@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Services\Declarations\DeclarationCalculator;
+use CharlesStOlive\FilamentPermissionManager\Traits\HasWidgetPermission;
 use CharlesStOlive\FilamentQonto\Services\BankAccountsService;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -10,6 +11,9 @@ use Throwable;
 
 class TreasuryOverviewWidget extends StatsOverviewWidget
 {
+    // Solde bancaire et sommes dues à l'État : réservé à qui a `widgets.treasuryoverview.viewany`.
+    use HasWidgetPermission;
+
     protected ?string $heading = 'Trésorerie';
 
     protected function getStats(): array
