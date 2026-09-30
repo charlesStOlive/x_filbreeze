@@ -42,6 +42,18 @@ use App\Filament\Clusters\Crm\Resources\SupplierInvoiceResource\Pages\CreateSupp
 
 class SupplierInvoiceResource extends Resource
 {
+    /*
+     * Droits (filament-permission-manager) : actions propres ($specificPermissions, un nom à point range l'action dans
+     * une famille) et passages d'état (transitions à clé, sans filtrer la liste par état).
+     */
+    protected static ?string $permissionStateField = 'state';
+
+    protected static bool $permissionStateVisibility = false;
+
+    protected static array $specificPermissions = ['create-from-file'];
+
+    protected static array $permissionLabels = ['create-from-file' => 'Créer à partir de fichiers (lecture par l’IA)'];
+
     protected static ?string $model = SupplierInvoice::class;
 
     protected static ?string $cluster = Crm::class;

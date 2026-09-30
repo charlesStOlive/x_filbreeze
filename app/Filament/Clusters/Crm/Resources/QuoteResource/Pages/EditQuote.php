@@ -248,6 +248,7 @@ class EditQuote extends EditRecord
                     ->schema([
                         ActionGroup::make([
                             Action::make('activate_v')
+                                ->authorize(static::getResource().'.versions.activate')
                                 ->label('Activer ce devis')
                                 ->hidden(function ($record) {
                                     $validatedExist = $record->hasOneVersionValidated();
@@ -259,6 +260,7 @@ class EditQuote extends EditRecord
                                 })
                                 ->color('success'),
                             Action::make('create_v')
+                                ->authorize(static::getResource().'.versions.create')
                                 ->label('Nouvelle version')
                                 ->action(function ($record, $component) {
                                     //\Log::info($this->form->getState());
@@ -267,6 +269,7 @@ class EditQuote extends EditRecord
                                     return redirect()->to(QuoteResource::getUrl('edit', ['record' => $newRecord]));
                                 })->color('success'),
                             Action::make('clean')
+                                ->authorize(static::getResource().'.versions.clean')
                                 ->label('Nettoyer autres V')
                                 ->action(function ($record) {
                                     $record->cleanUnactive();

@@ -31,6 +31,7 @@ class ListSupplierInvoices extends ListRecords
     {
         return [
             AiResourceAction::make('createFromFile')
+                ->authorize(static::getResource().'.create-from-file')
                 ->aiResource('supplier-invoice-extraction')
                 ->label('Créer à partir de fichiers')
                 ->icon('heroicon-s-document-currency-euro')

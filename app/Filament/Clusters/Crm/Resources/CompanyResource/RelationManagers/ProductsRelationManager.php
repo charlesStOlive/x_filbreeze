@@ -76,6 +76,7 @@ class ProductsRelationManager extends RelationManager
                     ->templates([CompanyProductsExporter::class])
                     ->withRecord($this->getOwnerRecord()),    
                 ImportMaatExcelAction::make('importproduct')
+                    ->authorize(\App\Filament\Clusters\Crm\Resources\CompanyResource::class.'.products.import')
                     ->label('Importer les produits')
                     ->templates([CompanyProductsImporter::class])
                     ->withRecord($this->getOwnerRecord())

@@ -2,7 +2,10 @@
 
 namespace App\Services\Document\Filament\Actions;
 
+use App\Services\Document\DocumentPermissions;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
 abstract class BaseDocumentAction extends Action
@@ -10,6 +13,9 @@ abstract class BaseDocumentAction extends Action
     protected ?array $templates = null;
     protected mixed $contextRecord = null;
     protected mixed $contextQuery = null;
+
+    /** La liste (Resource) dont les droits décident des modèles proposés ; déduite de la page si non donnée. */
+    protected ?string $permissionResource = null;
 
     /**
      * Définir les templates disponibles pour cette action
@@ -38,8 +44,26 @@ abstract class BaseDocumentAction extends Action
         return $this;
     }
 
+    /** La Resource dont les droits décident des modèles proposés, si la page ne permet pas de la déduire. */
+    public function permissionResource(string $resource): static
+    {
+        $this->permissionResource = $resource;
+
+        return $this;
+    }
+
     /**
-     * Obtenir les templates disponibles pour un enregistrement donné
+     * La famille de droits de cette action (`pdf`, `email`, `excel`, voir DocumentPermissions) ; `null` : pas de droits.
+     */
+    protected function getPermissionFamily(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Obtenir les templates disponibles pour un enregistrement donné : ceux que l'utilisateur a le droit d'utiliser
+     * (`{liste}.{famille}.{clé}`, ability `{Resource}.{famille}.{clé}` de filament-permission-manager). Un modèle
+     * dont la liste ne déclare pas la permission reste proposé.
      */
     protected function getTemplatesForRecord($record = null): array
     {
@@ -49,7 +73,38 @@ abstract class BaseDocumentAction extends Action
 
         $this->validateTemplateCompatibility();
 
-        return $this->templates;
+        $family = $this->getPermissionFamily();
+        $resource = $family === null ? null : $this->resolvePermissionResource($record);
+
+        if ($resource === null) {
+            return $this->templates;
+        }
+
+        return array_values(array_filter($this->templates, function (string $template) use ($resource, $family, $record): bool {
+            $ability = $resource.'.'.DocumentPermissions::permission($family, $template);
+
+            return ! Gate::has($ability) || Gate::allows($ability, is_object($record) ? [$record] : []);
+        }));
+    }
+
+    /** La Resource de la page (ou du propriétaire, dans un gestionnaire de relations), sinon celle du modèle. */
+    protected function resolvePermissionResource($record = null): ?string
+    {
+        if ($this->permissionResource !== null) {
+            return $this->permissionResource;
+        }
+
+        $livewire = $this->getLivewire();
+
+        if ($livewire !== null && method_exists($livewire, 'getResource')) {
+            return $livewire::getResource();
+        }
+
+        if ($livewire !== null && method_exists($livewire, 'getOwnerRecord') && $livewire->getOwnerRecord() !== null) {
+            return Filament::getModelResource($livewire->getOwnerRecord());
+        }
+
+        return is_object($record) ? Filament::getModelResource($record) : null;
     }
 
     /**
@@ -130,6 +185,10 @@ abstract class BaseDocumentAction extends Action
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Sans modèle permis, pas de bouton. Une action sans liste de modèles garde son comportement d'avant.
+        $this->authorize(fn ($record = null): bool => $this->templates === null
+            || $this->getTemplatesForRecord($this->contextRecord ?? $this->contextQuery ?? $record) !== []);
 
         $this
             ->modalWidth('7xl')

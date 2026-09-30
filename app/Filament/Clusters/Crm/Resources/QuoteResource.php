@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use App\Services\Document\DocumentPermissions;
 use Filament\Tables\Columns\TextColumn;
 use Str;
 use Filament\Actions\EditAction;
@@ -38,6 +39,32 @@ use BackedEnum;
 
 class QuoteResource extends Resource
 {
+    /*
+     * Droits (filament-permission-manager) : actions propres ($specificPermissions, un nom à point range l'action dans
+     * une famille), éditions calculées (permissionActions()), passages d'état (transitions à clé, sans filtrer la liste par état).
+     */
+    protected static ?string $permissionStateField = 'state';
+
+    protected static bool $permissionStateVisibility = false;
+
+    protected static array $specificPermissions = ['duplicate', 'debug', 'versions.create', 'versions.activate', 'versions.clean'];
+
+    protected static array $permissionLabels = [
+        'duplicate' => 'Dupliquer',
+        'debug' => 'Outils de mise au point (voir le schéma)',
+        'versions.create' => 'Créer une nouvelle version',
+        'versions.activate' => 'Activer une version',
+        'versions.clean' => 'Nettoyer les autres versions',
+    ];
+
+    protected static array $permissionFamilies = ['versions' => 'Versions', ...DocumentPermissions::FAMILIES];
+
+    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres : voir DocumentPermissions. */
+    public static function permissionActions(): array
+    {
+        return DocumentPermissions::actionsFor(static::getModel());
+    }
+
     protected static ?string $model = Quote::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'fas-file-invoice';
@@ -85,6 +112,7 @@ class QuoteResource extends Resource
                 EditAction::make()
                     ->iconButton(),
                 Action::make('voir_schema')
+                    ->authorize(static::class.'.debug')
                     ->iconButton()
                     ->label('Voir le schéma')
                     ->icon('heroicon-o-chart-bar')
@@ -396,6 +424,7 @@ class QuoteResource extends Resource
     public static function getDuplicateAction()
     {
         return Action::make('duplicate')
+            ->authorize(static::class.'.duplicate')
             ->label('Dupliquer')
             ->icon('heroicon-s-document-duplicate')
             ->modalHeading('Dupliquer')
@@ -559,6 +588,7 @@ class QuoteResource extends Resource
         return [
             Actions::make([
                 Action::make('activate_v')
+                    ->authorize(static::class.'.versions.activate')
                     ->label(fn($record) => $record->is_retained ? 'Devis Actif' : 'Activer ce devis')
                     ->disabled(fn($record) => $record->is_retained)
                     ->action(function ($record) {

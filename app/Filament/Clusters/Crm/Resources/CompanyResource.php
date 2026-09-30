@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use App\Services\Document\DocumentPermissions;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Section;
@@ -49,6 +50,25 @@ use Filament\Actions\DeleteAction;
 
 class CompanyResource extends Resource
 {
+    /*
+     * Droits (filament-permission-manager) : actions propres ($specificPermissions, un nom à point range l'action dans
+     * une famille), éditions calculées (permissionActions()).
+     */
+    protected static array $specificPermissions = ['extract-address', 'products.import'];
+
+    protected static array $permissionLabels = [
+        'extract-address' => 'Extraire l’adresse (IA)',
+        'products.import' => 'Importer des produits',
+    ];
+
+    protected static array $permissionFamilies = ['products' => 'Produits', ...DocumentPermissions::FAMILIES];
+
+    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres : voir DocumentPermissions. */
+    public static function permissionActions(): array
+    {
+        return DocumentPermissions::actionsFor(static::getModel());
+    }
+
     protected static ?string $model = Company::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-building-office';
@@ -130,6 +150,7 @@ class CompanyResource extends Resource
                         Section::make('Localisation')
                             ->headerActions([
                                 Action::make('extractAddress')
+                                    ->authorize(static::class.'.extract-address')
                                     ->label('Extraire adresse')
                                     ->icon('heroicon-o-map-pin')
                                     ->schema([

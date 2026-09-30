@@ -205,6 +205,12 @@ class GenerateMsGraphEmailDraft extends BaseDocumentAction
         }
     }
 
+    /** Ses droits : `{liste}.email.{clé du modèle}` (voir DocumentPermissions). */
+    protected function getPermissionFamily(): ?string
+    {
+        return 'email';
+    }
+
     protected function getExpectedTemplateType(): string
     {
         return \App\Services\MsGraph\EmailDraft\Base\BaseDraftEmailTemplate::class;

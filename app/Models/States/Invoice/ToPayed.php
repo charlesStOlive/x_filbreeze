@@ -20,6 +20,9 @@ use Filament\Support\Contracts\HasLabel;
 
 class ToPayed extends Transition implements FilamentSpatieTransition, HasIcon, HasColor, HasLabel
 {
+    /** Clé de sa permission : `{liste}.transition.encaisser` (filament-permission-manager) ; seules les transitions faites par une personne en ont une. */
+    public static string $key = 'encaisser';
+
     use ProvidesSpatieTransitionToFilament;
 
     // private Invoice $invoice;

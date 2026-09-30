@@ -102,6 +102,12 @@ class GeneratePdfDownload extends BaseDocumentAction
         return $template->download();
     }
 
+    /** Ses droits : `{liste}.pdf.{clé du modèle}` (voir DocumentPermissions). */
+    protected function getPermissionFamily(): ?string
+    {
+        return 'pdf';
+    }
+
     protected function getExpectedTemplateType(): string
     {
         return \App\Services\Pdf\Base\BasePdfTemplate::class;

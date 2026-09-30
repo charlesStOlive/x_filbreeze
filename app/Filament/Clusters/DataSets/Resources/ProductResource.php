@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\DataSets\Resources;
 
+use App\Services\Document\DocumentPermissions;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
@@ -30,6 +31,22 @@ use CharlesStOlive\FilamentPermissionManager\Traits\HasFilamentAuthorization;
 class ProductResource extends Resource
 {
     use HasFilamentAuthorization;
+
+    /*
+     * Droits (filament-permission-manager) : actions propres ($specificPermissions, un nom à point range l'action dans
+     * une famille), éditions calculées (permissionActions()).
+     */
+    protected static array $specificPermissions = ['import'];
+
+    protected static array $permissionLabels = ['import' => 'Importer des produits'];
+
+    protected static array $permissionFamilies = DocumentPermissions::FAMILIES;
+
+    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres : voir DocumentPermissions. */
+    public static function permissionActions(): array
+    {
+        return DocumentPermissions::actionsFor(static::getModel());
+    }
 
     protected static ?string $model = Product::class;
 

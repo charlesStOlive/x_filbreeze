@@ -40,6 +40,7 @@ class ListProducts extends ListRecords
             CreateAction::make(),
             ActionGroup::make([
                 ImportMaatExcelAction::make('importproduct')
+                    ->authorize(static::getResource().'.import')
                     ->label('Importer les produits')
                     ->icon('heroicon-o-cloud-arrow-up')
                     ->templates([ProductImporter::class])

@@ -21,6 +21,9 @@ use Filament\Support\Contracts\HasIcon;
 
 class ToCanceled extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
 {
+    /** Clé de sa permission : `{liste}.transition.abandonner` (filament-permission-manager) ; seules les transitions faites par une personne en ont une. */
+    public static string $key = 'abandonner';
+
     use ProvidesSpatieTransitionToFilament;
     public function __construct(
         private Invoice $invoice,

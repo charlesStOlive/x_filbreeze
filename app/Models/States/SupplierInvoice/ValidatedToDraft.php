@@ -15,6 +15,9 @@ use A909M\FilamentStateFusion\Contracts\HasFilamentStateFusion as FilamentSpatie
 
 class ValidatedToDraft extends Transition implements FilamentSpatieTransition, HasColor, HasLabel, HasIcon
 {
+    /** Clé de sa permission : `{liste}.transition.annuler-validation` (filament-permission-manager) ; seules les transitions faites par une personne en ont une. */
+    public static string $key = 'annuler-validation';
+
     use ProvidesSpatieTransitionToFilament;
 
     public function __construct(

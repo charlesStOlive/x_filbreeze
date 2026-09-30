@@ -60,6 +60,7 @@ class EditDeclaration extends EditRecord
     {
         return [
             Action::make('refreshCalculation')
+                ->authorize(static::getResource().'.recalculate')
                 ->label('Rafraîchir le calcul')
                 ->icon('heroicon-o-arrow-path')
                 ->visible(fn (): bool => $this->getRecord()->status === 'draft' && $this->getRecord()->calculation_mode === Declaration::MODE_AUTOMATIC)

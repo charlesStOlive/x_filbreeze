@@ -102,6 +102,12 @@ class ExportMaatExcelAction extends BaseDocumentAction
         }
     }
 
+    /** Ses droits : `{liste}.excel.{clé du modèle}` (voir DocumentPermissions). */
+    protected function getPermissionFamily(): ?string
+    {
+        return 'excel';
+    }
+
     protected function getExpectedTemplateType(): string
     {
         return \App\Services\MaatExports\Base\BaseExcelTemplate::class;

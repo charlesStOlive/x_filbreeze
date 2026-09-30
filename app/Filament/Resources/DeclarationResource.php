@@ -19,6 +19,14 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DeclarationResource extends Resource
 {
+    /*
+     * Droits (filament-permission-manager) : actions propres ($specificPermissions, un nom à point range l'action dans
+     * une famille).
+     */
+    protected static array $specificPermissions = ['recalculate'];
+
+    protected static array $permissionLabels = ['recalculate' => 'Rafraîchir le calcul'];
+
     protected static ?string $model = Declaration::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calculator';

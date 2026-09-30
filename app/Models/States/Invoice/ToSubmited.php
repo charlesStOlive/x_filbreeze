@@ -24,6 +24,9 @@ use Filament\Support\Contracts\HasIcon;
 
 class ToSubmited extends Transition implements FilamentSpatieTransition ,HasColor, HasLabel, HasIcon
 {
+    /** Clé de sa permission : `{liste}.transition.finaliser` (filament-permission-manager) ; seules les transitions faites par une personne en ont une. */
+    public static string $key = 'finaliser';
+
     use ProvidesSpatieTransitionToFilament;
 
     public function __construct(

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use App\Services\Document\DocumentPermissions;
 
 use Str;
 use App\Models\Quote;
@@ -43,6 +44,32 @@ use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\ListInvoices;
 
 class InvoiceResource extends Resource
 {
+    /*
+     * Droits (filament-permission-manager) : actions propres ($specificPermissions, un nom à point range l'action dans
+     * une famille), éditions calculées (permissionActions()), passages d'état (transitions à clé, sans filtrer la liste par état).
+     */
+    protected static ?string $permissionStateField = 'state';
+
+    protected static bool $permissionStateVisibility = false;
+
+    protected static array $specificPermissions = ['duplicate', 'debug', 'qonto.draft', 'qonto.send', 'qonto.sync-status'];
+
+    protected static array $permissionLabels = [
+        'duplicate' => 'Dupliquer',
+        'debug' => 'Outils de mise au point (voir le schéma, test Mermaid)',
+        'qonto.draft' => 'Créer ou mettre à jour le brouillon',
+        'qonto.send' => 'Envoyer la facture électronique',
+        'qonto.sync-status' => 'Synchroniser le statut',
+    ];
+
+    protected static array $permissionFamilies = ['qonto' => 'Qonto', ...DocumentPermissions::FAMILIES];
+
+    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres : voir DocumentPermissions. */
+    public static function permissionActions(): array
+    {
+        return DocumentPermissions::actionsFor(static::getModel());
+    }
+
     protected static ?string $model = Invoice::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-s-document-currency-dollar';
@@ -131,6 +158,7 @@ class InvoiceResource extends Resource
                     ->openUrlInNewTab()
                     ->visible(fn (Invoice $record): bool => filled($record->qonto_invoice_url)),
                 Action::make('syncQontoStatus')
+                    ->authorize(static::class.'.qonto.sync-status')
                     ->label('Synchroniser statut Qonto')
                     ->icon('heroicon-o-arrow-path')
                     ->iconButton()
@@ -167,6 +195,7 @@ class InvoiceResource extends Resource
                 EditAction::make()
                     ->iconButton(),
                 Action::make('voir_schema')
+                    ->authorize(static::class.'.debug')
                     ->iconButton()
                     ->label('Voir le schéma')
                     ->icon('heroicon-o-chart-bar')
@@ -182,6 +211,7 @@ class InvoiceResource extends Resource
                     ])
                     ->modalWidth('7xl'),
                 Action::make('test_mermaid')
+                    ->authorize(static::class.'.debug')
                     ->iconButton()
                     ->label('Test Mermaid')
                     ->icon('heroicon-o-bug-ant')
@@ -666,6 +696,7 @@ class InvoiceResource extends Resource
     public static function getDuplicateAction(): Action
     {
         return Action::make('duplicate')
+            ->authorize(static::class.'.duplicate')
             ->label('Dupliquer')
             ->icon('heroicon-s-document-duplicate')
             ->color('gray')

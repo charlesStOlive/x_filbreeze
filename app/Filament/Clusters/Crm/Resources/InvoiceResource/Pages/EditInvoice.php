@@ -165,6 +165,7 @@ class EditInvoice extends EditRecord
     {
         return ActionGroup::make([
             Action::make('sync_qonto_draft')
+                ->authorize(static::getResource().'.qonto.draft')
                 ->label(fn($record): string => filled($record?->qonto_invoice_id) ? 'Mettre à jour brouillon' : 'Créer brouillon')
                 ->icon('heroicon-o-cloud-arrow-up')
                 ->color('gray')
@@ -177,6 +178,7 @@ class EditInvoice extends EditRecord
                     'Brouillon Qonto synchronisé',
                 )),
             Action::make('refresh_qonto_invoice')
+                ->authorize(static::getResource().'.qonto.sync-status')
                 ->label('Synchroniser statut')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
@@ -187,6 +189,7 @@ class EditInvoice extends EditRecord
                     saveBefore: false,
                 )),
             Action::make('send_qonto_einvoice')
+                ->authorize(static::getResource().'.qonto.send')
                 ->label('Envoyer e-invoicing')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
