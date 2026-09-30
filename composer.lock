@@ -4,96 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c6cc9baf0a35fe395f005b03fbae79ad",
+    "content-hash": "6512887a52438a12057bcfa8793c5981",
     "packages": [
-        {
-            "name": "a909m/filament-statefusion",
-            "version": "v2.3.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/A909M/Filament-StateFusion.git",
-                "reference": "ad8904426012c51255670bcd30520ca031bb71a8"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/A909M/Filament-StateFusion/zipball/ad8904426012c51255670bcd30520ca031bb71a8",
-                "reference": "ad8904426012c51255670bcd30520ca031bb71a8",
-                "shasum": ""
-            },
-            "require": {
-                "filament/filament": "^4.0|^5.0",
-                "php": "^8.2",
-                "spatie/laravel-model-states": "^2.10",
-                "spatie/laravel-package-tools": "^1.15.0"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.24",
-                "nunomaduro/collision": "^8.8",
-                "nunomaduro/larastan": "^3.7",
-                "orchestra/testbench": "^8.0|^9.0|^10.0",
-                "pestphp/pest": "^4.1",
-                "pestphp/pest-plugin-arch": "^4.0",
-                "phpstan/extension-installer": "^1.4"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "aliases": {
-                        "FilamentStateFusion": "A909M\\FilamentStateFusion\\Facades\\FilamentStateFusion"
-                    },
-                    "providers": [
-                        "A909M\\FilamentStateFusion\\FilamentStateFusionServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "A909M\\FilamentStateFusion\\": "src/",
-                    "A909M\\FilamentStateFusion\\Database\\Factories\\": "database/factories/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "A909M",
-                    "email": "assemcc2022@gmail.com",
-                    "role": "Developer"
-                }
-            ],
-            "description": "Filament StateFusion is a powerful FilamentPHP plugin that seamlessly integrates Spatie Laravel Model States into the Filament admin panel. This package provides an intuitive way to manage model states, transitions, and filtering within Filament, enhancing the user experience and developer productivity.",
-            "homepage": "https://github.com/a909m/filament-statefusion",
-            "keywords": [
-                "A909M",
-                "admin-panel",
-                "filament",
-                "filament-admin",
-                "filament-form",
-                "filament-infolist",
-                "filament-plugin",
-                "filament-statefusion",
-                "filament-table",
-                "filamentphp",
-                "laravel",
-                "spatie",
-                "stae-p",
-                "state-machine",
-                "state-management"
-            ],
-            "support": {
-                "issues": "https://github.com/a909m/filament-statefusion/issues",
-                "source": "https://github.com/a909m/filament-statefusion"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/A909M",
-                    "type": "github"
-                }
-            ],
-            "time": "2026-01-16T21:21:14+00:00"
-        },
         {
             "name": "anourvalar/eloquent-serialize",
             "version": "1.3.12",
@@ -632,16 +544,10 @@
         {
             "name": "charlesstolive/filament-permission-manager",
             "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:charlesStOlive/filament-permission-manager.git",
-                "reference": "811df5adf37c2111e321beb753640597b103cd40"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-permission-manager/zipball/811df5adf37c2111e321beb753640597b103cd40",
-                "reference": "811df5adf37c2111e321beb753640597b103cd40",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages_filament/filament-permission-manager",
+                "reference": "529bfd60cdf39f1b51756dcba4f9be44e80d1556"
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -658,7 +564,6 @@
                 "pestphp/pest-plugin-arch": "^2.0",
                 "pestphp/pest-plugin-laravel": "^2.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -723,11 +628,10 @@
                 "roles",
                 "spatie"
             ],
-            "support": {
-                "source": "https://github.com/charlesStOlive/filament-permission-manager/tree/main",
-                "issues": "https://github.com/charlesStOlive/filament-permission-manager/issues"
-            },
-            "time": "2026-07-03T19:04:41+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "charlesstolive/filament-prism",
@@ -778,16 +682,10 @@
         {
             "name": "charlesstolive/filament-qonto",
             "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:charlesStOlive/filament-qonto.git",
-                "reference": "73e3506a36b5b6082b553751b475cc7e208b4508"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/73e3506a36b5b6082b553751b475cc7e208b4508",
-                "reference": "73e3506a36b5b6082b553751b475cc7e208b4508",
-                "shasum": ""
+                "type": "path",
+                "url": "../packages_filament/filament-qonto",
+                "reference": "4c8b968e43d8dcf2ab983c79b2dedda4a7820645"
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -800,7 +698,6 @@
                 "orchestra/testbench": "^10.0|^11.0",
                 "phpunit/phpunit": "^11.0|^12.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -834,35 +731,34 @@
                 "MIT"
             ],
             "description": "Integration Qonto Business API pour Laravel et Filament: transactions, clients, factures et Factur-X.",
-            "support": {
-                "source": "https://github.com/charlesStOlive/filament-qonto/tree/master",
-                "issues": "https://github.com/charlesStOlive/filament-qonto/issues"
-            },
-            "time": "2026-09-10T16:28:34+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "charlesstolive/filament-state-fusion-enhanced",
             "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com//charlesStOlive/filament-state-fusion-enhancedV2.git",
-                "reference": "350311c8124528be0fb586401c3f8090f1460125"
+            "dist": {
+                "type": "path",
+                "url": "../packages_filament/filament-state-fusion-enhanced",
+                "reference": "bf89f8982bde8d2581ffefcfc186291b4032cc6a"
             },
             "require": {
-                "a909m/filament-statefusion": "^2.0",
                 "filament/filament": "^5.0",
-                "php": "^8.2|^8.3|^8.4",
-                "spatie/laravel-model-states": "^2.0"
+                "php": "^8.2",
+                "spatie/laravel-model-states": "^2.10",
+                "spatie/laravel-package-tools": "^1.15"
+            },
+            "replace": {
+                "a909m/filament-statefusion": "2.3.0"
             },
             "require-dev": {
-                "laravel/pint": "^1.0",
-                "nunomaduro/collision": "^7.9|^8.0",
+                "laravel/pint": "^1.24",
                 "orchestra/testbench": "^9.0|^10.0|^11.0",
-                "pestphp/pest": "^2.1",
-                "pestphp/pest-plugin-arch": "^2.0",
-                "pestphp/pest-plugin-laravel": "^2.0"
+                "pestphp/pest": "^3.0|^4.0",
+                "pestphp/pest-plugin-laravel": "^3.0|^4.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -874,7 +770,10 @@
             "autoload": {
                 "psr-4": {
                     "CharlesStOlive\\FilamentStateFusionEnhanced\\": "src/"
-                }
+                },
+                "files": [
+                    "compat/a909m-aliases.php"
+                ]
             },
             "autoload-dev": {
                 "psr-4": {
@@ -882,24 +781,8 @@
                 }
             },
             "scripts": {
-                "post-autoload-dump": [
-                    "@composer run prepare"
-                ],
-                "clear": [
-                    "@php vendor/bin/testbench package:purge-skeleton --ansi"
-                ],
-                "prepare": [
-                    "@php vendor/bin/testbench package:discover --ansi"
-                ],
-                "build": [
-                    "@composer run prepare",
-                    "@php vendor/bin/pint"
-                ],
                 "test": [
                     "vendor/bin/pest"
-                ],
-                "test-coverage": [
-                    "vendor/bin/pest --coverage"
                 ],
                 "format": [
                     "vendor/bin/pint"
@@ -915,8 +798,8 @@
                     "role": "Developer"
                 }
             ],
-            "description": "Enhanced Filament State Fusion with unified state analysis, Mermaid diagrams, and advanced formatters",
-            "homepage": "https://github.com/charlesstolive/filament-state-fusion-enhanced",
+            "description": "Spatie model states in Filament: transition actions, state filters/columns/fields, a states generator and Mermaid diagrams (includes the former a909m/filament-statefusion)",
+            "homepage": "https://github.com/charlesStOlive/filament-state-fusion-enhancedV2",
             "keywords": [
                 "diagram",
                 "filament",
@@ -926,7 +809,10 @@
                 "spatie",
                 "states"
             ],
-            "time": "2026-08-10T09:40:25+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "charlesstolive/filament-ui",
