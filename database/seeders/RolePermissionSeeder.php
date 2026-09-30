@@ -95,7 +95,7 @@ class RolePermissionSeeder extends Seeder
         }
 
         // Créer les rôles
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate(['name' => 'Super Admin']);
         $userRole = Role::firstOrCreate(['name' => 'user']);
         $crmManagerRole = Role::firstOrCreate(['name' => 'crm_manager']);
         $productManagerRole = Role::firstOrCreate(['name' => 'product_manager']);
@@ -131,7 +131,7 @@ class RolePermissionSeeder extends Seeder
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
             ]
         );
-        $admin->syncRoles(['admin']);
+        $admin->syncRoles(['Super Admin']);
 
         // Créer un utilisateur CRM Manager
         $crmManager = \App\Models\User::updateOrCreate(

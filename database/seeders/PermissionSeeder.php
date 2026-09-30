@@ -156,7 +156,7 @@ class PermissionSeeder extends Seeder
      */
     private function createRoles(): void
     {
-        Role::firstOrCreate(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'Super Admin']);
         Role::firstOrCreate(['name' => 'user']);
         Role::firstOrCreate(['name' => 'crm_manager']);
         Role::firstOrCreate(['name' => 'product_manager']);
@@ -168,8 +168,8 @@ class PermissionSeeder extends Seeder
      */
     private function assignPermissionsToRoles(): void
     {
-        // Permissions pour le rôle 'admin'
-        $roleadmin = Role::where('name', 'admin')->first();
+        // Permissions pour le rôle 'Super Admin' (le même nom dans toutes les applications)
+        $roleadmin = Role::where('name', 'Super Admin')->first();
         $roleadmin->givePermissionTo([
             'admin.*', 'users.*', 'roles.*',
             'permissions.*', 'permission.*', 'permission.view',
