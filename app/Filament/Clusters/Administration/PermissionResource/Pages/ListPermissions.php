@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\PermissionResource\Pages;
+namespace App\Filament\Clusters\Administration\PermissionResource\Pages;
 
-use App\Filament\Resources\PermissionResource;
+use App\Filament\Clusters\Administration\PermissionResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
