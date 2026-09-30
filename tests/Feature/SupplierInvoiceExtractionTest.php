@@ -43,7 +43,7 @@ class SupplierInvoiceExtractionTest extends TestCase
         Storage::fake('public');
         Storage::fake('sharepoint');
         Storage::fake(FileUploadConfiguration::disk());
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->crmManager()->create());
 
         // Le scan (texte du PDF/OCR) est hors sujet ici : on fixe le texte « lu ».
         $this->app->instance(FileProcessor::class, new class extends FileProcessor

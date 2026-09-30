@@ -15,7 +15,7 @@ class EditDeclarationInfolistTest extends TestCase
 
     public function test_the_infolist_renders_for_vat_and_urssaf_declarations(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'declaration.*')->create());
 
         $vat = Declaration::create([
             'type' => Declaration::TYPE_VAT,

@@ -29,7 +29,7 @@ class SidePaneTest extends TestCase
     {
         parent::setUp();
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->crmManager()->withPermissions('declaration.*')->create());
     }
 
     public function test_the_quote_shows_its_infolist_in_the_side_pane(): void

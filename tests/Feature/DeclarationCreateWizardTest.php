@@ -15,7 +15,7 @@ class DeclarationCreateWizardTest extends TestCase
 
     public function test_the_popup_creates_a_declaration_for_the_chosen_period_and_frequency(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'declaration.*')->create());
 
         Livewire::test(ListDeclarations::class)
             ->mountAction('create')

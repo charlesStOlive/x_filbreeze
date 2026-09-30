@@ -31,7 +31,7 @@ class AiCorrectionTest extends TestCase
         parent::setUp();
 
         config(['prism.providers.openai.api_key' => 'test-key']);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->crmManager()->create());
     }
 
     public function test_the_quote_texts_and_its_lines_are_sent_and_applied(): void
