@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6512887a52438a12057bcfa8793c5981",
+    "content-hash": "c6cc9baf0a35fe395f005b03fbae79ad",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -494,7 +494,7 @@
             "dist": {
                 "type": "path",
                 "url": "../packages_filament/filament-msgraph-email",
-                "reference": "87bba4629b262f2c611383426720e6204275edb7"
+                "reference": "383083128483a74d2030bd9ad2efba204d599c68"
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -544,10 +544,16 @@
         {
             "name": "charlesstolive/filament-permission-manager",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-permission-manager.git",
+                "reference": "d9087ce6899f04aee07f0b9815ff728a74ea7807"
+            },
             "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-permission-manager",
-                "reference": "529bfd60cdf39f1b51756dcba4f9be44e80d1556"
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-permission-manager/zipball/d9087ce6899f04aee07f0b9815ff728a74ea7807",
+                "reference": "d9087ce6899f04aee07f0b9815ff728a74ea7807",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -564,6 +570,7 @@
                 "pestphp/pest-plugin-arch": "^2.0",
                 "pestphp/pest-plugin-laravel": "^2.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -628,10 +635,11 @@
                 "roles",
                 "spatie"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-permission-manager/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-permission-manager/issues"
+            },
+            "time": "2026-10-01T07:18:26+00:00"
         },
         {
             "name": "charlesstolive/filament-prism",
@@ -639,7 +647,7 @@
             "dist": {
                 "type": "path",
                 "url": "../packages_filament/filament-prism",
-                "reference": "6d7fe338177a335a0e72d04cc1b10a567d03d150"
+                "reference": "1cf203cab2c91c85c7aa00c1f5df6f31f5f3f6b7"
             },
             "require": {
                 "charlesstolive/filament-state-fusion-enhanced": "dev-master",
@@ -682,10 +690,16 @@
         {
             "name": "charlesstolive/filament-qonto",
             "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-qonto.git",
+                "reference": "9a864bc2eb4a49d51fcc766639031b6a99def7a4"
+            },
             "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-qonto",
-                "reference": "4c8b968e43d8dcf2ab983c79b2dedda4a7820645"
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/9a864bc2eb4a49d51fcc766639031b6a99def7a4",
+                "reference": "9a864bc2eb4a49d51fcc766639031b6a99def7a4",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -698,6 +712,7 @@
                 "orchestra/testbench": "^10.0|^11.0",
                 "phpunit/phpunit": "^11.0|^12.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -731,17 +746,18 @@
                 "MIT"
             ],
             "description": "Integration Qonto Business API pour Laravel et Filament: transactions, clients, factures et Factur-X.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-qonto/tree/master",
+                "issues": "https://github.com/charlesStOlive/filament-qonto/issues"
+            },
+            "time": "2026-09-30T22:55:28+00:00"
         },
         {
             "name": "charlesstolive/filament-state-fusion-enhanced",
             "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-state-fusion-enhanced",
+            "source": {
+                "type": "git",
+                "url": "https://github.com//charlesStOlive/filament-state-fusion-enhancedV2.git",
                 "reference": "bf89f8982bde8d2581ffefcfc186291b4032cc6a"
             },
             "require": {
@@ -759,6 +775,7 @@
                 "pestphp/pest": "^3.0|^4.0",
                 "pestphp/pest-plugin-laravel": "^3.0|^4.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -809,10 +826,7 @@
                 "spatie",
                 "states"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "time": "2026-09-30T08:02:15+00:00"
         },
         {
             "name": "charlesstolive/filament-ui",

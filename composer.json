@@ -29,27 +29,6 @@
                 "symlink": true
             }
         },
-        "filament-permission-manager-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-permission-manager",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-state-fusion-enhanced-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-state-fusion-enhanced",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-qonto-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-qonto",
-            "options": {
-                "symlink": true
-            }
-        },
         "filament-permission-manager-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
