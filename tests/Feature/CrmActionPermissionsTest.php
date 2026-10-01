@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Clusters\Crm\Resources\InvoiceResource;
 use App\Filament\Clusters\Crm\Resources\InvoiceResource\Pages\EditInvoice;
+use Filament\Actions\Testing\TestAction;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Invoice;
@@ -92,5 +93,20 @@ class CrmActionPermissionsTest extends TestCase
             ->assertActionVisible('downloadPdf')
             ->assertActionVisible('state_submited')
             ->assertActionHidden('sync_qonto_draft');
+    }
+
+    public function test_the_ai_correction_needs_its_permission(): void
+    {
+        config(['prism.providers.openai.api_key' => 'test-key']);
+        $invoice = $this->invoice();
+        $correction = TestAction::make('aiCorrection')->schemaComponent('split-view.form-actions', 'content');
+        $base = ['panels.admin.access', 'crm.invoice.viewany', 'crm.invoice.view', 'crm.invoice.edit'];
+
+        $this->actingAs(User::factory()->withPermissions(...$base)->create());
+        // Une action refusée n'est pas posée du tout parmi les actions du formulaire.
+        Livewire::test(EditInvoice::class, ['record' => $invoice->getKey()])->assertActionDoesNotExist($correction);
+
+        $this->actingAs(User::factory()->withPermissions(...[...$base, 'crm.invoice.ai.orthography'])->create());
+        Livewire::test(EditInvoice::class, ['record' => $invoice->getKey()])->assertActionVisible($correction);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use CharlesStOlive\FilamentPrism\Support\AiPermissions;
 use App\Services\Document\DocumentPermissions;
 use Filament\Tables\Columns\TextColumn;
 use Str;
@@ -57,12 +58,12 @@ class QuoteResource extends Resource
         'versions.clean' => 'Nettoyer les autres versions',
     ];
 
-    protected static array $permissionFamilies = ['versions' => 'Versions', ...DocumentPermissions::FAMILIES];
+    protected static array $permissionFamilies = ['versions' => 'Versions', ...DocumentPermissions::FAMILIES, AiPermissions::FAMILY => 'Intelligence artificielle'];
 
-    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres : voir DocumentPermissions. */
+    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres (voir DocumentPermissions), et la correction orthographique (filament-prism). */
     public static function permissionActions(): array
     {
-        return DocumentPermissions::actionsFor(static::getModel());
+        return [...DocumentPermissions::actionsFor(static::getModel()), ...AiPermissions::actions(['orthography'])];
     }
 
     protected static ?string $model = Quote::class;

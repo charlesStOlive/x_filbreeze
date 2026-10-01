@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Crm\Resources;
 
+use CharlesStOlive\FilamentPrism\Support\AiPermissions;
 use App\Services\Document\DocumentPermissions;
 
 use Str;
@@ -62,12 +63,12 @@ class InvoiceResource extends Resource
         'qonto.sync-status' => 'Synchroniser le statut',
     ];
 
-    protected static array $permissionFamilies = ['qonto' => 'Qonto', ...DocumentPermissions::FAMILIES];
+    protected static array $permissionFamilies = ['qonto' => 'Qonto', ...DocumentPermissions::FAMILIES, AiPermissions::FAMILY => 'Intelligence artificielle'];
 
-    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres : voir DocumentPermissions. */
+    /** Les éditions (PDF, e-mails, exports) de ce modèle, lues dans leurs registres (voir DocumentPermissions), et la correction orthographique (filament-prism). */
     public static function permissionActions(): array
     {
-        return DocumentPermissions::actionsFor(static::getModel());
+        return [...DocumentPermissions::actionsFor(static::getModel()), ...AiPermissions::actions(['orthography'])];
     }
 
     protected static ?string $model = Invoice::class;
