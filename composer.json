@@ -49,6 +49,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        "filament-tma-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-tma",
+            "options": {
+                "symlink": true
+            }
         }
     },
     "require": {
@@ -58,6 +65,7 @@
         "charlesstolive/filament-permission-manager": "@dev",
         "charlesstolive/filament-prism": "dev-master",
         "charlesstolive/filament-state-fusion-enhanced": "dev-master",
+        "charlesstolive/filament-tma": "@dev",
         "charlesstolive/filament-ui": "dev-main",
         "filament/filament": "~5.0",
         "filament/spatie-laravel-media-library-plugin": "~5.0",

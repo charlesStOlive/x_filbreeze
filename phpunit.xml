@@ -28,5 +28,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="TMA_MODE" value="master"/>
+        <env name="TMA_INSTANCE_UID" value="01JTESTMASTER0000000000000"/>
+        <env name="TMA_TICKET_PREFIX" value="FIL"/>
     </php>
 </phpunit>

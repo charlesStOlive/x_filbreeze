@@ -17,6 +17,7 @@ use CharlesStOlive\FilamentStateFusionEnhanced\FilamentStateFusionEnhancedPlugin
 use CharlesStOlive\FilamentPermissionManager\FilamentPermissionManagerPlugin;
 use CharlesStOlive\MsGraphFilament\MsGraphFilamentPlugin;
 use CharlesStOlive\FilamentQonto\FilamentQontoPlugin;
+use CharlesStOlive\FilamentTma\FilamentTmaPlugin;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -52,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentStateFusionEnhancedPlugin::make(),
                 MsGraphFilamentPlugin::make(),
                 FilamentQontoPlugin::make(),
+                FilamentTmaPlugin::make(),
             ])
             ->maxContentWidth(Width::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

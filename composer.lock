@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7471d58b2305f88c0be3c68b78e43ea8",
+    "content-hash": "779460ba475d528382aaa23f6fe09ce3",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -808,6 +808,53 @@
                 "model-states",
                 "spatie",
                 "states"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "charlesstolive/filament-tma",
+            "version": "dev-lot-1",
+            "dist": {
+                "type": "path",
+                "url": "../packages_filament/filament-tma",
+                "reference": "70957d93175e4275a777a613b1de0cb1c8efa307"
+            },
+            "require": {
+                "charlesstolive/filament-state-fusion-enhanced": "dev-master",
+                "filament/filament": "^5.0",
+                "filament/spatie-laravel-media-library-plugin": "^5.0",
+                "php": "^8.3|^8.4",
+                "spatie/laravel-model-states": "^2.13",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "suggest": {
+                "charlesstolive/filament-permission-manager": "Crée les permissions déclarées par les Resources (tma.ticket.*) et les abilities qui les vérifient"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "CharlesStOlive\\FilamentTma\\FilamentTmaServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "CharlesStOlive\\FilamentTma\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Suivi de TMA et de tâches projet pour Filament : tickets, chronologie, temps, entre une application maître et des applications clientes",
+            "keywords": [
+                "filament",
+                "laravel",
+                "ticketing",
+                "tma"
             ],
             "transport-options": {
                 "symlink": true,
@@ -17395,6 +17442,7 @@
         "charlesstolive/filament-prism": 20,
         "charlesstolive/filament-qonto": 20,
         "charlesstolive/filament-state-fusion-enhanced": 20,
+        "charlesstolive/filament-tma": 20,
         "charlesstolive/filament-ui": 20
     },
     "prefer-stable": true,
