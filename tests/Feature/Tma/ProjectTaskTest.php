@@ -4,6 +4,7 @@ namespace Tests\Feature\Tma;
 
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
+use CharlesStOlive\FilamentTma\Enums\Side;
 use CharlesStOlive\FilamentTma\Events\TaskReceived;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tasks\Pages\CreateTask;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tasks\Pages\ViewTask;
@@ -145,7 +146,7 @@ class ProjectTaskTest extends TmaTestCase
 
         $received = ProjectTask::query()->sole();
         $this->assertSame('T-0001', $received->number);
-        $this->assertSame([\CharlesStOlive\FilamentTma\Enums\Side::Requester], $received->sidesHere());
+        $this->assertSame([Side::Requester], $received->sidesHere());
         $this->assertFalse($received->fieldsEditableHere());
         Event::assertDispatchedTimes(TaskReceived::class, 1);
     }

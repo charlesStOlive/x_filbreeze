@@ -4,12 +4,14 @@ namespace Tests\Feature\Tma;
 
 use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Events\CleanupFinished;
+use CharlesStOlive\FilamentTma\Filament\Resources\Audits\AuditResource;
 use CharlesStOlive\FilamentTma\Filament\Resources\Audits\Pages\ListAudits;
 use CharlesStOlive\FilamentTma\Models\Audit;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\Models\TimeEntry;
+use CharlesStOlive\FilamentTma\Support\Auditor;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use CharlesStOlive\FilamentTma\Workflow\TimeLog;
@@ -55,7 +57,7 @@ class AuditAndCleanupTest extends TmaTestCase
         $agent = $this->agent();
         $ticket = $this->serviceDeskTicket();
 
-        \CharlesStOlive\FilamentTma\Support\Auditor::as(Context::command($agent), fn () => app(TimeLog::class)->add($ticket, 30, null, 'Via commande', Context::command($agent)));
+        Auditor::as(Context::command($agent), fn () => app(TimeLog::class)->add($ticket, 30, null, 'Via commande', Context::command($agent)));
         $audit = Audit::query()->where('action', 'time.created')->sole();
         $this->assertSame('command', $audit->origin->value);
         $this->assertTrue($audit->actor->isUser($agent));
@@ -84,8 +86,8 @@ class AuditAndCleanupTest extends TmaTestCase
         app(TimeLog::class)->add($this->serviceDeskTicket(), 45, null, null, Context::ui(auth()->user()));
 
         Livewire::test(ListAudits::class)->assertCanSeeTableRecords(Audit::all());
-        $this->assertFalse(\CharlesStOlive\FilamentTma\Filament\Resources\Audits\AuditResource::canEdit(Audit::query()->first()));
-        $this->assertFalse(\CharlesStOlive\FilamentTma\Filament\Resources\Audits\AuditResource::canDelete(Audit::query()->first()));
+        $this->assertFalse(AuditResource::canEdit(Audit::query()->first()));
+        $this->assertFalse(AuditResource::canDelete(Audit::query()->first()));
     }
 
     public function test_cleanup_removes_what_is_old_and_keeps_what_is_invoiced(): void

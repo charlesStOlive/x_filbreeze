@@ -8,6 +8,7 @@ use CharlesStOlive\FilamentTma\Notifications\TicketMoveNotification;
 use CharlesStOlive\FilamentTma\Support\Digest;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
@@ -49,7 +50,7 @@ class NotificationsTest extends TmaTestCase
 
     public function test_the_digest_is_scheduled_on_working_days(): void
     {
-        $event = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+        $event = collect(app(Schedule::class)->events())
             ->first(fn ($e) => str_contains((string) $e->command, 'tma:digest'));
 
         $this->assertNotNull($event);

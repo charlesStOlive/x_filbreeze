@@ -4,6 +4,7 @@ namespace Tests\Feature\Tma;
 
 use App\Models\Company;
 use App\Models\User;
+use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Events\EntryAdded;
 use CharlesStOlive\FilamentTma\Events\TicketSyncFailed;
 use CharlesStOlive\FilamentTma\Models\Entry;
@@ -12,9 +13,11 @@ use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
 use CharlesStOlive\FilamentTma\States\Ticket\Submitted;
 use CharlesStOlive\FilamentTma\Workflow\Context;
+use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 
@@ -224,13 +227,13 @@ class MasterApiTest extends TmaTestCase
             'desapp.test/api/tma/v1/media/*' => Http::response(['files_count' => 1]),
         ]);
 
-        app(\CharlesStOlive\FilamentTma\Workflow\Timeline::class)->add($ticket, \CharlesStOlive\FilamentTma\Enums\EntryType::Note, '<p>Interne.</p>', Context::ui($agent));
+        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Interne.</p>', Context::ui($agent));
         Http::assertNothingSent();
 
-        \Illuminate\Support\Facades\Storage::fake('local');
-        \Illuminate\Support\Facades\Storage::disk('local')->put('tma-uploads/log.txt', 'erreur 500');
+        Storage::fake('local');
+        Storage::disk('local')->put('tma-uploads/log.txt', 'erreur 500');
 
-        app(\CharlesStOlive\FilamentTma\Workflow\Timeline::class)->add($ticket, \CharlesStOlive\FilamentTma\Enums\EntryType::Comment, '<p>Voici le journal.</p>', Context::ui($agent), uploads: [['path' => 'tma-uploads/log.txt', 'name' => 'log.txt']]);
+        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Voici le journal.</p>', Context::ui($agent), uploads: [['path' => 'tma-uploads/log.txt', 'name' => 'log.txt']]);
 
         Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/media/entry/')
             && base64_decode($request['files'][0]['content']) === 'erreur 500');

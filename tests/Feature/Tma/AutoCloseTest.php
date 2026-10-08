@@ -2,13 +2,17 @@
 
 namespace Tests\Feature\Tma;
 
+use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Events\AutoCloseWarned;
 use CharlesStOlive\FilamentTma\Notifications\AutoCloseWarning;
 use CharlesStOlive\FilamentTma\Notifications\TicketAutoClosed;
 use CharlesStOlive\FilamentTma\States\Ticket\AwaitingRequester;
 use CharlesStOlive\FilamentTma\States\Ticket\Closed;
 use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
+use CharlesStOlive\FilamentTma\Support\TicketUrl;
 use CharlesStOlive\FilamentTma\Workflow\Context;
+use CharlesStOlive\FilamentTma\Workflow\Timeline;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 
@@ -65,7 +69,7 @@ class AutoCloseTest extends TmaTestCase
         $this->assertNotNull($ticket->refresh()->auto_close_warned_at);
 
         // Un commentaire : le compte repart de zéro, l'avertissement aussi.
-        app(\CharlesStOlive\FilamentTma\Workflow\Timeline::class)->add($ticket, \CharlesStOlive\FilamentTma\Enums\EntryType::Comment, '<p>Je cherche.</p>', Context::ui($requester));
+        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Je cherche.</p>', Context::ui($requester));
         $this->assertNull($ticket->refresh()->auto_close_warned_at);
 
         $this->travel(10)->days();
@@ -149,7 +153,7 @@ class AutoCloseTest extends TmaTestCase
 
         $warning = (string) (new AutoCloseWarning($ticket, now()->addDays(7)))->toMail($requester)->render();
         $this->assertStringContainsString($ticket->number, $warning);
-        $this->assertStringContainsString(\CharlesStOlive\FilamentTma\Support\TicketUrl::view($ticket), $warning);
+        $this->assertStringContainsString(TicketUrl::view($ticket), $warning);
         $this->assertStringContainsString('Un commentaire suffit', $warning);
 
         $closed = (string) (new TicketAutoClosed($ticket))->toMail($requester)->render();
@@ -158,7 +162,7 @@ class AutoCloseTest extends TmaTestCase
 
     public function test_the_commands_are_scheduled(): void
     {
-        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())->map(fn ($event) => $event->command);
+        $events = collect(app(Schedule::class)->events())->map(fn ($event) => $event->command);
 
         $this->assertTrue($events->contains(fn (?string $command): bool => str_contains((string) $command, 'tma:close-stale')));
         $this->assertTrue($events->contains(fn (?string $command): bool => str_contains((string) $command, 'tma:resume-paused')));

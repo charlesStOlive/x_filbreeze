@@ -6,6 +6,8 @@ use App\Models\User;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\TimeEntry;
+use CharlesStOlive\FilamentTma\Workflow\Context;
+use CharlesStOlive\FilamentTma\Workflow\TaskWorkflow;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -61,10 +63,10 @@ class CommandsTest extends TmaTestCase
     public function test_project_tasks_are_listed_and_take_time_too(): void
     {
         $this->asMaster();
-        \Illuminate\Support\Facades\Http::fake();
+        Http::fake();
         Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'https://desapp.test']);
         $agent = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.*', 'tma.task.*')->create();
-        $task = app(\CharlesStOlive\FilamentTma\Workflow\TaskWorkflow::class)->create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID, 'project' => 'Parrains'], \CharlesStOlive\FilamentTma\Workflow\Context::ui($agent));
+        $task = app(TaskWorkflow::class)->create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID, 'project' => 'Parrains'], Context::ui($agent));
         $this->serviceDeskTicket();
         $token = $this->tokenFor($agent);
 

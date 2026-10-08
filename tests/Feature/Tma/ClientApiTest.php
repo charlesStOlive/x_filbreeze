@@ -19,6 +19,7 @@ use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 
@@ -60,12 +61,12 @@ class ClientApiTest extends TmaTestCase
 
     public function test_transmitting_sends_the_ticket_with_what_is_shared_and_follows_the_master(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $this->fakeMasterAccepting();
         $requester = $this->agent();
         $ticket = $this->draft($requester);
         $timeline = app(Timeline::class);
-        \Illuminate\Support\Facades\Storage::disk('local')->put('tma-uploads/capture.png', 'png');
+        Storage::disk('local')->put('tma-uploads/capture.png', 'png');
         $timeline->add($ticket, EntryType::Comment, '<p>Capture jointe.</p>', Context::ui($requester), uploads: [['path' => 'tma-uploads/capture.png', 'name' => 'capture.png']]);
         $timeline->add($ticket, EntryType::Note, '<p>Note interne : ne part pas.</p>', Context::ui($requester));
 

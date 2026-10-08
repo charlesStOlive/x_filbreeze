@@ -10,6 +10,8 @@ use CharlesStOlive\FilamentTma\Filament\Widgets\AllowanceOverview;
 use CharlesStOlive\FilamentTma\Models\Allowance;
 use CharlesStOlive\FilamentTma\Models\AllowanceStatus;
 use CharlesStOlive\FilamentTma\Models\Instance;
+use CharlesStOlive\FilamentTma\Models\Ticket;
+use CharlesStOlive\FilamentTma\Models\TimeEntry;
 use CharlesStOlive\FilamentTma\Notifications\AllowanceThresholdNotification;
 use CharlesStOlive\FilamentTma\Support\AllowanceMeter;
 use CharlesStOlive\FilamentTma\Workflow\Context;
@@ -51,7 +53,7 @@ class AllowanceTest extends TmaTestCase
 
     private function log(int $minutes, string $day, string $number = 'DES-0001', string $source = self::CLIENT_UID, bool $billable = true): void
     {
-        $ticket = \CharlesStOlive\FilamentTma\Models\Ticket::query()->where('number', $number)->first()
+        $ticket = Ticket::query()->where('number', $number)->first()
             ?? tap($this->serviceDeskTicket('in_progress', $number), fn ($t) => $t->forceFill(['source_instance_uid' => $source])->save());
 
         app(TimeLog::class)->add($ticket, $minutes, $day, null, Context::ui($this->agent), $billable);
@@ -133,7 +135,7 @@ class AllowanceTest extends TmaTestCase
 
         // Le temps non facturable ne consomme pas le forfait.
         $this->log(30, '2026-10-03', billable: false);
-        $this->assertSame(620, (int) \CharlesStOlive\FilamentTma\Models\TimeEntry::query()->sum('minutes'));
+        $this->assertSame(620, (int) TimeEntry::query()->sum('minutes'));
     }
 
     public function test_the_master_creates_an_allowance_in_days_and_the_client_gets_its_status(): void
