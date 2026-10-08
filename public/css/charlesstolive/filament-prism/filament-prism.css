@@ -243,6 +243,29 @@
     background-color: rgb(255 255 255 / 0.1);
 }
 
+/* Le rappel d'une correction dans le volet des demandes (OrthographyTask::summarySchema()). */
+.fp-correction-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.fp-correction-summary p {
+    margin: 0;
+}
+
+.fp-correction-summary-subject {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.fp-correction-summary-counts {
+    color: var(--gray-500);
+}
+
 .fp-interaction-progress {
     display: flex;
     align-items: center;

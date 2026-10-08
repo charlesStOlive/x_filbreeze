@@ -5,7 +5,7 @@
 - Repo Git : remote `origin` = `https://github.com/charlesStOlive/x_filbreeze.git` (attention : nom du repo GitHub différent du nom du dossier local, `x_filbreeze` vs `filbreeze`). Branche courante habituelle : `init_crm`.
 
 ## Stack
-- Laravel ^12.0, PHP ^8.3, Filament ~5.0 (admin panel).
+- Laravel ^13.0, PHP ^8.4 (image Sail `sail-8.4/app`, imposé par spatie/laravel-model-states ≥ 2.13), Filament ~5.0 (admin panel).
 - Environnement dev via **Laravel Sail** (`laravel/sail` ^1.52, `compose.yaml` à la racine).
 - DB : MySQL (`DB_CONNECTION=mysql` dans le `.env` réel).
 

@@ -29,51 +29,47 @@
                 "symlink": true
             }
         },
-        "filament-permission-manager-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-permission-manager.git"
+        "filament-permission-manager-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-permission-manager",
+            "options": {
+                "symlink": true
+            }
         },
-        "filament-ui-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-ui.git"
+        "filament-state-fusion-enhanced-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-state-fusion-enhanced",
+            "options": {
+                "symlink": true
+            }
         },
-        "filament-msgraph-email-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-msgraph-email.git"
-        },
-        "filament-state-fusion-enhanced-vcs": {
-            "type": "vcs",
-            "url": "https://github.com//charlesStOlive/filament-state-fusion-enhancedV2.git"
-        },
-        "filament-qonto-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-qonto.git"
-        },
-        "filament-prism-vcs": {
-            "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-prism.git"
+        "filament-qonto-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-qonto",
+            "options": {
+                "symlink": true
+            }
         }
     },
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "barryvdh/laravel-snappy": "^1.0",
         "charlesstolive/filament-msgraph-email": "dev-master",
         "charlesstolive/filament-permission-manager": "@dev",
         "charlesstolive/filament-prism": "dev-master",
         "charlesstolive/filament-state-fusion-enhanced": "dev-master",
         "charlesstolive/filament-ui": "dev-main",
-        "cloudinary-labs/cloudinary-laravel": "^3.0",
         "filament/filament": "~5.0",
         "filament/spatie-laravel-media-library-plugin": "~5.0",
         "gwsn/flysystem-sharepoint-adapter": "^1.1",
         "intervention/image": "*",
         "ksubileau/color-thief-php": "^2.0",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9",
+        "laravel/tinker": "^3.0",
         "maartenpaauw/laravel-specification-pattern": "^3.1",
         "maatwebsite/excel": "^3.1",
-        "owenvoke/blade-fontawesome": "^2.8",
+        "owenvoke/blade-fontawesome": "^3.3",
         "ozdemirburak/iris": "*",
         "pboivin/filament-peek": "~4.0",
         "prism-php/prism": "^0.99.2",
@@ -82,7 +78,7 @@
         "soundasleep/html2text": "^2.1",
         "spatie/browsershot": "^5.0",
         "spatie/laravel-data": "^4.18",
-        "spatie/laravel-model-states": "^2.9",
+        "spatie/laravel-model-states": "^2.13",
         "spatie/laravel-permission": "*",
         "spatie/laravel-settings": "^3.4",
         "thiagoalessio/tesseract_ocr": "^2.13",
@@ -97,7 +93,7 @@
         "laravel/sail": "^1.52",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^11.0.1"
+        "phpunit/phpunit": "^12.5"
     },
     "autoload": {
         "psr-4": {

@@ -6,7 +6,7 @@ services:
             args:
                 WWWGROUP: '${WWWGROUP}'
                 NODE_VERSION: '${NODE_VERSION:-24}'
-        image: 'sail-8.3/app'
+        image: 'sail-8.4/app'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -27,7 +27,7 @@ services:
             - mysql
             - mailpit
     scheduler:
-        image: 'sail-8.3/app'
+        image: 'sail-8.4/app'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1

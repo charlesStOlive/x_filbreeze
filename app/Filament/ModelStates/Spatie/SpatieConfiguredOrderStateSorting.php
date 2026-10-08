@@ -14,7 +14,8 @@ use Webmozart\Assert\Assert;
 
 final class SpatieConfiguredOrderStateSorting implements StateSortingStrategy
 {
-    private const TRANSITION_KEY_DIVIDER = '-';
+    // Séparateur des clés de StateConfig::$allowedTransitions ('->' depuis spatie/laravel-model-states 2.12.2).
+    private const TRANSITION_KEY_DIVIDER = '->';
 
     private SpatieConfig $config;
 

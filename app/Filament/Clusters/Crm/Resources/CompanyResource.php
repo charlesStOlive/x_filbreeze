@@ -38,8 +38,6 @@ use App\Filament\Utils\ImageUtils;
 use Filament\Forms\Components\FileUpload;
 use App\Filament\Components\Tables\DateColumn;
 use App\Filament\Components\Tables\DateTimeColumn;
-use App\Filament\Components\Forms\CloudinaryFileUpload;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\Pages;
 use App\Filament\Clusters\Crm\Resources\CompanyResource\RelationManagers\ContactsRelationManager;
@@ -224,10 +222,6 @@ class CompanyResource extends Resource
                             SpatieMediaLibraryFileUpload::make('logo')
                                 ->collection('logo')
                                 ->label('Logo'),
-                            CloudinaryFileUpload::make('logo_cloudinary')
-                                ->label('Logo Cloudinary')
-                                ->relation('logo_cloudinary')
-                                ->dehydrated(false), // on ne stocke pas dans la colonne du modèle
                             ColorPicker::make('primary_color')
                                 ->label('Couleur primaire')
                                 ->suffixAction(ImageUtils::getPalettesFromImage('logo', 'primary_color')),
