@@ -58,6 +58,33 @@ class CommandsTest extends TmaTestCase
             ->assertSuccessful();
     }
 
+    public function test_project_tasks_are_listed_and_take_time_too(): void
+    {
+        $this->asMaster();
+        \Illuminate\Support\Facades\Http::fake();
+        Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'https://desapp.test']);
+        $agent = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.*', 'tma.task.*')->create();
+        $task = app(\CharlesStOlive\FilamentTma\Workflow\TaskWorkflow::class)->create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID, 'project' => 'Parrains'], \CharlesStOlive\FilamentTma\Workflow\Context::ui($agent));
+        $this->serviceDeskTicket();
+        $token = $this->tokenFor($agent);
+
+        $this->artisan('tma:list', ['--type' => 'tasks', '--token' => $token, '--json' => true])
+            ->expectsOutputToContain('"ref": "T-0001"')
+            ->doesntExpectOutputToContain('DES-0001')
+            ->assertSuccessful();
+
+        Artisan::call('tma:list', ['--token' => $token, '--json' => true]);
+        // Le plus récemment actif d'abord : le ticket, puis la tâche.
+        $this->assertSame(['ticket', 'task'], array_column(json_decode(Artisan::output(), true), 'kind'));
+
+        $this->artisan('tma:log', ['ref' => 'T-0001', '--days' => '0.5', '--summary' => 'Atelier de cadrage', '--token' => $token])
+            ->expectsOutputToContain('3 h 30 enregistrées')
+            ->assertSuccessful();
+
+        $this->assertSame(210, $task->timeEntries()->sole()->minutes);
+        $this->artisan('tma:show', ['ref' => 'T-0001', '--token' => $token])->expectsOutputToContain('Projet : Parrains')->assertSuccessful();
+    }
+
     public function test_no_token_no_command(): void
     {
         $this->asMaster();
