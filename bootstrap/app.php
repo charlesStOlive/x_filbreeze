@@ -25,7 +25,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null; // laisser le handler par défaut gérer
             }
 
-            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            // Les exceptions de Laravel qui ne portent pas de getStatusCode() gardent leur code (sinon : 500).
+            $status = match (true) {
+                $e instanceof \Illuminate\Validation\ValidationException => $e->status,
+                $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException => 404,
+                $e instanceof \Illuminate\Auth\AuthenticationException => 401,
+                $e instanceof \Illuminate\Auth\Access\AuthorizationException => 403,
+                method_exists($e, 'getStatusCode') => $e->getStatusCode(),
+                default => 500,
+            };
 
             // Codes machine lisibles
             $errorCode = match ($status) {
