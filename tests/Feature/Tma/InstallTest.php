@@ -86,6 +86,7 @@ class InstallTest extends TmaTestCase
     public function test_the_master_proposes_an_identifier_and_configures_the_client(): void
     {
         $this->asMaster();
+        config(['filament-tma.api.public_url' => 'http://filbreeze.test']);
         $this->actingAs($this->agent('tma.instance.*'));
 
         $form = Livewire::test(CreateInstance::class);
@@ -96,10 +97,13 @@ class InstallTest extends TmaTestCase
         $instance = Instance::query()->sole();
         $this->assertSame($uid, $instance->uid);
 
+        // L'application a son propre compte de service, créé avec elle : sans rôle, jamais celui de quelqu'un.
+        $account = User::query()->where('email', 'tma-desapp@tma.local')->sole();
+        $this->assertSame($account->getKey(), $instance->api_user_id);
+        $this->assertSame(0, $account->roles()->count());
+
         $page = Livewire::test(ListInstances::class)
-            ->callAction(TestAction::make('setupClient')->table($instance), [
-                'account_email' => 'desapp@tma.local', 'master_url' => 'http://filbreeze.test', 'ticket_prefix' => 'DES',
-            ])
+            ->callAction(TestAction::make('setupClient')->table($instance), ['ticket_prefix' => 'DES'])
             // La fenêtre du formulaire laisse la place à celle qui montre la configuration.
             ->assertActionMounted('clientEnv');
 
@@ -111,16 +115,82 @@ class InstallTest extends TmaTestCase
         $this->assertStringContainsString("TMA_INSTANCE_UID={$uid}", $page->get('mountedActions.0.arguments.env'));
 
         $html = view('filament-tma::instances.client-env', ['command' => $command, 'env' => 'TMA_MODE=client'])->render();
-        $this->assertStringContainsString('Ce jeton ne sera plus affiché', $html);
+        $this->assertStringContainsString('transmet son jeton', $html);
         $this->assertStringContainsString(e($command), $html);
 
-        $account = User::query()->where('email', 'desapp@tma.local')->sole();
-        $this->assertSame($account->getKey(), $instance->refresh()->api_user_id);
-
         // Le jeton émis ouvre bien l'API du maître, au nom de cette application.
-        $token = $account->tokens()->where('revoked', false)->sole();
-        $this->assertNotNull($token);
+        $this->assertSame(1, $account->tokens()->where('revoked', false)->count());
         \Laravel\Passport\Passport::actingAs($account, [], 'api');
         $this->getJson('/api/tma/v1/master/ping')->assertOk()->assertJsonPath('mode', 'master');
+    }
+
+    public function test_a_persons_account_is_never_taken_as_service_account(): void
+    {
+        $this->asMaster();
+        $person = User::factory()->withPermissions('panels.admin.access')->create(['email' => 'tma-desapp@tma.local']);
+        $person->assignRole(\Spatie\Permission\Models\Role::findOrCreate('editeur', 'web'));
+
+        $instance = Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'https://desapp.test']);
+        $account = $instance->ensureServiceAccount();
+
+        $this->assertNotSame($person->getKey(), $account->getAuthIdentifier());
+        $this->assertStringStartsWith('tma-desapp-', $account->email);
+    }
+
+    public function test_the_client_hands_its_token_and_the_master_calls_back(): void
+    {
+        $this->asMaster();
+        $instance = Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'http://desapp.test']);
+        $account = $instance->ensureServiceAccount();
+        $desappUp = true;
+        \Illuminate\Support\Facades\Http::fake(['desapp.test/*' => function () use (&$desappUp) {
+            return $desappUp
+                ? \Illuminate\Support\Facades\Http::response(['instance_uid' => self::CLIENT_UID])
+                : \Illuminate\Support\Facades\Http::response([], 500);
+        }]);
+        \Laravel\Passport\Passport::actingAs($account, [], 'api');
+
+        $this->postJson('/api/tma/v1/master/register', ['token' => str_repeat('j', 40)])
+            ->assertOk()
+            ->assertJsonPath('instance', 'Desapp')
+            ->assertJsonPath('callback', true);
+
+        $this->assertSame(str_repeat('j', 40), $instance->refresh()->token);
+        \Illuminate\Support\Facades\Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer '.str_repeat('j', 40)));
+
+        // Rappel impossible : le jeton est gardé, la réponse dit pourquoi.
+        $desappUp = false;
+        $this->postJson('/api/tma/v1/master/register', ['token' => str_repeat('k', 40)])
+            ->assertOk()
+            ->assertJsonPath('callback', false);
+        $this->assertSame(str_repeat('k', 40), $instance->refresh()->token);
+    }
+
+    public function test_install_transmits_the_token_or_shows_it_when_it_cannot(): void
+    {
+        $this->asClient();
+        $masterUp = true;
+        \Illuminate\Support\Facades\Http::fake(['filbreeze.test/*' => function () use (&$masterUp) {
+            return $masterUp
+                ? \Illuminate\Support\Facades\Http::response(['instance' => 'Desapp', 'callback' => true, 'callback_error' => null])
+                : \Illuminate\Support\Facades\Http::response([], 503);
+        }]);
+
+        $this->artisan('tma:install', [
+            '--mode' => 'client', '--uid' => self::CLIENT_UID, '--master-url' => 'http://filbreeze.test',
+            '--master-token' => 'jeton-du-maitre', '--master-account' => 'centre-de-service@tma.local',
+        ])
+            ->expectsOutputToContain('Jeton transmis au centre de service')
+            ->assertSuccessful();
+
+        \Illuminate\Support\Facades\Http::assertSent(fn ($request) => $request->url() === 'http://filbreeze.test/api/tma/v1/master/register'
+            && $request->hasHeader('Authorization', 'Bearer jeton-du-maitre')
+            && strlen($request['token']) > 100);
+
+        // Le centre de service ne répond pas : le jeton s'affiche, à coller à la main.
+        $masterUp = false;
+        $this->artisan('tma:install', ['--mode' => 'client', '--master-account' => 'centre-de-service@tma.local'])
+            ->expectsOutputToContain('Saisir le jeton à la main')
+            ->assertSuccessful();
     }
 }

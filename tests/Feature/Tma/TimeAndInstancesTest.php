@@ -118,19 +118,25 @@ class TimeAndInstancesTest extends TmaTestCase
         $this->asMaster();
         $this->actingAs($this->agent('tma.instance.*'));
         $company = Company::create(['title' => 'DES', 'slug' => 'des']);
-        $service = User::factory()->create(['name' => 'Compte Desapp']);
 
         Livewire::test(CreateInstance::class)
             ->fillForm([
                 'name' => 'Desapp', 'uid' => self::CLIENT_UID, 'url' => 'https://desapp.test',
-                'client_id' => $company->getKey(), 'api_user_id' => $service->getKey(), 'token' => 'secret-desapp', 'is_active' => true,
+                'client_id' => $company->getKey(), 'is_active' => true,
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $instance = Instance::query()->sole();
         $this->assertTrue($instance->client->is($company));
-        $this->assertSame('secret-desapp', $instance->token);
+
+        // Le jeton de l'application, saisi à la main (quand la commande n'a pas pu le transmettre).
+        Livewire::test(\CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\EditInstance::class, ['record' => $instance->getKey()])
+            ->assertSee('En attente')
+            ->fillForm(['token' => 'secret-desapp'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame('secret-desapp', $instance->refresh()->token);
         // Chiffré en base.
         $this->assertStringNotContainsString('secret-desapp', (string) \DB::table('tma_instances')->value('token'));
 

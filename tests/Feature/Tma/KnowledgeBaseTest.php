@@ -67,7 +67,10 @@ class KnowledgeBaseTest extends TmaTestCase
 
         \Livewire\Livewire::test(\CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\CreateInstance::class)
             ->assertSee('À quoi sert l’identifiant ?')
-            ->assertSee('Quelle adresse ?')
+            ->assertSee('Quelle adresse ?');
+
+        $instance = \CharlesStOlive\FilamentTma\Models\Instance::create(['uid' => '01JTESTCLIENT0000000000000', 'name' => 'Desapp', 'url' => 'https://desapp.test']);
+        \Livewire\Livewire::test(\CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\EditInstance::class, ['record' => $instance->getKey()])
             ->assertSee('Les comptes et leurs jetons');
 
         $this->assertTrue(\CharlesStOlive\FilamentTma\Support\Help::action('tma.page-qui-n-existe-pas', 'Rien')->isHidden());
