@@ -22,7 +22,11 @@ services:
             - '.:/var/www/html'
             - '../packages_filament:/var/www/packages_filament'
         networks:
-            - sail
+            sail:
+            shared-db:
+                # Son adresse pour les applications clientes de la TMA (TMA_MASTER_URL=http://filbreeze.test).
+                aliases:
+                    - filbreeze.test
         depends_on:
             - mysql
             - mailpit
@@ -36,6 +40,7 @@ services:
             - '../packages_filament:/var/www/packages_filament'
         networks:
             - sail
+            - shared-db
         depends_on:
             - mysql
         command: php artisan schedule:work
@@ -51,6 +56,7 @@ services:
             - '../packages_filament:/var/www/packages_filament'
         networks:
             - sail
+            - shared-db
         depends_on:
             - mysql
             - mailpit
@@ -72,7 +78,10 @@ services:
             - 'sail-mysql:/var/lib/mysql'
             - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
         networks:
-            - sail
+            sail:
+                # Un nom unique : sur le réseau partagé, « mysql » désigne aussi la base d'autres applications.
+                aliases:
+                    - filbreeze-mysql
         healthcheck:
             test:
                 - CMD
@@ -90,6 +99,10 @@ services:
             - sail
 networks:
     sail:
+        driver: bridge
+    # Le réseau partagé des applications de développement : la TMA y relie Filbreeze (centre de service) et ses clients.
+    shared-db:
+        name: '${SHARED_DB_NETWORK:-dev-shared-db}'
         driver: bridge
 volumes:
     sail-mysql:
