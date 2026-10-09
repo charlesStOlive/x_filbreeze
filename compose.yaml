@@ -39,6 +39,23 @@ services:
         depends_on:
             - mysql
         command: php artisan schedule:work
+    # Worker de file : envois vers les applications clientes (filament-tma), courriels en file.
+    # queue:listen relit le code à chaque tâche (pratique en développement) ; en production, queue:work.
+    queue:
+        image: 'sail-8.4/app'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+            - '../packages_filament:/var/www/packages_filament'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+            - mailpit
+        restart: unless-stopped
+        command: php artisan queue:listen --sleep=3 --timeout=120
     mysql:
         image: 'mysql:8.0.40'
         ports:
