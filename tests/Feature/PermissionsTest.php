@@ -62,8 +62,9 @@ class PermissionsTest extends TestCase
 
         (require database_path('migrations/2026_09_30_000002_rename_legacy_permissions.php'))->up();
 
+        // panels.knowledge-base.access : donné aux rôles de l'admin par 2026_10_09_000001 (le centre d'aide).
         $this->assertEqualsCanonicalizing(
-            ['datasets.product.*', 'crm.company.viewany', 'crm.company.view', 'crm.contact.viewany', 'crm.contact.view', 'panels.admin.access'],
+            ['datasets.product.*', 'crm.company.viewany', 'crm.company.view', 'crm.contact.viewany', 'crm.contact.view', 'panels.admin.access', 'panels.knowledge-base.access'],
             $role->fresh()->permissions->pluck('name')->all(),
         );
         $this->assertFalse(Permission::query()->where('name', 'crm.companies.view')->exists());

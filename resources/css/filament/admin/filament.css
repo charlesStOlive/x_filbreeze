@@ -15,6 +15,12 @@
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/src/Filament';
 @source '../../../../vendor/charlesstolive/filament-msgraph-email/resources/views';
 @source '../../../../vendor/charlesstolive/filament-permission-manager/resources/**/*.blade.php';
+@source '../../../../vendor/charlesstolive/filament-tma/resources/**/*.blade.php';
+
+/* Base de connaissances (centre d'aide et « ? » des écrans) */
+@plugin "@tailwindcss/typography";
+@source '../../../../vendor/guava/filament-knowledge-base/src/**/*';
+@source '../../../../vendor/guava/filament-knowledge-base/resources/views/**/*';
 
 /* ===== HOOKS CSS POUR LA SIDEBAR - EXEMPLE 1: AVEC @apply ===== */
 

@@ -18,6 +18,7 @@ use CharlesStOlive\FilamentPermissionManager\FilamentPermissionManagerPlugin;
 use CharlesStOlive\MsGraphFilament\MsGraphFilamentPlugin;
 use CharlesStOlive\FilamentQonto\FilamentQontoPlugin;
 use CharlesStOlive\FilamentTma\FilamentTmaPlugin;
+use Guava\FilamentKnowledgeBase\Plugins\KnowledgeBaseCompanionPlugin;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -54,6 +55,12 @@ class AdminPanelProvider extends PanelProvider
                 MsGraphFilamentPlugin::make(),
                 FilamentQontoPlugin::make(),
                 FilamentTmaPlugin::make(),
+                // Le « ? » des écrans : les pages du centre d'aide (/aide), dans une fenêtre.
+                KnowledgeBaseCompanionPlugin::make()
+                    ->knowledgeBasePanelId('knowledge-base')
+                    ->modalPreviews()
+                    ->slideOverPreviews()
+                    ->modalTitleBreadcrumbs(),
             ])
             ->maxContentWidth(Width::Full)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

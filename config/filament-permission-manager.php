@@ -127,7 +127,10 @@ return [
         'fallback_policy' => true,
         'declared_permissions' => true,
         'role_scoped_permissions' => [],
-        'excluded_resources' => [],
+        // Le centre d'aide : tout utilisateur qui entre dans son panel (panels.knowledge-base.access) peut le lire.
+        'excluded_resources' => [
+            Guava\FilamentKnowledgeBase\Filament\Resources\DocumentationResource::class,
+        ],
     ],
 
     /*
