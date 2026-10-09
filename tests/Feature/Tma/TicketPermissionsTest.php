@@ -29,4 +29,18 @@ class TicketPermissionsTest extends TmaTestCase
         // Les mouvements du planificateur ne sont pas des droits.
         $this->assertNotContains('tma.ticket.workflow.auto-close', $names);
     }
+
+    public function test_permissions_sync_keeps_the_pinned_prefixes(): void
+    {
+        $this->artisan('permissions:sync', ['--force' => true])->assertSuccessful();
+
+        $names = \Spatie\Permission\Models\Permission::query()->pluck('name');
+
+        foreach (['tma.ticket.viewany', 'tma.ticket.workflow.take-charge', 'tma.task.workflow.publish', 'tma.instance.edit', 'tma.allowance.reset', 'tma.audit.viewany'] as $permission) {
+            $this->assertContains($permission, $names);
+        }
+
+        // Le nom de la Resource seul ne sert plus : il suivait le menu, pas le préfixe épinglé.
+        $this->assertNotContains('ticket.viewany', $names);
+    }
 }
