@@ -874,10 +874,11 @@
             "dist": {
                 "type": "path",
                 "url": "../packages_filament/filament-tma",
-                "reference": "8c978a7b1723c428afa1e881f083051096170efb"
+                "reference": "2e9f84341b58ce225926883a90977a10490a3ec2"
             },
             "require": {
                 "charlesstolive/filament-state-fusion-enhanced": "dev-master",
+                "charlesstolive/filament-ui": "dev-main",
                 "filament/filament": "^5.0",
                 "filament/spatie-laravel-media-library-plugin": "^5.0",
                 "guava/filament-knowledge-base": "^3.0",
@@ -922,12 +923,15 @@
             "dist": {
                 "type": "path",
                 "url": "../packages_filament/filament-ui",
-                "reference": "8ac2ab8bebc638793a27bfd2103848d8c2c00d52"
+                "reference": "f574e91b29c6fc6b5c983045ccce5c170712c25e"
             },
             "require": {
                 "filament/filament": "^5.0",
                 "php": "^8.3|^8.4",
                 "spatie/laravel-package-tools": "^1.16"
+            },
+            "suggest": {
+                "guava/filament-knowledge-base": "DocumentationAction : le « ? » qui ouvre une page de l'aide"
             },
             "type": "library",
             "extra": {

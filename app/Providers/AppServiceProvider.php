@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\SupplierInvoiceFileAdded;
+use App\Livewire\KnowledgeBaseModals;
 use App\Models\Company;
 use App\Policies\CompanyPolicy;
 use Filament\Forms\Components\FileUpload;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\View;
+use Livewire\Livewire;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -41,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Company::class, CompanyPolicy::class);
+
+        // La fenêtre d'aide ne se vide plus pendant qu'elle se referme : va avec la vue « modals » surchargée (voir la classe).
+        Livewire::component('modals', KnowledgeBaseModals::class);
         // Event déplacé dans le workflow des states (DraftToValidated->handle())
         // Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
         // Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
