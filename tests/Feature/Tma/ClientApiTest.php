@@ -4,6 +4,7 @@ namespace Tests\Feature\Tma;
 
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\Notifications\AutoCloseWarning;
@@ -16,12 +17,15 @@ use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Sync\SyncException;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
+use Filament\Actions\Exceptions\ActionNotResolvableException;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
+use Livewire\Livewire;
 
 /** Une application cliente : elle transmet au maître, lui délègue, reçoit ce qu'il envoie (addendum §7). */
 class ClientApiTest extends TmaTestCase
@@ -57,6 +61,59 @@ class ClientApiTest extends TmaTestCase
         $ticket->forceFill(['handling_mode' => 'service_desk', 'state' => $state, 'sync_status' => 'synced'])->save();
 
         return $ticket;
+    }
+
+    /** Un utilisateur du client qui n'est pas en lien avec le Support : il confie ses demandes à l'équipe EDM. */
+    private function memberWithoutSupport(): User
+    {
+        return User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.create',
+            'tma.ticket.edit', 'tma.ticket.comment', 'tma.ticket.workflow.submit', 'tma.ticket.workflow.answer',
+            'tma.ticket.workflow.validate', 'tma.ticket.workflow.reopen', 'tma.ticket.workflow.cancel')->create();
+    }
+
+    public function test_the_client_team_transmits_its_requests_and_the_others_confide_theirs(): void
+    {
+        $team = $this->agent();
+        $member = $this->memberWithoutSupport();
+
+        // L'équipe EDM (le droit de transmettre) envoie ses demandes au Support, sans les confier à elle-même.
+        $own = $this->draft($team);
+        $this->assertTrue($this->workflow()->allows($own, 'transmit', Context::ui($team)));
+        $this->assertFalse($this->workflow()->allows($own, 'submit', Context::ui($team)));
+
+        // Les autres la lui confient.
+        $theirs = $this->draft($member);
+        $this->assertFalse($this->workflow()->allows($theirs, 'transmit', Context::ui($member)));
+        $this->assertTrue($this->workflow()->allows($theirs, 'submit', Context::ui($member)));
+
+        // L'équipe la reçoit, la prend en charge, et peut la transmettre au Support.
+        $this->workflow()->run($theirs, 'submit', [], Context::ui($member));
+        $this->workflow()->run($theirs, 'take-charge', [], Context::ui($team));
+        $this->assertTrue($this->workflow()->allows($theirs->refresh(), 'transmit', Context::ui($team)));
+    }
+
+    public function test_the_client_team_answers_the_support_for_the_requester(): void
+    {
+        $member = $this->memberWithoutSupport();
+        $ticket = $this->transmittedTicket($member, 'awaiting_requester');
+
+        $answer = TestAction::make('composerReply_answer')->schemaComponent('composerActions', schema: 'composer');
+
+        // L'équipe EDM, en lien avec le Support, répond à la place du demandeur.
+        $this->actingAs($this->agent());
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionVisible($answer);
+
+        // Le demandeur aussi ; un autre utilisateur, non.
+        $this->actingAs($member);
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionVisible($answer);
+
+        // (une action masquée d'un schéma n'est même pas trouvée)
+        $this->actingAs($this->memberWithoutSupport());
+        try {
+            Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden($answer);
+        } catch (ActionNotResolvableException) {
+            $this->addToAssertionCount(1);
+        }
     }
 
     public function test_transmitting_sends_the_ticket_with_what_is_shared_and_follows_the_master(): void
