@@ -18,6 +18,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 
@@ -163,6 +164,7 @@ class MasterApiTest extends TmaTestCase
 
     public function test_the_requester_moves_are_done_here_and_the_others_refused(): void
     {
+        Storage::fake('local');
         $this->actingAsClient();
         $this->postJson('/api/tma/v1/tickets', $this->transmission(['ulid' => $ulid = strtolower((string) Str::ulid())]))->assertCreated();
         $ticket = Ticket::query()->sole();
@@ -177,7 +179,10 @@ class MasterApiTest extends TmaTestCase
         $this->workflow()->run($ticket, 'take-charge', [], Context::ui($agent));
         $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel export ?</p>'], Context::ui($agent));
 
-        $move = ['move' => 'answer', 'data' => ['answer' => '<p>Celui des parrains actifs.</p>'], 'actor' => $actor, 'transition_ulid' => strtolower((string) Str::ulid())];
+        // La réponse arrive avec sa capture : elle suit le passage (zone de réponse de l'application cliente).
+        $capture = ['uuid' => (string) Str::uuid(), 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png',
+            'content' => base64_encode(UploadedFile::fake()->image('capture.png', 20, 20)->getContent())];
+        $move = ['move' => 'answer', 'data' => ['answer' => '<p>Celui des parrains actifs.</p>', 'files' => [$capture]], 'actor' => $actor, 'transition_ulid' => strtolower((string) Str::ulid())];
         $this->postJson("/api/tma/v1/tickets/{$ulid}/moves", $move)->assertOk()->assertJsonPath('ticket.state', 'in_progress');
         $this->postJson("/api/tma/v1/tickets/{$ulid}/moves", $move)->assertOk();
 
@@ -185,6 +190,7 @@ class MasterApiTest extends TmaTestCase
         $this->assertSame(1, $ticket->transitions()->where('move', 'answer')->count());
         $answer = $ticket->entries()->whereNotNull('parent_id')->sole();
         $this->assertSame(self::CLIENT_UID, $answer->author->instance_uid);
+        $this->assertSame('capture.png', $answer->getFirstMedia('attachments')->file_name);
     }
 
     public function test_entries_from_the_client_are_received_once(): void

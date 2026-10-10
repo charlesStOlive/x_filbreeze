@@ -135,12 +135,15 @@ class ClientApiTest extends TmaTestCase
             return Http::response($snapshot);
         }]);
 
-        $this->workflow()->run($ticket, 'answer', ['answer' => '<p>Sous Firefox.</p>'], Context::ui($requester));
+        $files = [['uuid' => 'u-1', 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png', 'content' => base64_encode('png')]];
+        $this->workflow()->run($ticket, 'answer', ['answer' => '<p>Sous Firefox.</p>', 'files' => $files], Context::ui($requester));
 
         $this->assertInstanceOf(InProgress::class, $ticket->refresh()->state);
         $this->assertSame('answer', $ticket->transitions()->sole()->move);
         $this->assertSame('<p>Sous Firefox.</p>', $ticket->entries()->sole()->body);
-        Http::assertSent(fn (Request $request): bool => $request['move'] === 'answer' && $request['actor']['instance_uid'] === self::CLIENT_UID);
+        // Les fichiers de la réponse partent avec le passage.
+        Http::assertSent(fn (Request $request): bool => $request['move'] === 'answer' && $request['actor']['instance_uid'] === self::CLIENT_UID
+            && $request['data']['files'][0]['file_name'] === 'capture.png');
 
         // L'intervenant, c'est le maître : pas ici.
         $this->assertFalse($this->workflow()->allows($ticket, 'request-answer', Context::ui($this->agent())));
