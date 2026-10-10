@@ -24,6 +24,9 @@ class VocabularyTest extends TmaTestCase
 
         $this->assertSame('Confier à l’équipe EDM', $this->workflow()->move('submit')->labelFor($ticket));
         $this->assertSame('Équipe EDM', HandlingMode::Local->getLabel());
+        // Un brouillon n'est encore confié à personne.
+        $this->assertNull($ticket->handledBy());
+        $this->assertSame('Demandeur', $ticket->waitingOn());
 
         $this->workflow()->run($ticket, 'submit', [], Context::ui($requester));
         $ticket->refresh();
