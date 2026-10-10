@@ -31,6 +31,23 @@ class MasterDraftTicketTest extends TmaTestCase
         ]);
     }
 
+    public function test_a_prepared_ticket_takes_the_number_of_the_support_never_one_of_the_client(): void
+    {
+        $other = Instance::create(['uid' => '01JTESTAUTRE00000000000000', 'name' => 'Autre', 'url' => 'https://autre.test']);
+        $context = Context::ui($this->agent());
+        $requester = ['id' => '7', 'name' => 'Ada Lovelace'];
+
+        // Des tickets transmis par Desapp gardent leur numéro ; le Support ne connaît pas ceux qu'elle garde chez elle.
+        $this->serviceDeskTicket('submitted', 'DES-0006');
+
+        $first = $this->workflow()->createForClient(Instance::forUid(self::CLIENT_UID), $requester, ['title' => 'Un'], $context);
+        $second = $this->workflow()->createForClient($other, $requester, ['title' => 'Deux'], $context);
+
+        // Un seul compteur, celui du Support, pour tous les clients : pas de doublon, pas de DES-0007 pris à Desapp.
+        $this->assertSame('FIL-0001', $first->number);
+        $this->assertSame('FIL-0002', $second->number);
+    }
+
     public function test_the_master_prepares_a_ticket_in_the_name_of_a_client_user_and_publishes_it(): void
     {
         $this->actingAs($this->agent());
