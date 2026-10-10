@@ -8,6 +8,7 @@ use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\CreateTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\EditTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ListTickets;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\RelationManagers\TimeEntriesRelationManager;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\TicketResource;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Ticket;
@@ -129,6 +130,51 @@ class TicketPagesTest extends TmaTestCase
 
         $this->assertSame($comment->getKey(), Entry::query()->where('body', '<p>Merci.</p>')->sole()->parent_id);
         $this->assertNotNull($note->refresh()->shared_at);
+    }
+
+    public function test_the_follow_up_and_the_time_are_in_the_side_pane(): void
+    {
+        $this->asMaster();
+        $ticket = $this->serviceDeskTicket();
+        $this->actingAs($this->agent('tma.ticket.time'));
+
+        // Le volet de droite est ouvert d'office : le suivi, puis le temps passé (maître).
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->assertSet('sidePane', 'infos')
+            ->assertSee('En attente de')
+            ->assertSee('Chronologie')
+            ->assertSeeLivewire(TimeEntriesRelationManager::class);
+
+        // Dans une application cliente, pas de temps à saisir : le volet n'a que le suivi.
+        $this->asClient();
+        $agent = $this->agent();
+        $this->actingAs($agent);
+        Livewire::test(ViewTicket::class, ['record' => $this->draft($agent)->getKey()])
+            ->assertSet('sidePane', 'infos')
+            ->assertSee('En attente de')
+            ->assertDontSeeLivewire(TimeEntriesRelationManager::class);
+    }
+
+    public function test_internal_notes_and_their_sharing_can_be_turned_off(): void
+    {
+        $this->asMaster();
+        $agent = $this->agent();
+        $ticket = $this->serviceDeskTicket();
+        $this->actingAs($agent);
+        $timeline = app(Timeline::class);
+
+        // Sans partage : la note reste à son équipe.
+        config(['filament-tma.notes.sharing' => false]);
+        $note = $timeline->add($ticket, EntryType::Note, '<p>Penser au cache.</p>', Context::ui($agent));
+        $this->assertFalse($timeline->canShare($note, Context::ui($agent)));
+
+        // Sans notes internes : il n'y a plus que des messages.
+        config(['filament-tma.notes.enabled' => false]);
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->assertActionVisible('comment')
+            ->assertActionHidden('note')
+            ->assertDontSee('Penser au cache.');
+        $this->assertFalse($timeline->canAdd($ticket, EntryType::Note, Context::ui($agent)));
     }
 
     public function test_editing_follows_the_hand(): void

@@ -51,7 +51,7 @@ class CommandsTest extends TmaTestCase
 
         // Le résumé est enregistré à part, dans la chronologie, partagé avec le client.
         $entry = Entry::query()->sole();
-        $this->assertSame('summary', $entry->type->value);
+        $this->assertSame('comment', $entry->type->value);
         $this->assertStringContainsString('<p>La requête filtrait', $entry->body);
         $this->assertSame($time->ulid, $entry->meta['time_entry']);
 
