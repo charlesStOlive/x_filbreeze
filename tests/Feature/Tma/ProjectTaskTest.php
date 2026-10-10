@@ -194,6 +194,39 @@ class ProjectTaskTest extends TmaTestCase
         $this->getJson("/api/tma/v1/tasks/{$task->ulid}")->assertNotFound();
     }
 
+    public function test_the_start_defaults_to_the_creation_day_and_the_deadline_is_optional(): void
+    {
+        $agent = $this->agentForTasks();
+        $this->actingAs($agent);
+
+        // Sans début, une échéance seule passe ; le début est le jour de la création.
+        Livewire::test(CreateTask::class)
+            ->fillForm(['title' => 'Export comptable', 'target_instance_uid' => self::CLIENT_UID, 'due_on' => now()->addWeek()->toDateString()])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $task = ProjectTask::query()->sole();
+        $this->assertTrue($task->starts_on->isToday());
+        $this->assertTrue($task->due_on->isSameDay(now()->addWeek()));
+
+        // L'échéance ne précède pas le début (saisi, ou le jour de la création).
+        Livewire::test(CreateTask::class)
+            ->fillForm(['title' => 'Trop tôt', 'target_instance_uid' => self::CLIENT_UID, 'due_on' => now()->subDay()->toDateString()])
+            ->call('create')
+            ->assertHasFormErrors(['due_on' => 'after_or_equal']);
+
+        // Rien de saisi : rien d'obligatoire.
+        $bare = $this->draftTask($agent);
+        $this->assertTrue($bare->starts_on->isToday());
+        $this->assertNull($bare->due_on);
+
+        // La vraie fin : le jour où elle est terminée.
+        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->tasks()->run($bare, 'publish', [], Context::ui($agent));
+        $this->tasks()->run($bare, 'complete', [], Context::ui($agent));
+        Livewire::test(ViewTask::class, ['record' => $bare->getKey()])->assertSee('Terminée le');
+    }
+
     public function test_the_task_screens(): void
     {
         Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
