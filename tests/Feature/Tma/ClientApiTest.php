@@ -41,7 +41,7 @@ class ClientApiTest extends TmaTestCase
         ]);
     }
 
-    /** Le maître répond à une transmission comme il le ferait : le ticket, passé « Soumis » au centre de service. */
+    /** Le maître répond à une transmission comme il le ferait : le ticket, passé « Nouveau » au Support. */
     private function fakeMasterAccepting(): void
     {
         Http::fake(['master.test/api/tma/v1/tickets' => fn (Request $request) => Http::response([

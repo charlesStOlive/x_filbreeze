@@ -126,7 +126,7 @@ class AutoCloseTest extends TmaTestCase
         $this->artisan('tma:close-stale');
         $this->assertInstanceOf(Closed::class, $ticket->refresh()->state);
 
-        // Vu du client, ce ticket du centre de service n'est pas à lui de le clôturer.
+        // Vu du client, ce ticket du Support n'est pas à lui de le clôturer.
         $other = $this->serviceDeskTicket('awaiting_requester', 'DES-0002');
         $other->forceFill(['last_activity_at' => now()->subDays(90), 'auto_close_warned_at' => now()->subDays(30)])->save();
         $this->asClient();
@@ -157,7 +157,7 @@ class AutoCloseTest extends TmaTestCase
         $this->assertStringContainsString('Un commentaire suffit', $warning);
 
         $closed = (string) (new TicketAutoClosed($ticket))->toMail($requester)->render();
-        $this->assertStringContainsString('clôturé automatiquement', $closed);
+        $this->assertStringContainsString('clos automatiquement', $closed);
     }
 
     public function test_the_commands_are_scheduled(): void

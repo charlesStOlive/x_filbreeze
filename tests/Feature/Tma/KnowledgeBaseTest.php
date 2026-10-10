@@ -38,7 +38,7 @@ class KnowledgeBaseTest extends TmaTestCase
         $this->get(\CharlesStOlive\FilamentTma\Filament\Resources\Tickets\TicketResource::getUrl('index'))
             ->assertOk()
             ->assertSee('Les tickets')
-            ->assertSee('Comprendre la TMA');
+            ->assertSee('Comprendre le module');
     }
 
     public function test_every_question_mark_of_the_module_points_to_an_existing_page(): void

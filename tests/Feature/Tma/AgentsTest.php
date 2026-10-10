@@ -22,8 +22,8 @@ use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
 /**
- * Les agents du centre de service : une personne de l'équipe du maître, qui a aussi un compte dans une application
- * cliente, y agit pour le centre de service, en son nom du maître, jamais comme demandeur.
+ * Les membres du Support : une personne de l'équipe du maître, qui a aussi un compte dans une application
+ * cliente, y agit pour le Support, en son nom du maître, jamais comme demandeur.
  */
 class AgentsTest extends TmaTestCase
 {
@@ -125,7 +125,7 @@ class AgentsTest extends TmaTestCase
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent-charles'));
         Http::assertNotSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-instance'));
 
-        // Il ne transmet pas une demande au centre de service : il en fait partie.
+        // Il ne transmet pas une demande au Support : il en fait partie.
         $draft = $this->draft($charles);
         $this->assertFalse($this->workflow()->allows($draft, 'transmit', Context::ui($charles)));
     }

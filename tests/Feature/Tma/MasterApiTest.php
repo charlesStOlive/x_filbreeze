@@ -246,7 +246,7 @@ class MasterApiTest extends TmaTestCase
         Http::fake(['desapp.test/*' => Http::response(['message' => 'Maintenance'], 503)]);
         $ticket = $this->serviceDeskTicket('submitted');
 
-        // L'action du centre de service n'échoue pas pour autant.
+        // L'action du Support n'échoue pas pour autant.
         $this->workflow()->run($ticket, 'take-charge', [], Context::ui($this->agent()));
 
         $this->assertInstanceOf(InProgress::class, $ticket->refresh()->state);

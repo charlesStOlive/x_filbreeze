@@ -68,18 +68,20 @@ class InstallTest extends TmaTestCase
         $this->asClient();
 
         $this->artisan('tma:install', [
-            '--mode' => 'client', '--uid' => self::CLIENT_UID, '--master-url' => 'https://filbreeze.test',
-            '--master-token' => 'jeton-du-maitre', '--master-account' => 'centre-de-service@tma.local',
+            '--mode' => 'client', '--uid' => self::CLIENT_UID, '--short-name' => 'EDM', '--master-url' => 'https://filbreeze.test',
+            '--master-token' => 'jeton-du-maitre', '--master-account' => 'support@tma.local',
         ])->expectsOutputToContain('Son jeton')->assertSuccessful();
 
-        $account = User::query()->where('email', 'centre-de-service@tma.local')->sole();
+        $this->assertStringContainsString("TMA_INSTANCE_SHORT_NAME=EDM\n", $this->env());
+
+        $account = User::query()->where('email', 'support@tma.local')->sole();
         $this->assertSame(0, $account->roles()->count());
         $this->assertSame(1, $account->tokens()->where('revoked', false)->count());
-        $this->assertStringContainsString("TMA_MASTER_API_USER=centre-de-service@tma.local\n", $this->env());
+        $this->assertStringContainsString("TMA_MASTER_API_USER=support@tma.local\n", $this->env());
         $this->assertStringContainsString("TMA_MASTER_TOKEN=jeton-du-maitre\n", $this->env());
 
         // Relancée, elle révoque l'ancien jeton : un seul reste valide.
-        $this->artisan('tma:install', ['--mode' => 'client', '--master-account' => 'centre-de-service@tma.local'])->assertSuccessful();
+        $this->artisan('tma:install', ['--mode' => 'client', '--master-account' => 'support@tma.local'])->assertSuccessful();
         $this->assertSame(1, $account->tokens()->where('revoked', false)->count());
     }
 
@@ -93,7 +95,7 @@ class InstallTest extends TmaTestCase
         $uid = $form->get('data.uid');
         $this->assertMatchesRegularExpression('/^[0-9A-Z]{26}$/', $uid);
 
-        $form->fillForm(['name' => 'Desapp', 'url' => 'https://desapp.test'])->call('create')->assertHasNoFormErrors();
+        $form->fillForm(['name' => 'Desapp', 'short_name' => 'EDM', 'url' => 'https://desapp.test'])->call('create')->assertHasNoFormErrors();
         $instance = Instance::query()->sole();
         $this->assertSame($uid, $instance->uid);
 
@@ -111,8 +113,11 @@ class InstallTest extends TmaTestCase
         $this->assertStringContainsString('php artisan tma:install --mode=client', $command);
         $this->assertStringContainsString("--uid={$uid}", $command);
         $this->assertStringContainsString("--master-url='http://filbreeze.test'", $command);
-        $this->assertStringContainsString('--master-account=centre-de-service@tma.local', $command);
+        $this->assertStringContainsString('--master-account=support@tma.local', $command);
         $this->assertStringContainsString("TMA_INSTANCE_UID={$uid}", $page->get('mountedActions.0.arguments.env'));
+        // Le nom court du client part avec : « Équipe EDM », « Publier chez EDM » chez lui aussi.
+        $this->assertStringContainsString("--short-name='EDM'", $command);
+        $this->assertStringContainsString("TMA_INSTANCE_SHORT_NAME=EDM\n", $page->get('mountedActions.0.arguments.env'));
 
         $html = view('filament-tma::instances.client-env', ['command' => $command, 'env' => 'TMA_MODE=client'])->render();
         $this->assertStringContainsString('transmet son jeton', $html);
@@ -178,18 +183,18 @@ class InstallTest extends TmaTestCase
 
         $this->artisan('tma:install', [
             '--mode' => 'client', '--uid' => self::CLIENT_UID, '--master-url' => 'http://filbreeze.test',
-            '--master-token' => 'jeton-du-maitre', '--master-account' => 'centre-de-service@tma.local',
+            '--master-token' => 'jeton-du-maitre', '--master-account' => 'support@tma.local',
         ])
-            ->expectsOutputToContain('Jeton transmis au centre de service')
+            ->expectsOutputToContain('Jeton transmis au Support')
             ->assertSuccessful();
 
         \Illuminate\Support\Facades\Http::assertSent(fn ($request) => $request->url() === 'http://filbreeze.test/api/tma/v1/master/register'
             && $request->hasHeader('Authorization', 'Bearer jeton-du-maitre')
             && strlen($request['token']) > 100);
 
-        // Le centre de service ne répond pas : le jeton s'affiche, à coller à la main.
+        // Le Support ne répond pas : le jeton s'affiche, à coller à la main.
         $masterUp = false;
-        $this->artisan('tma:install', ['--mode' => 'client', '--master-account' => 'centre-de-service@tma.local'])
+        $this->artisan('tma:install', ['--mode' => 'client', '--master-account' => 'support@tma.local'])
             ->expectsOutputToContain('Saisir le jeton à la main')
             ->assertSuccessful();
     }

@@ -61,7 +61,7 @@ abstract class TmaTestCase extends TestCase
         return $this->workflow()->create(['title' => 'Le formulaire de contact ne part plus', ...$attributes], Context::ui($user));
     }
 
-    /** Un ticket arrivé d'une application cliente, pris en charge par le centre de service (vu du maître). */
+    /** Un ticket arrivé d'une application cliente, pris en charge par le Support (vu du maître). */
     protected function serviceDeskTicket(string $state = 'in_progress', string $number = 'DES-0001'): Ticket
     {
         $requester = Actor::fromInstance(self::CLIENT_UID, '7', 'Ada Lovelace', 'ada@client.test');
