@@ -147,7 +147,7 @@ class EditDeclaration extends EditRecord
                             ->state(fn (Declaration $record): array => $this->supplierInvoices($record))
                             ->schema([
                                 TextEntry::make('invoice_at')->label('Facture')->size(TextSize::ExtraSmall),
-                                TextEntry::make('number')->label('N°')->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
+                                TextEntry::make('number')->label('N°')->html()->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
                                 TextEntry::make('supplier')
                                     ->label('Four.')
                                     ->size(TextSize::ExtraSmall)
@@ -157,6 +157,24 @@ class EditDeclaration extends EditRecord
                                     ->columnSpan(2),
                                 TextEntry::make('amount')->label('Mt.')->size(TextSize::ExtraSmall)->columnSpan(1),
                                 TextEntry::make('vat')->label('TVA')->size(TextSize::ExtraSmall)->columnSpan(1),
+                            ])
+                            ->columns(7),
+                        RepeatableEntry::make('vat_uncovered_transactions')
+                            ->label('Paiements avec TVA non comptés')
+                            ->helperText('Seules les factures du module Factures fournisseur de Qonto comptent, à leur date d\'émission.')
+                            ->visible(fn (Declaration $record): bool => $this->uncoveredTransactions($record) !== [])
+                            ->state(fn (Declaration $record): array => $this->uncoveredTransactions($record))
+                            ->schema([
+                                TextEntry::make('paid_at')->label('Payé')->size(TextSize::ExtraSmall),
+                                TextEntry::make('label')
+                                    ->label('Libellé')
+                                    ->size(TextSize::ExtraSmall)
+                                    ->limit(22)
+                                    ->tooltip(fn (?string $state): ?string => $state)
+                                    ->columnSpan(2),
+                                TextEntry::make('amount')->label('Mt.')->size(TextSize::ExtraSmall),
+                                TextEntry::make('vat')->label('TVA')->size(TextSize::ExtraSmall),
+                                TextEntry::make('cause')->label('Pourquoi')->wrap()->size(TextSize::ExtraSmall)->columnSpan(2),
                             ])
                             ->columns(7),
                     ]),
@@ -196,11 +214,34 @@ class EditDeclaration extends EditRecord
             ->whereKey($declaration->calculation_details['qonto_supplier_invoice_ids'] ?? [])
             ->get()
             ->map(fn (QontoSupplierInvoice $invoice): array => [
-                'invoice_at' => $invoice->invoice_at?->format('d/m') ?? '—',
-                'number' => $invoice->number ?: 'Facture #'.$invoice->getKey(),
+                // Corrigée à la main : ✎ devant la valeur.
+                'invoice_at' => ($invoice->corrected_invoice_at ? '✎ ' : '').($invoice->effectiveInvoiceAt()?->format('d/m') ?? '—'),
+                // Une facture que la vérification de cohérence signale : ⚠, le détail au survol.
+                'number' => new HtmlString($invoice->hasCoherenceIssues()
+                    ? sprintf('<span class="text-warning-600" title="%s">⚠ %s</span>', e($invoice->coherenceSummary()), e($invoice->number ?: 'Facture #'.$invoice->getKey()))
+                    : e($invoice->number ?: 'Facture #'.$invoice->getKey())),
                 'supplier' => $invoice->supplier_name ?: 'Fournisseur non défini',
                 'amount' => number_format((float) ($invoice->account_amount ?? $invoice->amount ?? 0), 2, ',', ' ').' €',
-                'vat' => number_format((float) ($invoice->account_vat ?? (($invoice->vat_cents ?? 0) / 100)), 2, ',', ' ').' €',
+                'vat' => $invoice->corrected_vat_cents !== null
+                    ? '✎ '.number_format($invoice->corrected_vat_cents / 100, 2, ',', ' ').' €'
+                    : number_format((float) ($invoice->account_vat ?? (($invoice->vat_cents ?? 0) / 100)), 2, ',', ' ').' €',
+            ])
+            ->all();
+    }
+
+    /** @var array<int, array<int, array<string, string>>> */
+    private array $uncoveredTransactions = [];
+
+    private function uncoveredTransactions(Declaration $declaration): array
+    {
+        return $this->uncoveredTransactions[$declaration->getKey()] ??= app(DeclarationCalculator::class)
+            ->uncoveredVatTransactions($declaration)
+            ->map(fn (array $row): array => [
+                'paid_at' => ($row['transaction']->settled_at ?? $row['transaction']->emitted_at)?->format('d/m') ?? '—',
+                'label' => (string) ($row['transaction']->label ?: $row['transaction']->counterparty_name ?: '—'),
+                'amount' => number_format(abs((int) $row['transaction']->amount_cents) / 100, 2, ',', ' ').' €',
+                'vat' => $row['vat_cents'] === null ? '—' : number_format($row['vat_cents'] / 100, 2, ',', ' ').' €',
+                'cause' => $row['cause'],
             ])
             ->all();
     }

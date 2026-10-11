@@ -7,7 +7,10 @@ use App\Models\Invoice;
 use Carbon\CarbonInterface;
 use CharlesStOlive\FilamentQonto\Models\QontoExpenseNote;
 use CharlesStOlive\FilamentQonto\Models\QontoSupplierInvoice;
+use CharlesStOlive\FilamentQonto\Models\QontoTransaction;
+use CharlesStOlive\FilamentQonto\Services\SupplierInvoiceCoherence;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class DeclarationCalculator
@@ -56,15 +59,16 @@ class DeclarationCalculator
 
         if ($type === Declaration::TYPE_VAT) {
             $supplierInvoices = QontoSupplierInvoice::query()
-                ->whereDate('invoice_at', '>=', $start->toDateString())
-                ->whereDate('invoice_at', '<=', $end->toDateString())
+                // Ni exclues ici, ni rejetées chez Qonto ; rangées par leur date corrigée s'il y en a une.
+                ->counted()
+                ->issuedBetween($start->toDateString(), $end->toDateString())
                 // Un même achat peut remonter plusieurs fois côté Qonto (import en double,
                 // facture rattachée à deux transactions) avec des qonto_id distincts.
                 // On garde une seule occurrence par facture fournisseur identifiée via son numéro,
                 // en priorisant celle rapprochée d'une transaction.
                 ->orderByRaw('matched_at is null')
                 ->orderByDesc('matched_at')
-                ->get(['id', 'supplier_id', 'number', 'supplier_invoice_id', 'currency', 'vat_cents', 'account_currency', 'account_vat_cents', 'matched_at'])
+                ->get(['id', 'supplier_id', 'number', 'supplier_invoice_id', 'currency', 'vat_cents', 'account_currency', 'account_vat_cents', 'corrected_vat_cents', 'matched_at'])
                 ->unique(fn (QontoSupplierInvoice $invoice): string => $this->supplierInvoiceDedupKey($invoice))
                 ->values();
 
@@ -118,6 +122,79 @@ class DeclarationCalculator
                 'calculated_at' => now()->toIso8601String(),
             ],
         ];
+    }
+
+    /**
+     * Les paiements Qonto de la période qui portent de la TVA ou un justificatif, mais qu'aucune
+     * facture fournisseur ne fait entrer dans une déclaration : la TVA déductible ne vient que du
+     * module Factures fournisseur de Qonto, rangée par date d'émission. Soit la pièce n'y est pas,
+     * soit la facture rattachée est datée bien loin du paiement (pièce mélangée, date mal lue).
+     *
+     * @return Collection<int, array{transaction: QontoTransaction, vat_cents: ?int, cause: string}>
+     */
+    public function uncoveredVatTransactions(Declaration $declaration): Collection
+    {
+        if ($declaration->type !== Declaration::TYPE_VAT) {
+            return collect();
+        }
+
+        $from = $declaration->period_start->copy()->startOfDay();
+        $to = $declaration->period_end->copy()->endOfDay();
+
+        $transactions = QontoTransaction::query()
+            ->where('side', 'debit')
+            ->where(fn ($query) => $query
+                ->whereBetween('settled_at', [$from, $to])
+                ->orWhere(fn ($query) => $query->whereNull('settled_at')->whereBetween('emitted_at', [$from, $to])))
+            ->orderByRaw('COALESCE(settled_at, emitted_at)')
+            ->get()
+            // TVA lue et nulle (frais bancaires, fournisseur étranger) : rien à déduire, rien à signaler.
+            ->filter(fn (QontoTransaction $transaction): bool => match ($this->transactionVatCents($transaction)) {
+                null => filled($transaction->attachment_ids),
+                0 => false,
+                default => true,
+            });
+
+        $invoices = QontoSupplierInvoice::query()
+            ->whereIn('qonto_transaction_id', $transactions->modelKeys())
+            ->get()
+            ->groupBy('qonto_transaction_id');
+
+        $tolerance = (int) config('qonto.coherence.payment_date_tolerance_days', 31);
+
+        return $transactions
+            ->map(function (QontoTransaction $transaction) use ($invoices, $tolerance): ?array {
+                $linked = $invoices->get($transaction->getKey(), collect());
+                $paidAt = $transaction->settled_at ?? $transaction->emitted_at;
+
+                // Une facture qui compte, datée près du paiement, ou dont la date a été corrigée à la main.
+                $covering = $linked->first(fn (QontoSupplierInvoice $invoice): bool => $invoice->isCounted()
+                    && $invoice->effectiveInvoiceAt() !== null
+                    && ($invoice->corrected_invoice_at !== null
+                        || SupplierInvoiceCoherence::paymentGapDays($invoice->invoice_at, $invoice->due_at, $paidAt) <= $tolerance));
+
+                if ($covering) {
+                    return null;
+                }
+
+                $linkedInvoice = $linked->first();
+                $name = $linkedInvoice ? ($linkedInvoice->number ?: '#'.$linkedInvoice->getKey()) : null;
+
+                return [
+                    'transaction' => $transaction,
+                    'vat_cents' => $this->transactionVatCents($transaction),
+                    'cause' => match (true) {
+                        $linkedInvoice === null => filled($transaction->attachment_ids) ? 'Justificatif hors Factures fournisseur' : 'Sans justificatif',
+                        ! $linkedInvoice->isCounted() => sprintf('Facture %s %s', $name, $linkedInvoice->isExcluded()
+                            ? 'exclue : '.$linkedInvoice->excluded_reason
+                            : 'rejetée chez Qonto'),
+                        $linkedInvoice->invoice_at !== null => sprintf('Facture %s datée du %s', $name, $linkedInvoice->invoice_at->format('d/m/Y')),
+                        default => sprintf('Facture %s sans date', $name),
+                    },
+                ];
+            })
+            ->filter()
+            ->values();
     }
 
     /**
@@ -206,6 +283,11 @@ class DeclarationCalculator
 
     private function supplierVatCents(QontoSupplierInvoice $invoice): int
     {
+        // Corrigée à la main, en devise du compte.
+        if ($invoice->corrected_vat_cents !== null) {
+            return $invoice->corrected_vat_cents;
+        }
+
         if (strtoupper((string) $invoice->account_currency) === 'EUR' && $invoice->account_vat_cents !== null) {
             return (int) $invoice->account_vat_cents;
         }
@@ -215,6 +297,15 @@ class DeclarationCalculator
         }
 
         return 0;
+    }
+
+    /** La TVA que Qonto lit sur la transaction elle-même (null : pas lue). */
+    private function transactionVatCents(QontoTransaction $transaction): ?int
+    {
+        $raw = data_get($transaction->raw, 'transaction', $transaction->raw);
+        $cents = data_get($raw, 'vat_amount_cents');
+
+        return $cents === null ? null : (int) $cents;
     }
 
     private function toCents(mixed $amount): int
