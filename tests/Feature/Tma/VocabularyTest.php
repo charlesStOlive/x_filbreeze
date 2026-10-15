@@ -34,6 +34,7 @@ class VocabularyTest extends TmaTestCase
         $this->assertSame('Nouveau', $ticket->state->getLabel());
         $this->assertSame('Équipe EDM', $ticket->handledBy());
         $this->assertSame('Équipe EDM', $ticket->waitingOn());
+        $this->assertSame('Retour à l’équipe EDM', $this->workflow()->move('reopen')->labelFor($ticket));
 
         $this->actingAs($requester);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
@@ -46,6 +47,7 @@ class VocabularyTest extends TmaTestCase
         config(['filament-tma.instance.short_name' => null]);
         $this->assertSame('Équipe locale', $ticket->handledBy());
         $this->assertSame('Confier à l’équipe locale', $this->workflow()->move('submit')->label());
+        $this->assertSame('Retour à l’équipe locale', $this->workflow()->move('reopen')->labelFor($ticket));
     }
 
     public function test_the_support_names_each_client_with_its_own_short_name(): void
@@ -58,6 +60,7 @@ class VocabularyTest extends TmaTestCase
         $this->assertSame('Support', $this->serviceDeskTicket('in_progress', 'DES-0002')->waitingOn());
         $this->assertSame('Demandeur', $this->serviceDeskTicket('awaiting_requester', 'DES-0003')->waitingOn());
         $this->assertSame('Résolu', $this->serviceDeskTicket('pending_validation', 'DES-0004')->state->getLabel());
+        $this->assertSame('Retour au Support', $this->workflow()->move('reopen')->labelFor($draft));
 
         // Le nom court changé dans la fiche vaut tout de suite.
         $instance->update(['short_name' => 'ENF']);

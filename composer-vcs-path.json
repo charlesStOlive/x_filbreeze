@@ -34,6 +34,20 @@
             "options": {
                 "symlink": true
             }
+        },
+        "filament-prism-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-prism",
+            "options": {
+                "symlink": true
+            }
+        },
+        "filament-tma-local": {
+            "type": "path",
+            "url": "../packages_filament/filament-tma",
+            "options": {
+                "symlink": true
+            }
         }
     },
     "repositories-vcs****************************": {
@@ -51,11 +65,19 @@
         },
         "filament-state-fusion-enhanced-vcs": {
             "type": "vcs",
-            "url": "https://github.com/charlesStOlive/filament-state-fusion-enhanced.git"
+            "url": "https://github.com/charlesStOlive/filament-state-fusion-enhancedV2.git"
         },
         "filament-qonto-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-qonto.git"
+        },
+        "filament-prism-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-prism.git"
+        },
+        "filament-tma-vcs": {
+            "type": "vcs",
+            "url": "https://github.com/charlesStOlive/filament-tma.git"
         }
     }
 }

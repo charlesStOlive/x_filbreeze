@@ -15,6 +15,9 @@ use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
 use CharlesStOlive\FilamentTma\States\Ticket\Paused;
 use CharlesStOlive\FilamentTma\States\Ticket\PendingValidation;
 use CharlesStOlive\FilamentTma\States\Ticket\Submitted;
+use CharlesStOlive\FilamentTma\Support\TimelineItems;
+use CharlesStOlive\FilamentTma\Sync\Mirror;
+use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -211,31 +214,141 @@ class TicketWorkflowTest extends TmaTestCase
         $this->assertNull($ticket->paused_until);
     }
 
-    public function test_notes_stay_in_their_application_until_shared(): void
+    public function test_notes_are_numbered_and_comment_a_message_or_the_whole_ticket(): void
     {
         $this->asMaster();
         $agent = $this->agent();
         $ticket = $this->serviceDeskTicket();
         $timeline = app(Timeline::class);
 
-        $note = $timeline->add($ticket, EntryType::Note, '<p>Le client a déjà eu ce bug en mars.</p>', Context::ui($agent));
-        $this->assertCount(1, $ticket->timelineEntries(withNotes: true));
-        $this->assertCount(0, $ticket->timelineEntries(withNotes: false));
+        $message = $timeline->add($ticket, EntryType::Comment, '<p>Je reproduis le problème.</p>', Context::ui($agent));
+        $onTicket = $timeline->add($ticket, EntryType::Note, '<p>Le client a déjà eu ce bug en mars.</p>', Context::ui($agent));
+        $onMessage = $timeline->add($ticket, EntryType::Note, '<p>Même cause qu’en mars.</p>', Context::ui($agent), $message);
 
-        // Vue du client : la note du maître n'existe pas tant qu'elle n'est pas partagée.
-        $this->asClient();
-        $this->assertCount(0, $ticket->timelineEntries(withNotes: true));
+        $this->assertSame([1, 2], [$onTicket->number, $onMessage->number]);
+        $this->assertNull($onTicket->parent_id);
+        $this->assertTrue($onMessage->parent->is($message));
+
+        // L'historique ne montre que les messages, chacun avec ses notes ; toutes les notes sont dans l'état envoyé
+        // à l'application cliente : plus rien n'est interne.
+        $this->assertTrue($ticket->timelineEntries()->sole()->notes->sole()->is($onMessage));
+        $this->assertCount(2, $ticket->noteEntries($agent));
+        $this->assertSame(['comment', 'note', 'note'], array_column(Payload::snapshot($ticket)['entries'], 'type'));
+
+        // Une note commente un message de premier niveau, pas une autre note.
+        try {
+            $timeline->add($ticket, EntryType::Note, '<p>Sur une note ?</p>', Context::ui($agent), $onTicket);
+            $this->fail('Une note ne commente pas une note.');
+        } catch (ValidationException) {
+            $this->addToAssertionCount(1);
+        }
+
+        // Quiconque écrit des notes en archive une ; seul son auteur la supprime, et son numéro n'est pas redonné.
+        $colleague = $this->agent();
+        $timeline->archive($onTicket, true, Context::ui($colleague));
+        $this->assertCount(1, $ticket->noteEntries($agent));
+        $this->assertCount(2, $ticket->noteEntries($agent, withArchived: true));
+        $this->assertFalse($timeline->canDelete($onMessage, Context::ui($colleague)));
+        $this->assertFalse($timeline->canEdit($onMessage, Context::ui($colleague)));
+        $timeline->delete($onMessage, Context::ui($agent));
+        $this->assertSoftDeleted($onMessage);
+        $this->assertSame(3, $timeline->add($ticket, EntryType::Note, '<p>Encore une piste.</p>', Context::ui($agent))->number);
+
+        // Une note peut n'être qu'une image ; vide, elle est refusée.
+        $this->expectException(ValidationException::class);
+        $timeline->add($ticket, EntryType::Note, '<p> </p>', Context::ui($agent));
+    }
+
+    public function test_a_message_stays_editable_by_its_author_until_someone_else_writes(): void
+    {
         $this->asMaster();
+        $agent = $this->agent();
+        $other = $this->agent();
+        $ticket = $this->serviceDeskTicket();
+        $timeline = app(Timeline::class);
+        $message = $timeline->add($ticket, EntryType::Comment, '<p>Première version.</p>', Context::ui($agent));
 
-        $timeline->share($note, Context::ui($agent));
-        $this->asClient();
-        $this->assertCount(1, $ticket->timelineEntries(withNotes: false));
+        $this->assertFalse($timeline->canEdit($message, Context::ui($other)));
+
+        // Ses propres messages et les notes des autres ne le figent pas.
+        $timeline->add($ticket, EntryType::Comment, '<p>Et aussi.</p>', Context::ui($agent));
+        $timeline->add($ticket, EntryType::Note, '<p>À vérifier.</p>', Context::ui($other), $message);
+        $timeline->edit($message, '<p>Deuxième version.</p>', Context::ui($agent));
+        $this->assertSame('<p>Deuxième version.</p>', $message->refresh()->body);
+        $this->assertNotNull($message->edited_at);
+
+        // Le message de quelqu'un d'autre, si.
+        $this->travel(1)->minute();
+        $timeline->add($ticket, EntryType::Comment, '<p>Bien reçu.</p>', Context::ui($other));
+        $this->assertFalse($timeline->canEdit($message->refresh(), Context::ui($agent)));
+
+        $this->expectException(AuthorizationException::class);
+        $timeline->edit($message, '<p>Trop tard.</p>', Context::ui($agent));
+    }
+
+    public function test_a_private_note_shows_only_to_its_author(): void
+    {
         $this->asMaster();
+        $author = $this->agent();
+        $colleague = $this->agent();
+        $ticket = $this->serviceDeskTicket();
+        $ticket->forceFill(['last_activity_at' => now()->subDay()])->saveQuietly();
+        $timeline = app(Timeline::class);
 
-        // On répond dans le fil d'une note partagée : la réponse l'est aussi.
-        $reply = $timeline->add($ticket, EntryType::Comment, '<p>Oui, même cause.</p>', Context::ui($agent), $note);
-        $this->assertSame(EntryType::Note, $reply->type);
-        $this->assertNotNull($reply->shared_at);
+        // Elle ne change pas la dernière activité du ticket, que tous voient.
+        $private = $timeline->add($ticket, EntryType::Note, '<p>À vérifier avant d’en parler.</p>', Context::ui($author), private: true);
+        $this->assertTrue($ticket->refresh()->last_activity_at->lt(now()->subHours(12)));
+        $public = $timeline->add($ticket, EntryType::Note, '<p>Pour tous.</p>', Context::ui($colleague));
+
+        // Elle prend un numéro comme les autres, mais ne se montre qu'à son auteur.
+        $this->assertSame([1, 2], [$private->number, $public->number]);
+        $this->assertTrue($private->isVisibleTo($author));
+        $this->assertFalse($private->isVisibleTo($colleague));
+        $this->assertSame([1, 2], $ticket->noteEntries($author)->pluck('number')->all());
+        $this->assertSame([2], $ticket->noteEntries($colleague)->pluck('number')->all());
+
+        // Les autres ne l'archivent pas ; son auteur, si.
+        $this->assertFalse($timeline->canArchive($private, Context::ui($colleague)));
+        $this->assertTrue($timeline->canArchive($private, Context::ui($author)));
+
+        // Elle part quand même vers l'autre application, qui la garde privée : son auteur l'y retrouve.
+        $sent = collect(Payload::snapshot($ticket)['entries'])->firstWhere('ulid', $private->ulid);
+        $this->assertTrue($sent['private']);
+        $this->assertNull($sent['shared_at']);
+        $private->forceDelete();
+        $this->assertTrue(Mirror::entry($ticket, $sent)->private);
+
+        // Son auteur la montre à tous plus tard.
+        $timeline->edit($private = Entry::query()->where('ulid', $sent['ulid'])->sole(), '<p>Vérifié : on en parle.</p>', Context::ui($author), private: false);
+        $this->assertTrue($private->refresh()->isVisibleTo($colleague));
+        $this->assertFalse(Payload::entry($private)['private']);
+    }
+
+    public function test_a_move_is_tied_to_the_message_it_writes_and_only_that_one(): void
+    {
+        $this->asClient();
+        $requester = $this->agent();
+        $team = $this->agent();
+        $ticket = $this->draft($requester);
+        $this->workflow()->run($ticket, 'submit', [], Context::ui($requester));
+        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($team));
+        $apart = app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Je prends en charge.</p>', Context::ui($team));
+        $ask = $this->workflow()->run($ticket->refresh(), 'request-answer', ['question' => '<p>Sur quel navigateur ?</p>'], Context::ui($team));
+        $reply = $this->workflow()->run($ticket->refresh(), 'answer', ['answer' => '<p>Firefox.</p>'], Context::ui($requester));
+        $question = $ticket->entries()->where('meta->question', true)->sole();
+        $answer = $ticket->entries()->where('meta->answer', true)->sole();
+
+        // Le message écrit par le passage le cite ; il voyage avec (l'autre application les montre aussi ensemble).
+        $this->assertSame($ask->ulid, $question->meta['transition']);
+        $this->assertSame($ask->ulid, Payload::entry($question)['meta']['transition']);
+        $moves = TimelineItems::movesOfMessages($ticket->timelineEntries(), $ticket->transitions()->get());
+        $this->assertTrue($moves->get($question->getKey())->is($ask));
+        $this->assertTrue($moves->get($answer->getKey())->is($reply));
+        $this->assertFalse($moves->has($apart->getKey()));
+
+        // Un message plus ancien, sans lien, retrouve le passage qui l'a écrit : même auteur, même moment.
+        $question->forceFill(['meta' => ['question' => true]])->save();
+        $this->assertTrue(TimelineItems::movesOfMessages($ticket->timelineEntries(), $ticket->transitions()->get())->get($question->getKey())->is($ask));
     }
 
     public function test_notes_need_their_permission_and_comments_stop_with_the_ticket(): void
@@ -247,7 +360,6 @@ class TicketWorkflowTest extends TmaTestCase
 
         $this->assertTrue($timeline->canAdd($ticket, EntryType::Comment, Context::ui($commenter)));
         $this->assertFalse($timeline->canAdd($ticket, EntryType::Note, Context::ui($commenter)));
-        $this->assertFalse($timeline->canReadNotes($ticket, Context::ui($commenter)));
 
         $ticket->forceFill(['state' => 'closed'])->save();
         $this->expectException(AuthorizationException::class);

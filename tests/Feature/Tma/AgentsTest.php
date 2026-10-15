@@ -6,13 +6,16 @@ use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\EditInstance;
 use CharlesStOlive\FilamentTma\Filament\Resources\Instances\RelationManagers\AgentsRelationManager;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\RelationManagers\TimeEntriesRelationManager;
 use CharlesStOlive\FilamentTma\Models\Agent;
 use CharlesStOlive\FilamentTma\Models\AgentLink;
-use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
+use CharlesStOlive\FilamentTma\Support\ServiceAccount;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -65,7 +68,7 @@ class AgentsTest extends TmaTestCase
         $this->asMaster();
         $this->personalAccessClient();
         $charles = $this->person('charles@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.comment');
-        $token = \CharlesStOlive\FilamentTma\Support\ServiceAccount::agentToken($charles, self::CLIENT_UID);
+        $token = ServiceAccount::agentToken($charles, self::CLIENT_UID);
         $mine = $this->serviceDeskTicket('submitted');
         $other = $this->serviceDeskTicket('submitted', 'EDM-0001');
         $other->forceFill(['source_instance_uid' => '01JTESTOTHER00000000000000'])->save();
@@ -83,6 +86,13 @@ class AgentsTest extends TmaTestCase
         $this->assertSame('submitted', $mine->refresh()->state::getMorphClass());
         $this->assertSame('Charles', $mine->entries()->sole()->author->name);
         $this->assertSame(self::MASTER_UID, $mine->entries()->sole()->author->instance_uid);
+
+        // Il modifie son message, en son nom ; l'état revient avec.
+        $ulid = $mine->entries()->sole()->ulid;
+        $this->patchJson("/api/tma/v1/agent/tickets/DES-0001/entries/{$ulid}", ['body' => '<p>Je regarde ce soir.</p>'])
+            ->assertOk()
+            ->assertJsonPath('data.snapshot.entries.0.body', '<p>Je regarde ce soir.</p>');
+        $this->assertNotNull($mine->entries()->sole()->edited_at);
     }
 
     public function test_in_the_client_an_agent_acts_for_the_service_desk_never_as_requester(): void
@@ -122,6 +132,20 @@ class AgentsTest extends TmaTestCase
         $entry = app(Timeline::class)->add($ticket, EntryType::Comment, '<p>C’est corrigé.</p>', Context::ui($charles));
         $this->assertSame(self::MASTER_UID, $entry->author->instance_uid);
 
+        // Il modifie son message dans le maître, toujours avec son jeton ; le message modifié revient.
+        Http::fake(['master.test/api/tma/v1/agent/tickets/*/entries/*' => function (Request $request) use ($ticket, $entry) {
+            $snapshot = Payload::snapshot($ticket->refresh());
+            $snapshot['entries'] = collect($snapshot['entries'])
+                ->map(fn (array $payload): array => $payload['ulid'] === $entry->ulid ? [...$payload, 'body' => $request['body'], 'edited_at' => now()->toIso8601String()] : $payload)
+                ->all();
+
+            return Http::response(['data' => ['snapshot' => $snapshot]]);
+        }]);
+        $this->assertTrue(app(Timeline::class)->canEdit($entry, Context::ui($charles)));
+        app(Timeline::class)->edit($entry, '<p>C’est corrigé, et testé.</p>', Context::ui($charles));
+        $this->assertSame('<p>C’est corrigé, et testé.</p>', $entry->refresh()->body);
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PATCH' && $request->hasHeader('Authorization', 'Bearer jeton-agent-charles'));
+
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent-charles'));
         Http::assertNotSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-instance'));
 
@@ -147,5 +171,41 @@ class AgentsTest extends TmaTestCase
 
         $this->postJson('/api/tma/v1/agents/unlink', ['email' => 'charles@notilac.fr'])->assertOk();
         $this->assertSame(0, Agent::query()->count());
+    }
+
+    public function test_in_the_client_time_is_read_only_except_for_a_support_member(): void
+    {
+        $this->asClient();
+        config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton-instance']);
+        $charles = $this->person('charles@notilac.fr', 'tma.*');
+        Agent::create(['user_id' => $charles->getKey(), 'email' => $charles->email, 'name' => 'Charles', 'master_uid' => self::MASTER_UID, 'master_user_id' => '1', 'token' => 'jeton-agent-charles', 'linked_at' => now()]);
+        $requester = $this->agent();
+        $ticket = $this->draft($requester);
+        $ticket->forceFill(['handling_mode' => 'service_desk', 'state' => 'in_progress', 'time_total_minutes' => 90])->save();
+
+        // Un utilisateur du client : les totaux, en lecture, en bas du volet.
+        $this->actingAs($requester);
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->assertSeeInOrder(['Suivi', 'Temps passé', 'Ce ticket : 1 h 30'])
+            ->assertDontSeeLivewire(TimeEntriesRelationManager::class)
+            ->assertDontSee('Saisir du temps');
+
+        // Un membre du Support y saisit le sien, dans le maître ; les totaux reviennent.
+        Http::fake(['master.test/api/tma/v1/agent/tickets/*/time' => function () use ($ticket) {
+            $snapshot = Payload::snapshot($ticket->refresh());
+            $snapshot['ticket']['version'] = $ticket->sync_version + 1;
+            $snapshot['ticket']['time'] = ['total_minutes' => 150, 'by_month' => [now()->format('Y-m') => 150]];
+
+            return Http::response(['data' => ['snapshot' => $snapshot]], 201);
+        }]);
+        $this->actingAs($charles);
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->assertSee('Saisir du temps')
+            ->callAction(TestAction::make('agentTime')->schemaComponent('time', schema: 'sideInfolist'), ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'message' => '<p>Analyse des relances</p>', 'billable' => true])
+            ->assertNotified('Temps enregistré chez le Support');
+        $this->assertSame(150, $ticket->refresh()->time_total_minutes);
+        // Le message part avec le temps, écrit là-bas en son nom.
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent-charles')
+            && $request['minutes'] === 60 && $request['summary'] === '<p>Analyse des relances</p>' && ! isset($request['entry_ulid']));
     }
 }

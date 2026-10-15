@@ -56,7 +56,7 @@ class AllowanceTest extends TmaTestCase
         $ticket = Ticket::query()->where('number', $number)->first()
             ?? tap($this->serviceDeskTicket('in_progress', $number), fn ($t) => $t->forceFill(['source_instance_uid' => $source])->save());
 
-        app(TimeLog::class)->add($ticket, $minutes, $day, null, Context::ui($this->agent), $billable);
+        app(TimeLog::class)->add($ticket, $minutes, $day, Context::ui($this->agent), $billable);
     }
 
     public function test_consumption_counts_billable_ticket_time_of_the_period(): void

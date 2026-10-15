@@ -37,7 +37,7 @@ class AuditAndCleanupTest extends TmaTestCase
         $this->actingAs($agent);
         $ticket = $this->serviceDeskTicket();
 
-        $entry = app(TimeLog::class)->add($ticket, 60, '2026-10-01', 'Analyse', Context::ui($agent));
+        $entry = app(TimeLog::class)->add($ticket, 60, '2026-10-01', Context::ui($agent));
         $entry->update(['minutes' => 90]);
         $entry->delete();
 
@@ -57,7 +57,7 @@ class AuditAndCleanupTest extends TmaTestCase
         $agent = $this->agent();
         $ticket = $this->serviceDeskTicket();
 
-        Auditor::as(Context::command($agent), fn () => app(TimeLog::class)->add($ticket, 30, null, 'Via commande', Context::command($agent)));
+        Auditor::as(Context::command($agent), fn () => app(TimeLog::class)->add($ticket, 30, null, Context::command($agent)));
         $audit = Audit::query()->where('action', 'time.created')->sole();
         $this->assertSame('command', $audit->origin->value);
         $this->assertTrue($audit->actor->isUser($agent));
@@ -83,7 +83,7 @@ class AuditAndCleanupTest extends TmaTestCase
     public function test_the_audit_screen_is_read_only(): void
     {
         $this->actingAs($this->agent('tma.audit.viewany'));
-        app(TimeLog::class)->add($this->serviceDeskTicket(), 45, null, null, Context::ui(auth()->user()));
+        app(TimeLog::class)->add($this->serviceDeskTicket(), 45, null, Context::ui(auth()->user()));
 
         Livewire::test(ListAudits::class)->assertCanSeeTableRecords(Audit::all());
         $this->assertFalse(AuditResource::canEdit(Audit::query()->first()));
@@ -100,12 +100,12 @@ class AuditAndCleanupTest extends TmaTestCase
         $old = $this->serviceDeskTicket('in_progress', 'DES-0001');
         $entry = app(Timeline::class)->add($old, EntryType::Note, '<p>Journal</p>', Context::ui($agent));
         $entry->addMedia(UploadedFile::fake()->createWithContent('log.txt', "Erreur 500 à 10h02\n"))->toMediaCollection('attachments');
-        app(TimeLog::class)->add($old, 30, null, null, Context::ui($agent));
+        app(TimeLog::class)->add($old, 30, null, Context::ui($agent));
         $old->delete();
 
         // Un autre, supprimé aussi, mais dont le temps a été facturé : on le garde.
         $invoiced = $this->serviceDeskTicket('in_progress', 'DES-0002');
-        $time = app(TimeLog::class)->add($invoiced, 60, null, null, Context::ui($agent));
+        $time = app(TimeLog::class)->add($invoiced, 60, null, Context::ui($agent));
         $time->forceFill(['invoice_type' => 'invoice', 'invoice_id' => 3])->save();
         $invoiced->delete();
 

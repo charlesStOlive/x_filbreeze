@@ -12,6 +12,7 @@ use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
 use CharlesStOlive\FilamentTma\States\Ticket\Submitted;
+use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Illuminate\Http\Client\Request;
@@ -106,7 +107,7 @@ class MasterApiTest extends TmaTestCase
                 'uuid' => 'f1', 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png', 'size' => 70,
                 'content' => base64_encode(base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')),
             ]]]),
-            $this->entryPayload('note', ['shared_at' => now()->toIso8601String()]),
+            $this->entryPayload('note', ['number' => 1]),
         ]);
 
         $this->postJson('/api/tma/v1/tickets', $payload)->assertCreated()->assertJsonPath('ticket.state', 'submitted');
@@ -127,15 +128,6 @@ class MasterApiTest extends TmaTestCase
         $this->assertSame(1, $ticket->transitions()->count());
         $this->assertSame(2, $ticket->entries()->count());
         $this->assertSame(1, Entry::query()->where('type', 'comment')->sole()->getMedia('attachments')->count());
-    }
-
-    public function test_an_internal_note_is_never_received(): void
-    {
-        $this->actingAsClient();
-
-        $this->postJson('/api/tma/v1/tickets', $this->transmission(entries: [$this->entryPayload('note')]))
-            ->assertUnprocessable();
-        $this->assertSame(0, Ticket::query()->count());
     }
 
     public function test_an_application_only_reaches_its_own_tickets(): void
@@ -207,6 +199,43 @@ class MasterApiTest extends TmaTestCase
         Event::assertDispatchedTimes(EntryAdded::class, 1);
     }
 
+    public function test_a_client_changes_its_own_entries_and_only_archives_the_support_notes(): void
+    {
+        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->actingAsClient();
+        $this->postJson('/api/tma/v1/tickets', $this->transmission(['ulid' => $ulid = strtolower((string) Str::ulid())]))->assertCreated();
+        $ticket = Ticket::query()->sole();
+        $url = "/api/tma/v1/tickets/{$ulid}/entries";
+        $supportNote = app(Timeline::class)->add($ticket, EntryType::Note, '<p>Du Support.</p>', Context::ui($this->agent()));
+
+        // Le n° 1 est pris par la note du Support : celle du client prend le suivant, et le maître le lui dit.
+        $message = $this->entryPayload('comment');
+        $note = $this->entryPayload('note', ['number' => 1, 'parent_ulid' => $message['ulid']]);
+        $this->postJson($url, $message)->assertCreated();
+        $this->postJson($url, $note)->assertCreated()->assertJsonPath('entry.number', 2);
+        $this->assertSame($message['ulid'], Entry::query()->where('ulid', $note['ulid'])->sole()->parent->ulid);
+
+        // Renvoyées, ses entrées changent : le texte d'un message, l'archivage puis la suppression d'une note.
+        $this->postJson($url, [...$message, 'body' => '<p>Corrigé.</p>', 'edited_at' => now()->toIso8601String()])->assertOk();
+        $this->assertSame('<p>Corrigé.</p>', Entry::query()->where('ulid', $message['ulid'])->sole()->body);
+        $this->postJson($url, [...$note, 'archived_at' => now()->toIso8601String()])->assertOk();
+        $this->assertNotNull(Entry::query()->where('ulid', $note['ulid'])->sole()->archived_at);
+        $this->postJson($url, [...$note, 'deleted_at' => now()->toIso8601String()])->assertOk();
+        $this->assertSoftDeleted('tma_entries', ['ulid' => $note['ulid']]);
+
+        // Sur une note du Support, il ne fait qu'archiver : ni son texte, ni son auteur ne changent.
+        $this->postJson($url, [...Payload::entry($supportNote), 'body' => '<p>Réécrit.</p>', 'archived_at' => now()->toIso8601String()])->assertOk();
+        $supportNote->refresh();
+        $this->assertSame('<p>Du Support.</p>', $supportNote->body);
+        $this->assertNotNull($supportNote->archived_at);
+        $this->assertSame(self::MASTER_UID, $supportNote->origin_instance_uid);
+
+        // Quelqu'un d'autre a écrit après le message : il ne se modifie plus.
+        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Bien reçu.</p>', Context::ui($this->agent()));
+        $this->postJson($url, [...$message, 'body' => '<p>Encore corrigé.</p>'])->assertUnprocessable();
+        $this->assertSame('<p>Corrigé.</p>', Entry::query()->where('ulid', $message['ulid'])->sole()->body);
+    }
+
     public function test_changes_made_here_are_pushed_to_the_client(): void
     {
         Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
@@ -223,7 +252,7 @@ class MasterApiTest extends TmaTestCase
         $this->assertSame(1, $ticket->sync_version);
     }
 
-    public function test_internal_notes_never_leave_and_files_follow_on_demand(): void
+    public function test_notes_leave_too_and_files_follow_on_demand(): void
     {
         $ticket = $this->serviceDeskTicket('in_progress');
         $agent = $this->agent();
@@ -233,8 +262,10 @@ class MasterApiTest extends TmaTestCase
             'desapp.test/api/tma/v1/media/*' => Http::response(['files_count' => 1]),
         ]);
 
-        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Interne.</p>', Context::ui($agent));
-        Http::assertNothingSent();
+        // Une note part comme un message : plus rien n'est interne.
+        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Pour tous.</p>', Context::ui($agent));
+        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/sync')
+            && collect($request['entries'])->contains(fn (array $entry): bool => $entry['type'] === 'note' && $entry['number'] === 1));
 
         Storage::fake('local');
         Storage::disk('local')->put('tma-uploads/log.txt', 'erreur 500');
@@ -242,8 +273,8 @@ class MasterApiTest extends TmaTestCase
         app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Voici le journal.</p>', Context::ui($agent), uploads: [['path' => 'tma-uploads/log.txt', 'name' => 'log.txt']]);
 
         Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/media/entry/')
+            && ($request['files'][0]['content'] ?? null) !== null
             && base64_decode($request['files'][0]['content']) === 'erreur 500');
-        Http::assertNotSent(fn (Request $request): bool => str_contains(json_encode($request->data()), 'Interne.'));
     }
 
     public function test_a_client_that_does_not_answer_puts_the_ticket_in_error(): void

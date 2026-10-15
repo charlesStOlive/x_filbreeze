@@ -5,6 +5,7 @@ namespace Tests\Feature\Tma;
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
+use CharlesStOlive\FilamentTma\Models\Project;
 use CharlesStOlive\FilamentTma\Models\TimeEntry;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\TaskWorkflow;
@@ -47,17 +48,32 @@ class CommandsTest extends TmaTestCase
         $this->assertSame(120, $time->minutes);
         $this->assertSame('command', $time->origin->value);
         $this->assertTrue($time->actor->isUser($agent));
-        $this->assertSame("Correction de l'export CSV des parrains.", $time->description);
 
-        // Le résumé est enregistré à part, dans la chronologie, partagé avec le client.
+        // Le résumé est un message de la chronologie, partagé avec le client : le temps porte dessus.
         $entry = Entry::query()->sole();
         $this->assertSame('comment', $entry->type->value);
         $this->assertStringContainsString('<p>La requête filtrait', $entry->body);
-        $this->assertSame($time->ulid, $entry->meta['time_entry']);
+        $this->assertTrue($time->entry->is($entry));
 
         $this->artisan('tma:comment', ['ref' => 'DES-0001', '--body' => 'À surveiller au prochain import.', '--note' => true, '--token' => $token, '--json' => true])
             ->expectsOutputToContain('"type": "note"')
             ->assertSuccessful();
+
+        // Ou sur un message ou une note qui existe déjà, par son ulid ; pas les deux à la fois.
+        $note = Entry::query()->where('type', 'note')->sole();
+        $this->artisan('tma:log', ['ref' => 'DES-0001', '--minutes' => 20, '--entry' => strtoupper($note->ulid), '--token' => $token])
+            ->expectsOutputToContain('0 h 20 enregistrées le '.now()->toDateString().', sur le message '.$note->ulid)
+            ->assertSuccessful();
+        $this->assertSame(20, (int) $note->timeEntries()->sum('minutes'));
+        $this->assertSame(2, Entry::query()->count());
+
+        $this->artisan('tma:log', ['ref' => 'DES-0001', '--minutes' => 20, '--entry' => $note->ulid, '--summary' => 'Encore', '--token' => $token])
+            ->expectsOutputToContain('ne désignez pas en plus')
+            ->assertFailed();
+        $this->artisan('tma:log', ['ref' => 'DES-0001', '--minutes' => 20, '--entry' => 'inconnu', '--token' => $token])
+            ->expectsOutputToContain('introuvable')
+            ->assertFailed();
+        $this->assertSame(2, TimeEntry::query()->count());
     }
 
     public function test_project_tasks_are_listed_and_take_time_too(): void
@@ -66,7 +82,9 @@ class CommandsTest extends TmaTestCase
         Http::fake();
         Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'https://desapp.test']);
         $agent = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.*', 'tma.task.*')->create();
-        $task = app(TaskWorkflow::class)->create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID, 'project' => 'Parrains'], Context::ui($agent));
+        $project = Project::create(['title' => 'Parrains', 'target_instance_uid' => self::CLIENT_UID]);
+        $task = app(TaskWorkflow::class)->create(['title' => 'Portail parrain', 'project_id' => $project->getKey()], Context::ui($agent));
+        app(TaskWorkflow::class)->run($task, 'publish', [], Context::ui($agent));
         $this->serviceDeskTicket();
         $token = $this->tokenFor($agent);
 
@@ -84,6 +102,8 @@ class CommandsTest extends TmaTestCase
             ->assertSuccessful();
 
         $this->assertSame(210, $task->timeEntries()->sole()->minutes);
+        // Le temps porte sur le message qui le résume.
+        $this->assertSame('<p>Atelier de cadrage</p>', $task->timeEntries()->sole()->entry->body);
         $this->artisan('tma:show', ['ref' => 'T-0001', '--token' => $token])->expectsOutputToContain('Projet : Parrains')->assertSuccessful();
     }
 

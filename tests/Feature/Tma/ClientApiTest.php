@@ -125,7 +125,7 @@ class ClientApiTest extends TmaTestCase
         $timeline = app(Timeline::class);
         Storage::disk('local')->put('tma-uploads/capture.png', 'png');
         $timeline->add($ticket, EntryType::Comment, '<p>Capture jointe.</p>', Context::ui($requester), uploads: [['path' => 'tma-uploads/capture.png', 'name' => 'capture.png']]);
-        $timeline->add($ticket, EntryType::Note, '<p>Note interne : ne part pas.</p>', Context::ui($requester));
+        $timeline->add($ticket, EntryType::Note, '<p>Une note : elle part aussi.</p>', Context::ui($requester));
 
         $this->assertTrue($this->workflow()->allows($ticket, 'transmit', Context::ui($requester)));
         $this->workflow()->run($ticket, 'transmit', [], Context::ui($requester));
@@ -136,9 +136,9 @@ class ClientApiTest extends TmaTestCase
         $this->assertSame(1, $ticket->transitions()->count());
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-maitre')
-            && count($request['entries']) === 1
+            && count($request['entries']) === 2
             && $request['entries'][0]['files'][0]['file_name'] === 'capture.png'
-            && ! str_contains(json_encode($request->data()), 'Note interne'));
+            && $request['entries'][1]['type'] === 'note' && $request['entries'][1]['number'] === 1);
 
         // Désormais, c'est le maître qui a la main : plus de modification ici.
         $this->assertFalse($ticket->fieldsEditableHere());
@@ -213,8 +213,11 @@ class ClientApiTest extends TmaTestCase
         $timeline = app(Timeline::class);
 
         $masterUp = false;
-        Http::fake(['master.test/*' => function () use (&$masterUp) {
-            return $masterUp ? Http::response(['entry' => []], 201) : Http::response(['message' => 'indisponible'], 503);
+        Http::fake(['master.test/*' => function (Request $request) use (&$masterUp) {
+            // Le maître a déjà trois notes : celle du client prend le n° 4.
+            return $masterUp
+                ? Http::response(['entry' => ['number' => $request['type'] === 'note' ? 4 : null]], 201)
+                : Http::response(['message' => 'indisponible'], 503);
         }]);
 
         try {
@@ -228,14 +231,30 @@ class ClientApiTest extends TmaTestCase
         $timeline->add($ticket, EntryType::Comment, '<p>Un détail.</p>', Context::ui($requester));
         $this->assertSame(1, Entry::query()->count());
 
-        // Une note reste ici, sans appel.
-        $note = $timeline->add($ticket, EntryType::Note, '<p>Pour nous.</p>', Context::ui($requester));
-        Http::assertSentCount(2);
-
-        // Partagée, elle part.
-        $timeline->share($note, Context::ui($requester));
+        // Une note part comme un message, et prend le numéro que le maître lui donne.
+        $message = Entry::query()->messages()->sole();
+        $note = $timeline->add($ticket, EntryType::Note, '<p>Pour tous.</p>', Context::ui($requester), $message);
         Http::assertSentCount(3);
-        Http::assertSent(fn (Request $request): bool => $request['type'] === 'note' && $request['shared_at'] !== null);
+        $this->assertSame(4, $note->refresh()->number);
+        Http::assertSent(fn (Request $request): bool => $request['type'] === 'note' && $request['parent_ulid'] === $message->ulid);
+
+        // Modifier, archiver, supprimer : la même entrée repart.
+        $timeline->edit($message, '<p>Un détail, précisé.</p>', Context::ui($requester));
+        $timeline->archive($note, true, Context::ui($requester));
+        $timeline->delete($note, Context::ui($requester));
+        Http::assertSentCount(6);
+        Http::assertSent(fn (Request $request): bool => $request['ulid'] === $message->ulid && $request['edited_at'] !== null && $request['body'] === '<p>Un détail, précisé.</p>');
+        Http::assertSent(fn (Request $request): bool => $request['ulid'] === $note->ulid && $request['archived_at'] !== null && $request['deleted_at'] === null);
+        Http::assertSent(fn (Request $request): bool => $request['ulid'] === $note->ulid && $request['deleted_at'] !== null);
+
+        // Si le maître ne répond pas, rien ne change ici.
+        $masterUp = false;
+        try {
+            $timeline->edit($message, '<p>Encore.</p>', Context::ui($requester));
+            $this->fail('La modification aurait dû échouer.');
+        } catch (SyncException) {
+            $this->assertSame('<p>Un détail, précisé.</p>', $message->refresh()->body);
+        }
     }
 
     public function test_the_master_pushes_and_the_requester_is_told_here(): void
