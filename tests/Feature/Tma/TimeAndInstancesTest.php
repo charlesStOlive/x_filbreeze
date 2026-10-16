@@ -106,19 +106,20 @@ class TimeAndInstancesTest extends TmaTestCase
             ->callAction($preset('duration_halfDay'))
             ->assertSchemaStateSet(['duration' => 0.5, 'unit' => 'days'], 'mountedActionSchema0');
 
-        // Avec un message : il s'écrit dans l'historique, et le temps porte dessus.
+        // Sur un ticket, le temps n'a pas de texte (un message y va avec un passage) : sans message choisi, il porte
+        // sur la fiche entière.
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
-            ->callTableAction('logTime', data: ['worked_on' => '2026-10-05', 'duration' => 1.5, 'unit' => 'hours', 'message' => '<p>Correctif export</p>', 'billable' => true])
-            ->assertHasNoTableActionErrors()
-            ->assertSee('Sur : Message de');
+            ->mountAction(TestAction::make('logTime')->table())
+            ->assertFormFieldHidden('message')
+            ->fillForm(['worked_on' => '2026-10-05', 'duration' => 1.5, 'unit' => 'hours', 'billable' => true])
+            ->callMountedAction()
+            ->assertHasNoActionErrors();
 
         $entry = TimeEntry::query()->sole();
         $this->assertSame(90, $entry->minutes);
         $this->assertTrue($entry->actor->isUser($agent));
-        $message = $ticket->entries()->sole();
-        $this->assertSame('comment', $message->type->value);
-        $this->assertStringContainsString('Correctif export', $message->body);
-        $this->assertTrue($entry->entry->is($message));
+        $this->assertNull($entry->entry);
+        $this->assertSame(0, $ticket->entries()->count());
 
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
             ->callTableAction('edit', $entry, data: ['duration' => 2, 'unit' => 'hours'])
@@ -131,7 +132,7 @@ class TimeAndInstancesTest extends TmaTestCase
             ->assertTableActionHidden('delete', $entry);
     }
 
-    public function test_choosing_a_message_or_a_note_drops_the_new_message(): void
+    public function test_time_bears_on_a_message_or_a_note_of_the_ticket(): void
     {
         $this->asMaster();
         $agent = $this->agent();
@@ -139,12 +140,10 @@ class TimeAndInstancesTest extends TmaTestCase
         $note = app(Timeline::class)->add($ticket, EntryType::Note, '<p>Vu en recette.</p>', Context::ui($agent));
         $this->actingAs($agent);
 
-        // Le champ du message disparaît dans le navigateur dès qu'un message ou une note est choisi ; son texte, s'il
-        // en avait, est ignoré.
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
             ->mountAction(TestAction::make('logTime')->table())
-            ->assertFormFieldVisible('message')
-            ->fillForm(['worked_on' => now()->toDateString(), 'duration' => 20, 'unit' => 'minutes', 'entry_id' => $note->getKey(), 'message' => '<p>Oublié là.</p>'])
+            ->assertFormFieldHidden('message')
+            ->fillForm(['worked_on' => now()->toDateString(), 'duration' => 20, 'unit' => 'minutes', 'entry_id' => $note->getKey()])
             ->callMountedAction()
             ->assertHasNoActionErrors()
             ->assertDispatched(TimeEntriesRelationManager::TIMELINE_CHANGED);
@@ -153,17 +152,19 @@ class TimeAndInstancesTest extends TmaTestCase
         $this->assertTrue(TimeEntry::query()->sole()->entry->is($note));
     }
 
-    public function test_the_page_shows_the_message_written_with_the_time(): void
+    public function test_the_page_shows_the_time_on_its_message(): void
     {
         $this->asMaster();
         $agent = $this->agent();
         $ticket = $this->serviceDeskTicket();
+        $this->workflow()->run($ticket, 'submit-for-validation', ['message' => '<p>Export corrigé.</p>'], Context::ui($agent));
+        $message = $ticket->entries()->messages()->sole();
         $this->actingAs($agent);
 
         // La liste du temps est un composant à part : elle prévient la page, qui relit l'historique.
-        $page = Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertDontSee('Export corrigé');
+        $page = Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertSee('Export corrigé')->assertDontSee('1 h');
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
-            ->callTableAction('logTime', data: ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'message' => '<p>Export corrigé.</p>', 'billable' => true])
+            ->callTableAction('logTime', data: ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'entry_id' => $message->getKey(), 'billable' => true])
             ->assertDispatched(TimeEntriesRelationManager::TIMELINE_CHANGED);
         $page->dispatch(TimeEntriesRelationManager::TIMELINE_CHANGED)->assertSee(['Export corrigé', '1 h']);
     }

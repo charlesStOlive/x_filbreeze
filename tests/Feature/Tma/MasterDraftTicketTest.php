@@ -65,7 +65,6 @@ class MasterDraftTicketTest extends TmaTestCase
         Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), '/sync'));
 
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionHidden('move_submit')
             ->assertActionHidden('move_transmit')
             ->callAction('move_publish');
 
@@ -102,7 +101,7 @@ class MasterDraftTicketTest extends TmaTestCase
         $this->asClient();
         config(['filament-tma.notifications.immediate' => ['publish'], 'filament-tma.api.master_user' => 'filbreeze@api.test']);
         // Le Support ne prépare un ticket que pour un correspondant du Support.
-        $ada = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.workflow.transmit')->create(['id' => 7, 'name' => 'Ada Lovelace']);
+        $ada = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.correspond')->create(['id' => 7, 'name' => 'Ada Lovelace']);
         Passport::actingAs(User::factory()->create(['email' => 'filbreeze@api.test']), [], 'api');
 
         // Un brouillon n'arrive jamais.
@@ -112,7 +111,7 @@ class MasterDraftTicketTest extends TmaTestCase
 
         $received = Ticket::query()->sole();
         $this->assertTrue($received->requester->isUser($ada));
-        $this->assertSame('service_desk', $received->handling_mode->value);
+        $this->assertTrue($received->isShared());
         Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => str_contains($mail->notice->data['line'], 'a ouvert ce ticket pour vous'));
     }
 }

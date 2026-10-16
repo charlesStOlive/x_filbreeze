@@ -39,8 +39,11 @@ class CommandsTest extends TmaTestCase
             ->expectsOutputToContain('DES-0001 — Export des parrains')
             ->assertSuccessful();
 
-        $summary = "Correction de l'export CSV des parrains.\n\nLa requête filtrait sur un statut obsolète ; ajout d'un test.";
-        $this->artisan('tma:log', ['ref' => 'DES-0001', '--hours' => '2', '--summary' => $summary, '--date' => '2026-10-07', '--token' => $token])
+        // Sur un ticket, le temps n'a pas de texte (un message y va avec un passage) : sur la fiche entière.
+        $this->artisan('tma:log', ['ref' => 'DES-0001', '--hours' => '2', '--summary' => 'Correction de l’export', '--token' => $token])
+            ->expectsOutputToContain('le temps n’a pas de texte')
+            ->assertFailed();
+        $this->artisan('tma:log', ['ref' => 'DES-0001', '--hours' => '2', '--date' => '2026-10-07', '--token' => $token])
             ->expectsOutputToContain('2 h enregistrées le 2026-10-07')
             ->assertSuccessful();
 
@@ -48,13 +51,13 @@ class CommandsTest extends TmaTestCase
         $this->assertSame(120, $time->minutes);
         $this->assertSame('command', $time->origin->value);
         $this->assertTrue($time->actor->isUser($agent));
+        $this->assertNull($time->entry);
+        $this->assertSame(0, Entry::query()->count());
 
-        // Le résumé est un message de la chronologie, partagé avec le client : le temps porte dessus.
-        $entry = Entry::query()->sole();
-        $this->assertSame('comment', $entry->type->value);
-        $this->assertStringContainsString('<p>La requête filtrait', $entry->body);
-        $this->assertTrue($time->entry->is($entry));
-
+        // Pas de message à part sur un ticket ; une note, si.
+        $this->artisan('tma:comment', ['ref' => 'DES-0001', '--body' => 'Je regarde.', '--token' => $token])
+            ->expectsOutputToContain('va toujours avec un passage')
+            ->assertFailed();
         $this->artisan('tma:comment', ['ref' => 'DES-0001', '--body' => 'À surveiller au prochain import.', '--note' => true, '--token' => $token, '--json' => true])
             ->expectsOutputToContain('"type": "note"')
             ->assertSuccessful();
@@ -65,7 +68,7 @@ class CommandsTest extends TmaTestCase
             ->expectsOutputToContain('0 h 20 enregistrées le '.now()->toDateString().', sur le message '.$note->ulid)
             ->assertSuccessful();
         $this->assertSame(20, (int) $note->timeEntries()->sum('minutes'));
-        $this->assertSame(2, Entry::query()->count());
+        $this->assertSame(1, Entry::query()->count());
 
         $this->artisan('tma:log', ['ref' => 'DES-0001', '--minutes' => 20, '--entry' => $note->ulid, '--summary' => 'Encore', '--token' => $token])
             ->expectsOutputToContain('ne désignez pas en plus')
@@ -137,15 +140,15 @@ class CommandsTest extends TmaTestCase
         config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton-instance']);
         Http::fake(['master.test/api/tma/v1/agent/tickets/DES-0042/time' => Http::response(['data' => [
             'ticket' => 'DES-0042', 'time_entry' => ['ulid' => 'x', 'minutes' => 90, 'worked_on' => '2026-10-08', 'billable' => true],
-            'summary_entry' => 'y', 'time_total_minutes' => 300,
+            'summary_entry' => null, 'time_total_minutes' => 300,
         ]], 201)]);
 
-        $this->artisan('tma:log', ['ref' => 'DES-0042', '--hours' => '1.5', '--summary' => 'Recette', '--token' => 'jeton-perso-filbreeze'])
+        $this->artisan('tma:log', ['ref' => 'DES-0042', '--hours' => '1.5', '--token' => 'jeton-perso-filbreeze'])
             ->expectsOutputToContain('1 h 30 enregistrées')
             ->assertSuccessful();
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-perso-filbreeze')
-            && $request['minutes'] === 90 && $request['summary'] === 'Recette');
+            && $request['minutes'] === 90 && blank($request['summary'] ?? null));
     }
 
     public function test_the_agent_api_is_for_master_users_not_for_client_applications(): void
@@ -160,6 +163,8 @@ class CommandsTest extends TmaTestCase
 
         Passport::actingAs($this->agent(), [], 'api');
         $this->postJson('/api/tma/v1/agent/tickets/DES-0001/time', ['minutes' => 30, 'summary' => 'Vérification'])
+            ->assertUnprocessable();
+        $this->postJson('/api/tma/v1/agent/tickets/DES-0001/time', ['minutes' => 30])
             ->assertCreated()
             ->assertJsonPath('data.time_entry.minutes', 30);
         $this->assertSame('api', TimeEntry::query()->sole()->origin->value);

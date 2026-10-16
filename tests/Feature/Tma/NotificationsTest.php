@@ -33,31 +33,38 @@ use Livewire\Livewire;
  */
 class NotificationsTest extends TmaTestCase
 {
-    /** Un ticket local : le demandeur l'a confié à l'intervenant, qui l'a pris et pose une question. */
-    private function askedTicket(User $requester, User $handler, array $attributes = []): Ticket
+    /**
+     * Un ticket du Support, dans le maître, en cours : `$handler` en est le contact (choisi à la transmission) et
+     * destinataire principal.
+     */
+    private function takenTicket(User $handler, string $title = 'Bouton d’export', string $number = 'DES-0001'): Ticket
     {
-        $ticket = $this->draft($requester, $attributes);
-        $this->workflow()->run($ticket, 'submit', ['recipients' => ['u:'.$handler->getKey()]], Context::ui($requester));
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($handler));
-        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel format ?</p>'], Context::ui($handler));
+        $ticket = $this->serviceDeskTicket('in_progress', $number);
+        $ticket->forceFill(['title' => $title, 'assignee_actor_id' => Actor::forUser($handler)->getKey()])->save();
+        app(Recipients::class)->add($ticket, Actor::forUser($handler));
 
         return $ticket->refresh();
     }
 
     public function test_the_digest_lists_what_waits_for_each_one_and_nobody_gets_an_empty_mail(): void
     {
-        $this->asClient();
-        $requester = $this->agent();
-        $handler = $this->agent();
+        // Dans le maître : les demandes nouvelles que personne n'a prises, et celles qu'on a prises.
+        $this->asMaster();
+        $support = $this->supportMember();
         $idle = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany')->create();
+        $this->serviceDeskTicket('submitted', 'DES-0001');
+        $this->takenTicket($support, 'Relances en double', 'DES-0002');
 
-        $this->askedTicket($requester, $handler, ['title' => 'Bouton d’export']);
-        $unassigned = $this->draft($requester, ['title' => 'Faute de frappe']);
-        $this->workflow()->run($unassigned, 'submit', [], Context::ui($requester));
-
-        $this->assertSame(['DES-0001'], Digest::for($requester)['answer']->pluck('ref')->all());
-        $this->assertSame(['DES-0002'], Digest::for($handler)['take']->pluck('ref')->all());
+        $this->assertSame(['DES-0001'], Digest::for($support)['take']->pluck('ref')->all());
+        $this->assertSame(['DES-0002'], Digest::for($support)['mine']->pluck('ref')->all());
         $this->assertSame([], Digest::for($idle));
+
+        // Dans l'application cliente : les demandes qui attendent la réponse de leur demandeur.
+        $this->asClient();
+        $requester = $this->correspondent();
+        $asked = $this->serviceDeskTicket('awaiting_requester', 'DES-0003');
+        $asked->forceFill(['title' => 'Bouton d’export', 'requester_actor_id' => Actor::forUser($requester)->getKey(), 'waiting_since' => now()])->save();
+        $this->assertSame(['DES-0003'], Digest::for($requester)['answer']->pluck('ref')->all());
 
         $this->travel(8)->days();
         $this->assertTrue(Digest::for($requester)['answer']->first()['late']);
@@ -68,7 +75,7 @@ class NotificationsTest extends TmaTestCase
         Notification::assertNotSentTo($idle, DailyDigest::class);
 
         $mail = (string) (new DailyDigest(Digest::for($requester)))->toMail($requester)->render();
-        $this->assertStringContainsString('DES-0001 — Bouton d’export', html_entity_decode($mail));
+        $this->assertStringContainsString('DES-0003 — Bouton d’export', html_entity_decode($mail));
         $this->assertStringContainsString('en retard', $mail);
     }
 
@@ -85,29 +92,26 @@ class NotificationsTest extends TmaTestCase
     public function test_a_primary_hears_at_once_a_secondary_in_the_digest_the_others_nothing(): void
     {
         Notification::fake();
-        $this->asClient();
-        $requester = $this->agent();
-        $handler = $this->agent();
-        $colleague = $this->agent();
-        $outsider = $this->agent();
+        $this->asMaster();
+        $handler = $this->supportMember();
+        $colleague = $this->supportMember();
+        $outsider = $this->supportMember();
 
-        $ticket = $this->draft($requester, ['title' => 'Bouton d’export']);
-        $this->workflow()->run($ticket, 'submit', ['recipients' => ['u:'.$handler->getKey()]], Context::ui($requester));
+        $ticket = $this->serviceDeskTicket('submitted');
+        $ticket->forceFill(['title' => 'Bouton d’export'])->save();
+        app(Recipients::class)->add($ticket, Actor::forUser($handler));
         app(Recipients::class)->add($ticket, Actor::forUser($colleague), RecipientRole::Secondary);
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($handler));
         $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel format ?</p>'], Context::ui($handler));
+        $this->workflow()->run($ticket, 'answer', ['answer' => '<p>Le CSV.</p>'], $this->fromClient());
 
-        // Le demandeur, principal : tout de suite, par courriel et dans la cloche ; « Un ticket vous attend ».
-        Notification::assertSentTo($requester, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Turn
-            && $mail->via($requester) === ['mail', 'database']
-            && $mail->notice->data['excerpt'] === 'Quel format ?');
-        $database = (new NoticeNotification(Notice::query()->for($requester)->where('event', NoticeEvent::Turn->value)->sole(), ['database']))->toDatabase($requester);
+        // Le Support qui a la main, principal : tout de suite, par courriel et dans la cloche ; « Un ticket vous attend ».
+        Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Turn
+            && $mail->via($handler) === ['mail', 'database']
+            && $mail->notice->data['excerpt'] === 'Le CSV.');
+        $database = (new NoticeNotification(Notice::query()->for($handler)->where('event', NoticeEvent::Turn->value)->sole(), ['database']))->toDatabase($handler);
         $this->assertSame('[DES-0001] Bouton d’export', $database['title']);
-        $this->assertStringContainsString('attend votre réponse', $database['body']);
+        $this->assertStringContainsString('Ada Lovelace a répondu', $database['body']);
         $this->assertSame('Ouvrir le ticket', $database['actions'][0]['label']);
-
-        // L'intervenant, principal depuis l'envoi : on lui a confié la demande.
-        Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->data['line'] === $requester->name.' a envoyé la demande à Équipe locale.');
 
         // La collègue, secondaire : rien tout de suite, tout dans son bilan.
         Notification::assertNotSentTo($colleague, NoticeNotification::class);
@@ -120,7 +124,7 @@ class NotificationsTest extends TmaTestCase
         Notification::assertSentTo($colleague, DailyDigest::class, function (DailyDigest $mail) use ($colleague): bool {
             $html = html_entity_decode((string) $mail->toMail($colleague)->render());
 
-            return str_contains($html, 'Depuis le dernier envoi') && str_contains($html, 'a pris la demande en charge') && str_contains($html, '« Quel format ? »');
+            return str_contains($html, 'Depuis le dernier envoi') && str_contains($html, 'a demandé des précisions') && str_contains($html, '« Le CSV. »');
         });
         $this->assertSame(0, Notice::query()->pending()->count());
     }
@@ -128,28 +132,29 @@ class NotificationsTest extends TmaTestCase
     public function test_each_one_chooses_how_a_primary_notification_reaches_them(): void
     {
         Notification::fake();
-        $this->asClient();
-        $requester = $this->agent();
-        $handler = $this->agent();
-        $ticket = $this->askedTicket($requester, $handler);
+        $this->asMaster();
+        $handler = $this->supportMember();
+        $colleague = $this->supportMember();
+        $ticket = $this->takenTicket($handler);
+        app(Recipients::class)->add($ticket, Actor::forUser($colleague));
 
-        NoticeChannels::save($requester, ['database']);
-        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Je regarde ça demain.</p>', Context::ui($handler));
-        Notification::assertSentTo($requester, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Message
-            && $mail->via($requester) === ['database']);
+        NoticeChannels::save($handler, ['database']);
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Je regarde ça demain : quelle version ?</p>'], Context::ui($colleague));
+        Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Progress
+            && $mail->via($handler) === ['database']);
 
         // Aucun canal : ce qui le concerne attend son bilan.
-        NoticeChannels::save($requester, []);
-        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Voir le journal.</p>', Context::ui($handler));
-        $this->assertTrue(Notice::query()->pending()->for($requester)->where('event', NoticeEvent::Note->value)->exists());
+        NoticeChannels::save($handler, []);
+        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Voir le journal.</p>', Context::ui($colleague));
+        $this->assertTrue(Notice::query()->pending()->for($handler)->where('event', NoticeEvent::Note->value)->exists());
 
         // Une note privée ne prévient personne.
-        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Pour moi seul.</p>', Context::ui($handler), private: true);
+        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Pour moi seul.</p>', Context::ui($colleague), private: true);
         $this->assertSame(1, Notice::query()->where('event', NoticeEvent::Note->value)->count());
 
-        $mail = html_entity_decode((string) (new NoticeNotification(Notice::query()->for($requester)->where('event', NoticeEvent::Message->value)->sole()))->toMail($requester)->render());
-        $this->assertStringContainsString('a écrit un message', $mail);
-        $this->assertStringContainsString('« Je regarde ça demain. »', $mail);
+        $mail = html_entity_decode((string) (new NoticeNotification(Notice::query()->for($handler)->where('event', NoticeEvent::Progress->value)->sole()))->toMail($handler)->render());
+        $this->assertStringContainsString('a demandé des précisions', $mail);
+        $this->assertStringContainsString('« Je regarde ça demain : quelle version ? »', $mail);
         $this->assertStringContainsString('destinataire principal', $mail);
     }
 
@@ -184,7 +189,7 @@ class NotificationsTest extends TmaTestCase
         $this->asClient();
         $requester = $this->agent();
         $ticket = $this->draft($requester);
-        $ticket->forceFill(['handling_mode' => 'service_desk', 'state' => 'in_progress'])->save();
+        $ticket->forceFill(['state' => 'in_progress'])->save();
 
         $master = User::factory()->create(['email' => 'filbreeze@api.test']);
         config(['filament-tma.api.master_user' => 'filbreeze@api.test']);
@@ -217,50 +222,41 @@ class NotificationsTest extends TmaTestCase
     public function test_a_reminder_reaches_whoever_has_the_hand_at_once(): void
     {
         Notification::fake();
-        $this->asClient();
-        $requester = $this->agent();
-        $handler = $this->agent();
-        $ticket = $this->askedTicket($requester, $handler);
+        $this->asMaster();
+        $handler = $this->supportMember();
+        $ticket = $this->takenTicket($handler);
 
-        // Même sans aucun canal choisi, une relance arrive, par courriel.
-        NoticeChannels::save($requester, []);
+        // Même sans aucun canal choisi, une relance arrive, par courriel : ici, celle du demandeur, reçue de son application.
+        NoticeChannels::save($handler, []);
+        app(Timeline::class)->write($ticket, EntryType::Comment, '<p>Avez-vous pu regarder ?</p>', $this->fromClient(), meta: ['reminder' => true]);
+        Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Reminder
+            && $mail->notice->data['excerpt'] === 'Avez-vous pu regarder ?'
+            && $mail->via($handler) === ['mail']);
 
-        $this->actingAs($requester);
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden('remind');
-
+        // Le Support ne se relance pas lui-même ; au tour du demandeur, il le relance.
         $this->actingAs($handler);
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden('remind');
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel format ?</p>'], Context::ui($handler));
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
             ->assertActionVisible('remind')
-            ->callAction('remind', ['message' => 'Avez-vous pu regarder ?'])
+            ->callAction('remind', ['message' => 'Un retour avant vendredi ?'])
             ->assertHasNoActionErrors();
-
         $this->assertTrue($ticket->entries()->latest('id')->first()->meta['reminder']);
-        Notification::assertSentTo($requester, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Reminder
-            && $mail->notice->data['excerpt'] === 'Avez-vous pu regarder ?'
-            && $mail->via($requester) === ['mail']);
 
         // Sans droit `remind`, pas de bouton.
-        $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.comment')->create());
+        $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.handle')->create());
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden('remind');
     }
 
     public function test_what_does_not_move_for_a_week_is_recalled_to_whoever_has_the_hand(): void
     {
         Notification::fake();
-        $this->asClient();
-        $requester = $this->agent();
-        $handler = $this->agent();
+        $this->asMaster();
+        $handler = $this->supportMember();
 
-        $stuck = $this->draft($requester, ['title' => 'Bloqué']);
-        $this->workflow()->run($stuck, 'submit', ['assignee_user_id' => $handler->getKey()], Context::ui($requester));
-        $this->workflow()->run($stuck, 'take-charge', [], Context::ui($handler));
-
-        $paused = $this->draft($requester, ['title' => 'En pause']);
-        $this->workflow()->run($paused, 'submit', ['assignee_user_id' => $handler->getKey()], Context::ui($requester));
-        $this->workflow()->run($paused, 'take-charge', [], Context::ui($handler));
+        $stuck = $this->takenTicket($handler, 'Bloqué', 'DES-0001');
+        $paused = $this->takenTicket($handler, 'En pause', 'DES-0002');
         $this->workflow()->run($paused, 'pause', ['until' => now()->addMonth()->toDateTimeString()], Context::ui($handler));
-
-        $this->draft($requester, ['title' => 'Brouillon oublié']);
 
         $this->travel(6)->days();
         $this->artisan('tma:notify --stale')->expectsOutputToContain('0 rappel(s)')->assertSuccessful();
@@ -283,25 +279,23 @@ class NotificationsTest extends TmaTestCase
         $this->artisan('tma:notify --stale')->expectsOutputToContain('1 rappel(s)')->assertSuccessful();
         $this->assertSame(2, Notice::query()->where('event', NoticeEvent::Stale->value)->count());
 
-        // Un passage, et le compteur repart.
+        // Au tour du demandeur, c'est son application qui le lui rappelle : rien de plus ici.
         $this->workflow()->run($stuck->refresh(), 'request-answer', ['question' => '<p>Un détail ?</p>'], Context::ui($handler));
         $this->travel(8)->days();
         $this->artisan('tma:notify --stale')->assertSuccessful();
-        $this->assertSame((string) $requester->getKey(), Notice::query()->where('event', NoticeEvent::Stale->value)->latest('id')->first()->user_id);
+        $this->assertSame(2, Notice::query()->where('event', NoticeEvent::Stale->value)->count());
     }
 
     public function test_send_now_sends_the_digests_of_who_has_something_waiting(): void
     {
         Notification::fake();
-        $this->asClient();
-        $requester = $this->agent();
-        $handler = $this->agent();
-        $colleague = $this->agent();
-        $idle = $this->agent();
-        $ticket = $this->draft($requester);
+        $this->asMaster();
+        $handler = $this->supportMember('tma.ticket.notify');
+        $colleague = $this->supportMember();
+        $idle = $this->supportMember();
+        $ticket = $this->serviceDeskTicket('submitted');
         app(Recipients::class)->add($ticket, Actor::forUser($colleague), RecipientRole::Secondary);
-        $this->workflow()->run($ticket, 'submit', ['assignee_user_id' => $handler->getKey()], Context::ui($requester));
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($handler));
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel format ?</p>'], Context::ui($handler));
 
         $this->actingAs($handler);
         Livewire::test(ListTickets::class)

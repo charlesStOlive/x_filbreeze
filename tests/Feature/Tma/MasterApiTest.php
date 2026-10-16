@@ -16,10 +16,10 @@ use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 
@@ -67,7 +67,6 @@ class MasterApiTest extends TmaTestCase
                 'description' => '<p>Le CSV est vide.</p><script>x</script>',
                 'priority' => 'high',
                 'state' => 'draft',
-                'handling_mode' => 'local',
                 'requester' => $requester,
                 'created_by' => $requester,
                 'version' => 0,
@@ -103,23 +102,23 @@ class MasterApiTest extends TmaTestCase
     {
         $this->actingAsClient();
         $payload = $this->transmission(entries: [
-            $this->entryPayload('comment', ['files' => [[
+            $this->entryPayload('note', ['number' => 1, 'files' => [[
                 'uuid' => 'f1', 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png', 'size' => 70,
                 'content' => base64_encode(base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')),
             ]]]),
-            $this->entryPayload('note', ['number' => 1]),
+            $this->entryPayload('note', ['number' => 2]),
         ]);
 
         $this->postJson('/api/tma/v1/tickets', $payload)->assertCreated()->assertJsonPath('ticket.state', 'submitted');
 
         $ticket = Ticket::query()->sole();
         $this->assertInstanceOf(Submitted::class, $ticket->state);
-        $this->assertSame('service_desk', $ticket->handling_mode->value);
+        $this->assertTrue($ticket->isShared());
         $this->assertSame(self::CLIENT_UID, $ticket->source_instance_uid);
         $this->assertTrue($ticket->client->is($this->instance->client));
         $this->assertStringNotContainsString('<script', $ticket->description);
         $this->assertSame(2, $ticket->entries()->count());
-        $this->assertCount(1, Entry::query()->where('type', 'comment')->sole()->getMedia('attachments'));
+        $this->assertCount(1, Entry::query()->where('number', 1)->sole()->getMedia('attachments'));
         $this->assertSame($payload['transition']['ulid'], $ticket->transitions()->sole()->ulid);
 
         // Rejouée (réseau…), la transmission ne crée rien de plus.
@@ -127,7 +126,7 @@ class MasterApiTest extends TmaTestCase
         $this->assertSame(1, Ticket::query()->count());
         $this->assertSame(1, $ticket->transitions()->count());
         $this->assertSame(2, $ticket->entries()->count());
-        $this->assertSame(1, Entry::query()->where('type', 'comment')->sole()->getMedia('attachments')->count());
+        $this->assertSame(1, Entry::query()->where('number', 1)->sole()->getMedia('attachments')->count());
     }
 
     public function test_an_application_only_reaches_its_own_tickets(): void
@@ -163,13 +162,17 @@ class MasterApiTest extends TmaTestCase
 
         $actor = ['instance_uid' => self::CLIENT_UID, 'id' => '7', 'name' => 'Ada Lovelace'];
 
-        // Prendre en charge, c'est l'intervenant : le maître, pas l'application cliente.
-        $this->postJson("/api/tma/v1/tickets/{$ulid}/moves", ['move' => 'take-charge', 'actor' => $actor, 'transition_ulid' => strtolower((string) Str::ulid())])
+        // Demander des précisions, c'est le Support : le maître, pas l'application cliente.
+        $this->postJson("/api/tma/v1/tickets/{$ulid}/moves", ['move' => 'request-answer', 'data' => ['question' => '<p>?</p>'], 'actor' => $actor, 'transition_ulid' => strtolower((string) Str::ulid())])
             ->assertForbidden();
 
         $agent = $this->agent();
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($agent));
         $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel export ?</p>'], Context::ui($agent));
+
+        // Une autre personne de l'application ne répond pas à la place du demandeur.
+        $benoit = ['instance_uid' => self::CLIENT_UID, 'id' => '8', 'name' => 'Benoît Desjonquères'];
+        $this->postJson("/api/tma/v1/tickets/{$ulid}/moves", ['move' => 'answer', 'data' => ['answer' => '<p>Moi.</p>'], 'actor' => $benoit, 'transition_ulid' => strtolower((string) Str::ulid())])
+            ->assertForbidden();
 
         // La réponse arrive avec sa capture : elle suit le passage (zone de réponse de l'application cliente).
         $capture = ['uuid' => (string) Str::uuid(), 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png',
@@ -191,9 +194,12 @@ class MasterApiTest extends TmaTestCase
         $this->actingAsClient();
         $this->postJson('/api/tma/v1/tickets', $this->transmission(['ulid' => $ulid = strtolower((string) Str::ulid())]))->assertCreated();
 
-        $comment = $this->entryPayload('comment');
-        $this->postJson("/api/tma/v1/tickets/{$ulid}/entries", $comment)->assertCreated();
-        $this->postJson("/api/tma/v1/tickets/{$ulid}/entries", $comment)->assertOk();
+        // Le demandeur parle en répondant : un message à part n'est qu'une relance.
+        $this->postJson("/api/tma/v1/tickets/{$ulid}/entries", $this->entryPayload('comment'))->assertForbidden();
+
+        $reminder = $this->entryPayload('comment', ['meta' => ['reminder' => true]]);
+        $this->postJson("/api/tma/v1/tickets/{$ulid}/entries", $reminder)->assertCreated();
+        $this->postJson("/api/tma/v1/tickets/{$ulid}/entries", $reminder)->assertOk();
 
         $this->assertSame(1, Entry::query()->count());
         Event::assertDispatchedTimes(EntryAdded::class, 1);
@@ -209,7 +215,7 @@ class MasterApiTest extends TmaTestCase
         $supportNote = app(Timeline::class)->add($ticket, EntryType::Note, '<p>Du Support.</p>', Context::ui($this->agent()));
 
         // Le n° 1 est pris par la note du Support : celle du client prend le suivant, et le maître le lui dit.
-        $message = $this->entryPayload('comment');
+        $message = $this->entryPayload('comment', ['meta' => ['reminder' => true]]);
         $note = $this->entryPayload('note', ['number' => 1, 'parent_ulid' => $message['ulid']]);
         $this->postJson($url, $message)->assertCreated();
         $this->postJson($url, $note)->assertCreated()->assertJsonPath('entry.number', 2);
@@ -230,10 +236,31 @@ class MasterApiTest extends TmaTestCase
         $this->assertNotNull($supportNote->archived_at);
         $this->assertSame(self::MASTER_UID, $supportNote->origin_instance_uid);
 
-        // Quelqu'un d'autre a écrit après le message : il ne se modifie plus.
-        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Bien reçu.</p>', Context::ui($this->agent()));
+        // Un autre message l'a suivi (la question du Support) : il ne se modifie plus.
+        $this->travel(1)->minute();
+        $this->workflow()->run($ticket->refresh(), 'request-answer', ['question' => '<p>Bien reçu : lequel ?</p>'], Context::ui($this->agent()));
         $this->postJson($url, [...$message, 'body' => '<p>Encore corrigé.</p>'])->assertUnprocessable();
         $this->assertSame('<p>Corrigé.</p>', Entry::query()->where('ulid', $message['ulid'])->sole()->body);
+    }
+
+    public function test_the_author_changes_the_demand_until_a_message_follows(): void
+    {
+        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->actingAsClient();
+        $this->postJson('/api/tma/v1/tickets', $this->transmission(['ulid' => $ulid = strtolower((string) Str::ulid())]))->assertCreated();
+        $ticket = Ticket::query()->sole();
+        $ada = ['instance_uid' => self::CLIENT_UID, 'id' => '7', 'name' => 'Ada Lovelace'];
+        $demand = ['ticket' => ['title' => 'Export des parrains actifs', 'description' => '<p>Le CSV des actifs est vide.</p>', 'priority' => 'urgent'], 'actor' => $ada];
+
+        $this->patchJson("/api/tma/v1/tickets/{$ulid}", $demand)->assertOk()->assertJsonPath('ticket.title', 'Export des parrains actifs');
+        $this->assertSame('urgent', $ticket->refresh()->priority->value);
+
+        // Pas une autre personne de l'application.
+        $this->patchJson("/api/tma/v1/tickets/{$ulid}", [...$demand, 'actor' => [...$ada, 'id' => '8']])->assertForbidden();
+
+        // Un message du Support a suivi : la demande ne se modifie plus.
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Lequel ?</p>'], Context::ui($this->agent()));
+        $this->patchJson("/api/tma/v1/tickets/{$ulid}", $demand)->assertForbidden();
     }
 
     public function test_changes_made_here_are_pushed_to_the_client(): void
@@ -241,12 +268,12 @@ class MasterApiTest extends TmaTestCase
         Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
         $ticket = $this->serviceDeskTicket('submitted');
 
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($this->agent()));
+        $this->workflow()->run($ticket, 'pause', ['until' => now()->addDay()->toDateTimeString()], Context::ui($this->agent()));
 
         Http::assertSent(fn (Request $request): bool => $request->url() === 'https://desapp.test/api/tma/v1/sync'
             && $request->hasHeader('Authorization', 'Bearer jeton-desapp')
-            && $request['ticket']['state'] === 'in_progress'
-            && $request['transitions'][0]['move'] === 'take-charge');
+            && $request['ticket']['state'] === 'paused'
+            && $request['transitions'][0]['move'] === 'pause');
 
         $this->assertSame('synced', $ticket->refresh()->sync_status->value);
         $this->assertSame(1, $ticket->sync_version);
@@ -270,7 +297,7 @@ class MasterApiTest extends TmaTestCase
         Storage::fake('local');
         Storage::disk('local')->put('tma-uploads/log.txt', 'erreur 500');
 
-        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Voici le journal.</p>', Context::ui($agent), uploads: [['path' => 'tma-uploads/log.txt', 'name' => 'log.txt']]);
+        app(Timeline::class)->add($ticket, EntryType::Note, '<p>Voici le journal.</p>', Context::ui($agent), uploads: [['path' => 'tma-uploads/log.txt', 'name' => 'log.txt']]);
 
         Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/media/entry/')
             && ($request['files'][0]['content'] ?? null) !== null
@@ -284,9 +311,9 @@ class MasterApiTest extends TmaTestCase
         $ticket = $this->serviceDeskTicket('submitted');
 
         // L'action du Support n'échoue pas pour autant.
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($this->agent()));
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Lequel ?</p>'], Context::ui($this->agent()));
 
-        $this->assertInstanceOf(InProgress::class, $ticket->refresh()->state);
+        $this->assertSame('awaiting_requester', $ticket->refresh()->state::getMorphClass());
         $this->assertSame('error', $ticket->sync_status->value);
         $this->assertStringContainsString('503', $ticket->last_sync_error);
         Event::assertDispatched(TicketSyncFailed::class);

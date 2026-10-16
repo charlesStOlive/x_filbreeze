@@ -16,6 +16,7 @@ use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -67,7 +68,7 @@ class AgentsTest extends TmaTestCase
     {
         $this->asMaster();
         $this->personalAccessClient();
-        $charles = $this->person('charles@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.comment');
+        $charles = $this->person('charles@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.note');
         $token = ServiceAccount::agentToken($charles, self::CLIENT_UID);
         $mine = $this->serviceDeskTicket('submitted');
         $other = $this->serviceDeskTicket('submitted', 'EDM-0001');
@@ -78,16 +79,17 @@ class AgentsTest extends TmaTestCase
         $this->assertSame(['DES-0001'], $refs);
         $this->getJson('/api/tma/v1/agent/tickets/EDM-0001')->assertNotFound();
 
-        // Ses droits à lui : il commente, mais ne prend pas en charge sans le droit de le faire.
-        $this->postJson('/api/tma/v1/agent/tickets/DES-0001/entries', ['type' => 'comment', 'body' => '<p>Je regarde.</p>'])
+        // Ses droits à lui : il écrit une note, mais sans être membre du Support (`handle`), ni message ni prise en charge.
+        $this->postJson('/api/tma/v1/agent/tickets/DES-0001/entries', ['type' => 'note', 'body' => '<p>Je regarde.</p>'])
             ->assertCreated()
             ->assertJsonPath('data.snapshot.ticket.number', 'DES-0001');
-        $this->postJson('/api/tma/v1/agent/tickets/DES-0001/moves', ['move' => 'take-charge'])->assertForbidden();
+        $this->postJson('/api/tma/v1/agent/tickets/DES-0001/entries', ['type' => 'comment', 'body' => '<p>Je regarde.</p>'])->assertForbidden();
+        $this->postJson('/api/tma/v1/agent/tickets/DES-0001/moves', ['move' => 'request-answer', 'data' => ['question' => '<p>Laquelle ?</p>']])->assertForbidden();
         $this->assertSame('submitted', $mine->refresh()->state::getMorphClass());
         $this->assertSame('Charles', $mine->entries()->sole()->author->name);
         $this->assertSame(self::MASTER_UID, $mine->entries()->sole()->author->instance_uid);
 
-        // Il modifie son message, en son nom ; l'état revient avec.
+        // Il modifie sa note, en son nom ; l'état revient avec.
         $ulid = $mine->entries()->sole()->ulid;
         $this->patchJson("/api/tma/v1/agent/tickets/DES-0001/entries/{$ulid}", ['body' => '<p>Je regarde ce soir.</p>'])
             ->assertOk()
@@ -102,17 +104,17 @@ class AgentsTest extends TmaTestCase
         $charles = $this->person('charles@notilac.fr', 'tma.*');
         Agent::create(['user_id' => $charles->getKey(), 'email' => $charles->email, 'name' => 'Charles', 'master_uid' => self::MASTER_UID, 'master_user_id' => '1', 'token' => 'jeton-agent-charles', 'linked_at' => now()]);
         $ticket = $this->draft($this->agent());
-        $ticket->forceFill(['handling_mode' => 'service_desk', 'state' => 'awaiting_requester'])->save();
+        $ticket->forceFill(['state' => 'awaiting_requester'])->save();
 
-        // Le demandeur, c'est l'application ; lui est l'intervenant.
+        // Le demandeur, c'est l'application ; lui est le Support (ici, avec ses droits du maître : un forçage).
         $this->assertFalse($this->workflow()->allows($ticket, 'answer', Context::ui($charles)));
-        $this->assertTrue($this->workflow()->allows($ticket, 'resume', Context::ui($charles)));
+        $this->assertTrue($this->workflow()->allows($ticket, 'force-return', Context::ui($charles)));
 
         // Un passage part dans le maître, avec SON jeton, et l'état revient.
         Http::fake(['master.test/api/tma/v1/agent/tickets/*/moves' => function (Request $request) use ($ticket) {
             $snapshot = Payload::snapshot($ticket);
             $snapshot['ticket']['state'] = 'in_progress';
-            $snapshot['transitions'][] = ['ulid' => $request['transition_ulid'], 'move' => 'resume', 'from_state' => 'awaiting_requester', 'to_state' => 'in_progress',
+            $snapshot['transitions'][] = ['ulid' => $request['transition_ulid'], 'move' => 'force-return', 'from_state' => 'awaiting_requester', 'to_state' => 'in_progress',
                 'actor' => ['instance_uid' => self::MASTER_UID, 'id' => '1', 'name' => 'Charles'], 'origin_instance_uid' => self::MASTER_UID, 'origin' => 'api'];
 
             return Http::response(['data' => ['snapshot' => $snapshot]]);
@@ -125,14 +127,16 @@ class AgentsTest extends TmaTestCase
             return Http::response(['data' => ['entry' => $entry, 'snapshot' => $snapshot]], 201);
         }]);
 
-        $this->workflow()->run($ticket, 'resume', [], Context::ui($charles));
+        $this->workflow()->run($ticket, 'force-return', [], Context::ui($charles));
         $this->assertSame('in_progress', $ticket->refresh()->state::getMorphClass());
         $this->assertSame(self::MASTER_UID, $ticket->transitions()->sole()->actor->instance_uid);
 
-        $entry = app(Timeline::class)->add($ticket, EntryType::Comment, '<p>C’est corrigé.</p>', Context::ui($charles));
+        // Un message va avec un passage : à part, il écrit une note, chez le Support et en son nom de là-bas.
+        $this->assertFalse(app(Timeline::class)->canAdd($ticket, EntryType::Comment, Context::ui($charles)));
+        $entry = app(Timeline::class)->add($ticket, EntryType::Note, '<p>C’est corrigé.</p>', Context::ui($charles));
         $this->assertSame(self::MASTER_UID, $entry->author->instance_uid);
 
-        // Il modifie son message dans le maître, toujours avec son jeton ; le message modifié revient.
+        // Il modifie sa note dans le maître, toujours avec son jeton ; la note modifiée revient.
         Http::fake(['master.test/api/tma/v1/agent/tickets/*/entries/*' => function (Request $request) use ($ticket, $entry) {
             $snapshot = Payload::snapshot($ticket->refresh());
             $snapshot['entries'] = collect($snapshot['entries'])
@@ -149,17 +153,17 @@ class AgentsTest extends TmaTestCase
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent-charles'));
         Http::assertNotSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-instance'));
 
-        // Il ne transmet pas une demande au Support : il en fait partie.
-        $draft = $this->draft($charles);
-        $this->assertFalse($this->workflow()->allows($draft, 'transmit', Context::ui($charles)));
+        // Il ne fait pas de demande au Support : il en fait partie.
+        $this->expectException(AuthorizationException::class);
+        $this->draft($charles);
     }
 
     public function test_the_client_receives_its_agents_and_hides_them_from_the_requesters(): void
     {
         $this->asClient();
         config(['filament-tma.api.master_user' => 'filbreeze@api.test']);
-        $charles = $this->person('charles@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.workflow.transmit');
-        $ada = User::factory()->withPermissions('tma.ticket.viewany', 'tma.ticket.workflow.transmit')->create(['name' => 'Ada']);
+        $charles = $this->person('charles@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.correspond');
+        $ada = User::factory()->withPermissions('tma.ticket.viewany', 'tma.ticket.correspond')->create(['name' => 'Ada']);
         Passport::actingAs(User::factory()->create(['email' => 'filbreeze@api.test']), [], 'api');
 
         $payload = ['email' => 'charles@notilac.fr', 'name' => 'Charles', 'master_uid' => self::MASTER_UID, 'master_user_id' => 1, 'token' => str_repeat('t', 40)];
@@ -181,7 +185,7 @@ class AgentsTest extends TmaTestCase
         Agent::create(['user_id' => $charles->getKey(), 'email' => $charles->email, 'name' => 'Charles', 'master_uid' => self::MASTER_UID, 'master_user_id' => '1', 'token' => 'jeton-agent-charles', 'linked_at' => now()]);
         $requester = $this->agent();
         $ticket = $this->draft($requester);
-        $ticket->forceFill(['handling_mode' => 'service_desk', 'state' => 'in_progress', 'time_total_minutes' => 90])->save();
+        $ticket->forceFill(['state' => 'in_progress', 'time_total_minutes' => 90])->save();
 
         // Un utilisateur du client : les totaux, en lecture, en bas du volet.
         $this->actingAs($requester);
@@ -201,11 +205,11 @@ class AgentsTest extends TmaTestCase
         $this->actingAs($charles);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
             ->assertSee('Saisir du temps')
-            ->callAction(TestAction::make('agentTime')->schemaComponent('time', schema: 'sideInfolist'), ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'message' => '<p>Analyse des relances</p>', 'billable' => true])
+            ->callAction(TestAction::make('agentTime')->schemaComponent('time', schema: 'sideInfolist'), ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'billable' => true])
             ->assertNotified('Temps enregistré chez le Support');
         $this->assertSame(150, $ticket->refresh()->time_total_minutes);
-        // Le message part avec le temps, écrit là-bas en son nom.
+        // Sur un ticket, le temps n'a pas de texte : ici, il porte sur la fiche entière.
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent-charles')
-            && $request['minutes'] === 60 && $request['summary'] === '<p>Analyse des relances</p>' && ! isset($request['entry_ulid']));
+            && $request['minutes'] === 60 && ! isset($request['summary']) && ! isset($request['entry_ulid']));
     }
 }

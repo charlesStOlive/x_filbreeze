@@ -2,52 +2,37 @@
 
 namespace Tests\Feature\Tma;
 
-use CharlesStOlive\FilamentTma\Enums\HandlingMode;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Instance;
-use CharlesStOlive\FilamentTma\Workflow\Context;
+use CharlesStOlive\FilamentTma\Support\Terms;
 use Livewire\Livewire;
 
 /**
  * Les mots du module (`Support\Terms`) : « Support » partout ; le nom court de chaque client (« EDM ») forme
- * « Équipe EDM », « Confier à l'équipe EDM », « Publier chez EDM ».
+ * « Publier chez EDM » et « Correspondants EDM ».
  */
 class VocabularyTest extends TmaTestCase
 {
-    public function test_a_client_names_its_local_team_with_its_short_name(): void
+    public function test_a_client_speaks_of_the_support_and_its_correspondents(): void
     {
         $this->asClient();
         config(['filament-tma.instance.short_name' => 'EDM']);
-        $requester = $this->agent();
+        $requester = $this->correspondent();
         $ticket = $this->draft($requester);
 
-        $this->assertSame('Confier à l’équipe EDM', $this->workflow()->move('submit')->labelFor($ticket));
-        $this->assertSame('Équipe EDM', HandlingMode::Local->getLabel());
-        // Un brouillon n'est encore confié à personne.
-        $this->assertNull($ticket->handledBy());
+        // Un brouillon attend son auteur ; transmis, le Support.
         $this->assertSame('Demandeur', $ticket->waitingOn());
-
-        $this->workflow()->run($ticket, 'submit', [], Context::ui($requester));
-        $ticket->refresh();
-
+        $ticket->forceFill(['state' => 'submitted'])->save();
         $this->assertSame('Nouveau', $ticket->state->getLabel());
-        $this->assertSame('Équipe EDM', $ticket->handledBy());
-        $this->assertSame('Équipe EDM', $ticket->waitingOn());
-        $this->assertSame('Retour à l’équipe EDM', $this->workflow()->move('reopen')->labelFor($ticket));
+        $this->assertSame('Support', $ticket->waitingOn());
+        $this->assertSame('Retour au Support', $this->workflow()->move('reopen')->labelFor($ticket));
+        $this->assertSame('Correspondants du Support', Terms::correspondents());
 
         $this->actingAs($requester);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertSee('En attente de')
-            ->assertSee('Traité par')
-            ->assertSee('Équipe EDM')
-            ->assertSee('Confier à l’équipe EDM');
-
-        // Sans nom court, des mots neutres.
-        config(['filament-tma.instance.short_name' => null]);
-        $this->assertSame('Équipe locale', $ticket->handledBy());
-        $this->assertSame('Confier à l’équipe locale', $this->workflow()->move('submit')->label());
-        $this->assertSame('Retour à l’équipe locale', $this->workflow()->move('reopen')->labelFor($ticket));
+            ->assertSee(['En attente de', 'Support'])
+            ->assertDontSee(['Traité par', 'Équipe EDM']);
     }
 
     public function test_the_support_names_each_client_with_its_own_short_name(): void

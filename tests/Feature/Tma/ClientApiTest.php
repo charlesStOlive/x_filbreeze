@@ -4,7 +4,10 @@ namespace Tests\Feature\Tma;
 
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\EditTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\TicketResource;
+use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\Notifications\AutoCloseWarning;
@@ -16,9 +19,11 @@ use CharlesStOlive\FilamentTma\States\Ticket\Submitted;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Sync\SyncException;
 use CharlesStOlive\FilamentTma\Workflow\Context;
+use CharlesStOlive\FilamentTma\Workflow\Recipients;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -49,7 +54,7 @@ class ClientApiTest extends TmaTestCase
     private function fakeMasterAccepting(): void
     {
         Http::fake(['master.test/api/tma/v1/tickets' => fn (Request $request) => Http::response([
-            'ticket' => [...$request['ticket'], 'state' => 'submitted', 'handling_mode' => 'service_desk'],
+            'ticket' => [...$request['ticket'], 'state' => 'submitted'],
             'entries' => collect($request['entries'])->map(fn (array $entry): array => [...$entry, 'files' => []])->all(),
             'transitions' => [[...$request['transition'], 'to_state' => 'submitted']],
         ], 201)]);
@@ -58,57 +63,49 @@ class ClientApiTest extends TmaTestCase
     private function transmittedTicket(User $requester, string $state): Ticket
     {
         $ticket = $this->draft($requester);
-        $ticket->forceFill(['handling_mode' => 'service_desk', 'state' => $state, 'sync_status' => 'synced'])->save();
+        $ticket->forceFill(['state' => $state, 'sync_status' => 'synced'])->save();
 
         return $ticket;
     }
 
-    /** Un utilisateur du client qui n'est pas en lien avec le Support : il confie ses demandes à l'équipe EDM. */
-    private function memberWithoutSupport(): User
+    public function test_only_its_author_transmits_a_request(): void
     {
-        return User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.create',
-            'tma.ticket.edit', 'tma.ticket.comment', 'tma.ticket.workflow.submit', 'tma.ticket.workflow.answer',
-            'tma.ticket.workflow.validate', 'tma.ticket.workflow.reopen', 'tma.ticket.workflow.cancel')->create();
+        $leo = $this->correspondent();
+        $draft = $this->draft($leo);
+
+        $this->assertTrue($this->workflow()->allows($draft, 'transmit', Context::ui($leo)));
+        // Un autre correspondant, même avec tous les droits, ne transmet pas le brouillon de quelqu'un d'autre.
+        $this->assertFalse($this->workflow()->allows($draft, 'transmit', Context::ui($this->agent())));
+        // Il n'y a plus d'équipe à qui confier une demande.
+        $this->expectException(\InvalidArgumentException::class);
+        $this->workflow()->move('submit');
     }
 
-    public function test_the_client_team_transmits_its_requests_and_the_others_confide_theirs(): void
+    public function test_only_the_awaited_requester_answers_and_a_principal_recipient_may_take_over(): void
     {
-        $team = $this->agent();
-        $member = $this->memberWithoutSupport();
-
-        // L'équipe EDM (le droit de transmettre) envoie ses demandes au Support, sans les confier à elle-même.
-        $own = $this->draft($team);
-        $this->assertTrue($this->workflow()->allows($own, 'transmit', Context::ui($team)));
-        $this->assertFalse($this->workflow()->allows($own, 'submit', Context::ui($team)));
-
-        // Les autres la lui confient.
-        $theirs = $this->draft($member);
-        $this->assertFalse($this->workflow()->allows($theirs, 'transmit', Context::ui($member)));
-        $this->assertTrue($this->workflow()->allows($theirs, 'submit', Context::ui($member)));
-
-        // L'équipe la reçoit, la prend en charge, et peut la transmettre au Support.
-        $this->workflow()->run($theirs, 'submit', [], Context::ui($member));
-        $this->workflow()->run($theirs, 'take-charge', [], Context::ui($team));
-        $this->assertTrue($this->workflow()->allows($theirs->refresh(), 'transmit', Context::ui($team)));
-    }
-
-    public function test_the_client_team_answers_the_support_for_the_requester(): void
-    {
-        $member = $this->memberWithoutSupport();
-        $ticket = $this->transmittedTicket($member, 'awaiting_requester');
+        $leo = $this->correspondent();
+        $benoit = $this->correspondent();
+        $claire = $this->correspondent();
+        $ticket = $this->transmittedTicket($leo, 'awaiting_requester');
+        app(Recipients::class)->add($ticket, Actor::forUser($benoit));
 
         $answer = TestAction::make('composerReply_answer')->schemaComponent('composerActions', schema: 'composer');
 
-        // Un correspondant du Support répond à la place du demandeur.
-        $this->actingAs($this->agent());
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionVisible($answer);
+        $this->actingAs($leo);
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->assertActionVisible($answer)
+            ->assertActionHidden('move_take_over');
 
-        // Le demandeur, interne, non : sa demande transmise, il n'échange plus avec le Support ; un autre interne non plus.
+        // Un autre correspondant ne répond pas à sa place ; destinataire principal, il peut prendre la main.
         // (une action masquée d'un schéma n'est même pas trouvée)
-        foreach ([$member, $this->memberWithoutSupport()] as $internal) {
-            $this->actingAs($internal);
+        foreach ([$benoit, $claire] as $other) {
+            $this->actingAs($other);
+            $page = Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+                ->assertSee('Ce n’est pas votre tour');
+            $other->is($benoit) ? $page->assertActionVisible('move_take_over') : $page->assertActionHidden('move_take_over');
+
             try {
-                Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden($answer);
+                $page->assertActionHidden($answer);
             } catch (ActionNotResolvableException) {
                 $this->addToAssertionCount(1);
             }
@@ -123,24 +120,26 @@ class ClientApiTest extends TmaTestCase
         $ticket = $this->draft($requester);
         $timeline = app(Timeline::class);
         Storage::disk('local')->put('tma-uploads/capture.png', 'png');
-        $timeline->add($ticket, EntryType::Comment, '<p>Capture jointe.</p>', Context::ui($requester), uploads: [['path' => 'tma-uploads/capture.png', 'name' => 'capture.png']]);
+        // Un brouillon ne reçoit pas de message (sa demande est le premier) ; des notes, si.
+        $timeline->add($ticket, EntryType::Note, '<p>Capture jointe.</p>', Context::ui($requester), uploads: [['path' => 'tma-uploads/capture.png', 'name' => 'capture.png']]);
         $timeline->add($ticket, EntryType::Note, '<p>Une note : elle part aussi.</p>', Context::ui($requester));
 
         $this->assertTrue($this->workflow()->allows($ticket, 'transmit', Context::ui($requester)));
         $this->workflow()->run($ticket, 'transmit', [], Context::ui($requester));
 
         $this->assertInstanceOf(Submitted::class, $ticket->state);
-        $this->assertSame('service_desk', $ticket->handling_mode->value);
+        $this->assertTrue($ticket->isShared());
         $this->assertSame('synced', $ticket->sync_status->value);
         $this->assertSame(1, $ticket->transitions()->count());
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-maitre')
             && count($request['entries']) === 2
             && $request['entries'][0]['files'][0]['file_name'] === 'capture.png'
-            && $request['entries'][1]['type'] === 'note' && $request['entries'][1]['number'] === 1);
+            && $request['entries'][1]['type'] === 'note' && $request['entries'][1]['number'] === 2);
 
-        // Désormais, c'est le maître qui a la main : plus de modification ici.
-        $this->assertFalse($ticket->fieldsEditableHere());
+        // Désormais, le maître fait autorité ; la demande reste à son auteur tant que rien ne l'a suivie.
+        $this->assertFalse($ticket->authorityIsHere());
+        $this->assertTrue($this->workflow()->mayEditDemand($ticket, Context::ui($requester)));
         $this->assertFalse($this->workflow()->allows($ticket, 'transmit', Context::ui($requester)));
     }
 
@@ -159,8 +158,50 @@ class ClientApiTest extends TmaTestCase
 
         $ticket->refresh();
         $this->assertInstanceOf(Draft::class, $ticket->state);
-        $this->assertSame('local', $ticket->handling_mode->value);
+        $this->assertFalse($ticket->isShared());
         $this->assertSame(0, $ticket->transitions()->count());
+    }
+
+    public function test_the_author_changes_the_demand_through_the_master_until_a_message_follows(): void
+    {
+        $requester = $this->correspondent();
+        $ticket = $this->transmittedTicket($requester, 'submitted');
+
+        $masterUp = true;
+        Http::fake(['master.test/api/tma/v1/tickets/*' => function (Request $request) use ($ticket, &$masterUp) {
+            if (! $masterUp) {
+                return Http::response(['message' => 'Un message a suivi la demande : elle ne se modifie plus.'], 403);
+            }
+
+            $snapshot = Payload::snapshot($ticket);
+            $snapshot['ticket'] = [...$snapshot['ticket'], ...$request['ticket'], 'version' => $ticket->sync_version + 1];
+
+            return Http::response($snapshot);
+        }]);
+
+        $this->actingAs($requester);
+        Livewire::test(EditTicket::class, ['record' => $ticket->getKey()])
+            ->fillForm(['title' => 'Le formulaire de contact ne part plus depuis lundi'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Le formulaire de contact ne part plus depuis lundi', $ticket->refresh()->title);
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PATCH'
+            && $request['ticket']['title'] === 'Le formulaire de contact ne part plus depuis lundi'
+            && $request['actor']['id'] === (string) $requester->getKey());
+
+        // Le maître refuse : rien n'est gardé ici.
+        $masterUp = false;
+        Livewire::test(EditTicket::class, ['record' => $ticket->getKey()])
+            ->fillForm(['title' => 'Trop tard'])
+            ->call('save')
+            ->assertNotified('Support : l’autre application a répondu 403 (Un message a suivi la demande : elle ne se modifie plus.).');
+        $this->assertSame('Le formulaire de contact ne part plus depuis lundi', $ticket->refresh()->title);
+
+        // Un message a suivi : la fiche ne s'ouvre plus en modification.
+        $ticket->entries()->create(['type' => 'comment', 'body' => '<p>Je regarde.</p>', 'author_actor_id' => $this->clientActor()->getKey(),
+            'origin_instance_uid' => self::MASTER_UID]);
+        $this->assertFalse(TicketResource::canEdit($ticket->refresh()));
     }
 
     public function test_without_master_the_service_desk_is_closed(): void
@@ -219,15 +260,23 @@ class ClientApiTest extends TmaTestCase
                 : Http::response(['message' => 'indisponible'], 503);
         }]);
 
+        // Au tour du Support, le demandeur n'écrit pas de message à part : une relance, une note.
         try {
             $timeline->add($ticket, EntryType::Comment, '<p>Un détail.</p>', Context::ui($requester));
-            $this->fail('Le commentaire aurait dû échouer.');
+            $this->fail('Ce n’est pas son tour.');
+        } catch (AuthorizationException) {
+            $this->assertSame(0, Entry::query()->count());
+        }
+
+        try {
+            $timeline->add($ticket, EntryType::Comment, '<p>Avez-vous pu regarder ?</p>', Context::ui($requester), meta: ['reminder' => true]);
+            $this->fail('La relance aurait dû échouer.');
         } catch (SyncException) {
             $this->assertSame(0, Entry::query()->count());
         }
 
         $masterUp = true;
-        $timeline->add($ticket, EntryType::Comment, '<p>Un détail.</p>', Context::ui($requester));
+        $timeline->add($ticket, EntryType::Comment, '<p>Avez-vous pu regarder ?</p>', Context::ui($requester), meta: ['reminder' => true]);
         $this->assertSame(1, Entry::query()->count());
 
         // Une note part comme un message, et prend le numéro que le maître lui donne.
@@ -317,10 +366,10 @@ class ClientApiTest extends TmaTestCase
         $this->getJson('/api/tma/v1/users')->assertNotFound();
     }
 
-    public function test_the_users_of_the_service_desk_without_the_local_only_ones(): void
+    public function test_the_users_are_the_correspondents_of_the_support(): void
     {
-        $desk = User::factory()->withPermissions('tma.ticket.viewany', 'tma.ticket.workflow.transmit')->create(['name' => 'Ada']);
-        $localOnly = User::factory()->withPermissions('tma.ticket.viewany', 'tma.ticket.workflow.submit')->create(['name' => 'Bob']);
+        $desk = User::factory()->withPermissions('tma.ticket.viewany', 'tma.ticket.correspond')->create(['name' => 'Ada']);
+        User::factory()->withPermissions('tma.ticket.viewany', 'tma.ticket.create')->create(['name' => 'Bob']);
         User::factory()->create(['name' => 'Zoé']);
         Passport::actingAs($this->masterUser, [], 'api');
 
@@ -328,8 +377,5 @@ class ClientApiTest extends TmaTestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', (string) $desk->getKey())
             ->assertJsonPath('data.0.service_desk', true);
-
-        $all = $this->getJson('/api/tma/v1/users?include_local_only=1')->assertOk()->json('data');
-        $this->assertEqualsCanonicalizing([(string) $desk->getKey(), (string) $localOnly->getKey()], array_column($all, 'id'));
     }
 }

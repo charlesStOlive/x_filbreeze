@@ -74,7 +74,7 @@ class AuditAndCleanupTest extends TmaTestCase
         $agent = $this->agent();
         $ticket = $this->serviceDeskTicket('submitted');
 
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($agent));
+        $this->workflow()->run($ticket, 'pause', ['until' => now()->addDay()->toDateTimeString()], Context::ui($agent));
 
         $this->assertSame(0, Audit::query()->where('action', 'ticket.updated')->count());
         $this->assertSame(1, $ticket->transitions()->count());

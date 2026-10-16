@@ -410,8 +410,8 @@ class ProjectTaskTest extends TmaTestCase
 
         // Le client écrit encore sur une tâche terminée (pas sur une tâche annulée), sans pouvoir la modifier.
         $this->asClient();
-        $member = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.task.note', 'tma.ticket.workflow.transmit')->create();
-        $internal = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.task.note')->create();
+        $member = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.task.note', 'tma.ticket.correspond')->create();
+        $reader = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view')->create();
         $this->actingAs($member);
         $this->assertFalse(TaskResource::canEdit($task));
         // Chez le client, le temps ferme le volet, en lecture ; le calendrier ne s'affiche qu'à la demande.
@@ -422,7 +422,7 @@ class ProjectTaskTest extends TmaTestCase
             ->callAction('toggleOnDemand')
             ->assertSee(['Calendrier', 'Échéance prévue']);
         $this->assertTrue(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($member)));
-        $this->assertFalse(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($internal)));
+        $this->assertFalse(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($reader)));
         $task->forceFill(['state' => 'cancelled']);
         $this->assertFalse(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($member)));
         $this->assertTrue(app(Timeline::class)->canAdd($task, EntryType::Note, Context::ui($member)));
@@ -607,8 +607,8 @@ class ProjectTaskTest extends TmaTestCase
         $this->assertSame(11 * 60, Project::query()->where('title', 'Portail parrain')->sole()->timeTotals()['total_minutes']);
         $this->assertSame(3, TimeEntry::query()->whereNotNull('entry_id')->count());
 
-        // Deux tickets préparés pour le client : l'un publié et pris en charge, l'autre programmé.
-        $this->assertSame(['in_progress', 'draft'], Ticket::query()->orderBy('id')->get()->map(fn (Ticket $t): string => $t->state::getMorphClass())->all());
+        // Deux tickets préparés pour le client : l'un publié (avec une note), l'autre programmé.
+        $this->assertSame(['submitted', 'draft'], Ticket::query()->orderBy('id')->get()->map(fn (Ticket $t): string => $t->state::getMorphClass())->all());
         Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync') && ($request['task']['title'] ?? null) === 'Maquettes de l’espace parrain');
 
         // Vider seulement.

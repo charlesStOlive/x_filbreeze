@@ -14,13 +14,16 @@ use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Agent;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Ticket;
-use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
+use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -42,13 +45,14 @@ class TicketPagesTest extends TmaTestCase
 
     public function test_images_open_in_the_viewer_without_being_downloaded(): void
     {
-        $this->asClient();
+        $this->asMaster();
         Storage::fake('local');
         $agent = $this->agent();
-        $ticket = $this->draft($agent);
+        $ticket = $this->serviceDeskTicket();
         Storage::disk('local')->put('tma-uploads/capture.png', UploadedFile::fake()->image('capture.png', 20, 20)->getContent());
         Storage::disk('local')->put('tma-uploads/journal.txt', 'erreur 500');
-        $entry = app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Voici l’écran.</p>', Context::ui($agent), uploads: [
+        // Un message écrit par un passage (ici, sans passer par lui).
+        $entry = app(Timeline::class)->write($ticket, EntryType::Comment, '<p>Voici l’écran.</p>', Context::ui($agent), uploads: [
             ['path' => 'tma-uploads/capture.png', 'name' => 'capture.png'],
             ['path' => 'tma-uploads/journal.txt', 'name' => 'journal.txt'],
         ]);
@@ -75,11 +79,9 @@ class TicketPagesTest extends TmaTestCase
         $me = $this->agent();
         $colleague = $this->agent();
         $mine = $this->draft($me);
+        $mine->forceFill(['state' => 'awaiting_requester'])->save();
         $theirs = $this->draft($colleague, ['title' => 'Autre demande']);
-        $this->workflow()->run($mine, 'submit', [], Context::ui($me));
-        $this->workflow()->run($theirs, 'submit', [], Context::ui($colleague));
-        $this->workflow()->run($mine, 'take-charge', [], Context::ui($colleague));
-        $this->workflow()->run($mine, 'request-answer', ['question' => '<p>Laquelle ?</p>'], Context::ui($colleague));
+        $theirs->forceFill(['state' => 'in_progress'])->save();
 
         // D'office, ses propres demandes ; le filtre se retire pour voir celles des autres.
         $this->actingAs($me);
@@ -90,7 +92,7 @@ class TicketPagesTest extends TmaTestCase
             ->assertTableColumnStateSet('waiting_on', 'Vous', $mine)
             ->filterTable('mine', false)
             ->assertCanSeeTableRecords([$mine, $theirs])
-            ->assertTableColumnStateSet('waiting_on', 'Équipe locale', $theirs);
+            ->assertTableColumnStateSet('waiting_on', 'Support', $theirs);
 
         // Pour le collègue, la demande attend son auteur, par son nom.
         $this->actingAs($colleague);
@@ -129,7 +131,7 @@ class TicketPagesTest extends TmaTestCase
         $this->asClient();
         $requester = $this->agent();
         $theirs = $this->draft($requester);
-        $this->workflow()->run($theirs, 'submit', [], Context::ui($requester));
+        $theirs->forceFill(['state' => 'submitted'])->save();
 
         // Un membre du Support n'y demande rien : pas de « Mes demandes » d'office.
         $charles = $this->agent();
@@ -216,34 +218,35 @@ class TicketPagesTest extends TmaTestCase
 
     public function test_the_page_shows_the_moves_allowed_now(): void
     {
+        // Dans l'application cliente, un brouillon se transmet au Support, ou se retire.
         $this->asClient();
-        $agent = $this->agent();
-        $teammate = $this->agent();
-        $ticket = $this->draft($agent);
-        $this->actingAs($agent);
-
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionVisible('move_submit')
-            ->assertActionHidden('move_take_charge')
+        config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton']);
+        $requester = $this->correspondent();
+        $this->actingAs($requester);
+        Livewire::test(ViewTicket::class, ['record' => $this->draft($requester)->getKey()])
+            ->assertActionVisible('move_transmit')
+            ->assertActionVisible('move_cancel')
             // Les réponses (« Confirmer et clore »…) ne sont pas des boutons d'en-tête : elles sont dans la zone de réponse.
-            ->assertActionDoesNotExist('move_validate')
-            // Confier exige un destinataire principal dans l'équipe (voir RecipientsTest).
-            ->callAction('move_submit', [])
-            ->assertHasActionErrors(['recipients' => 'required_without']);
+            ->assertActionDoesNotExist('move_validate');
 
+        // Dans le maître, pas de « prise en charge » : le Support répond tout de suite, refuse, ou met en pause.
+        $this->asMaster();
+        $ticket = $this->serviceDeskTicket('submitted', 'DES-0010');
+        $this->actingAs($this->supportMember());
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->callAction('move_submit', ['recipients' => ['u:'.$teammate->getKey()]])
-            ->assertHasNoActionErrors()
-            ->assertActionHidden('move_submit')
-            ->assertActionVisible('move_take_charge')
-            ->callAction('move_take_charge');
+            ->assertActionDoesNotExist('move_take_charge')
+            ->assertActionHidden('move_transmit')
+            ->assertActionHidden('move_force_close')
+            ->assertActionVisible('move_refuse')
+            ->assertActionVisible(self::composer('composerReply_request_answer'))
+            ->callAction('move_pause', ['until' => now()->addDay()->toDateTimeString()]);
 
-        $this->assertInstanceOf(InProgress::class, $ticket->refresh()->state);
+        $this->assertSame('paused', $ticket->refresh()->state::getMorphClass());
 
-        // Sans le droit du mouvement, pas de bouton ; sans droit d'écrire, pas de zone de réponse.
+        // Sans être membre du Support, pas de bouton, et rien à écrire.
         $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view')->create());
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionHidden('move_pause')
+            ->assertActionHidden('move_resume')
             ->assertDontSee('Votre message…');
     }
 
@@ -255,9 +258,10 @@ class TicketPagesTest extends TmaTestCase
         $this->actingAs($agent);
 
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            // « Refuser » ne vaut qu'avant la prise en charge.
+            // « Refuser » ne vaut qu'avant la prise en charge ; le Support ne retire pas une demande.
             ->assertActionHidden('move_refuse')
-            ->callAction('move_cancel', ['reason' => ''])
+            ->assertActionHidden('move_cancel')
+            ->callAction('move_force_close', ['reason' => ''])
             ->assertHasActionErrors(['reason' => 'required']);
 
         // « Demander des précisions » se fait dans la zone de réponse ; sans question, rien ne bouge.
@@ -299,8 +303,9 @@ class TicketPagesTest extends TmaTestCase
         $this->actingAs($agent);
 
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerMessage'))
             ->fillForm(['body' => '<p>Je reproduis le problème.</p>', 'attachments' => [UploadedFile::fake()->image('capture.png', 40, 40)]], 'composer')
-            ->callAction(self::composer('composerMessage'))
+            ->callAction(self::composer('composerReply_request_answer'))
             ->assertNotified('Envoyé');
 
         $comment = Entry::query()->messages()->sole();
@@ -364,86 +369,112 @@ class TicketPagesTest extends TmaTestCase
         $this->assertFalse($note->refresh()->private);
     }
 
+    /** Le maître, tel qu'il répond à un passage demandé par l'application cliente : le nouvel état, et le message. */
+    private function fakeMasterMoves(Ticket $ticket): void
+    {
+        Http::fake(['master.test/api/tma/v1/tickets/*/moves' => function (Request $request) use ($ticket) {
+            $to = ['answer' => 'in_progress', 'reopen' => 'in_progress', 'validate' => 'closed'][$request['move']];
+            $snapshot = Payload::snapshot($ticket->refresh());
+            $snapshot['ticket'] = [...$snapshot['ticket'], 'state' => $to, 'version' => $ticket->sync_version + 1];
+            $snapshot['transitions'][] = ['ulid' => $request['transition_ulid'], 'move' => $request['move'], 'from_state' => $ticket->state::getMorphClass(),
+                'to_state' => $to, 'actor' => $request['actor'], 'origin_instance_uid' => self::CLIENT_UID, 'origin' => 'ui'];
+            $text = $request['data']['answer'] ?? $request['data']['message'] ?? null;
+
+            if (filled($text)) {
+                $snapshot['entries'][] = ['ulid' => strtolower((string) Str::ulid()), 'type' => 'comment', 'body' => $text, 'meta' => ['transition' => $request['transition_ulid']],
+                    'author' => $request['actor'], 'origin_instance_uid' => self::CLIENT_UID, 'origin' => 'ui', 'created_at' => now()->toIso8601String()];
+            }
+
+            return Http::response($snapshot);
+        }]);
+    }
+
     public function test_only_the_party_awaited_may_answer(): void
     {
         Storage::fake('local');
-        $this->asClient();
-        $requester = $this->agent();
-        $team = $this->agent();
-        $ticket = $this->draft($requester);
-        $this->workflow()->run($ticket, 'submit', [], Context::ui($requester));
 
-        // Ticket nouveau : l'équipe répond en le prenant en charge au passage ; le demandeur n'a qu'un message.
-        $this->actingAs($requester);
+        // Dans le maître : sur un ticket nouveau, le Support répond tout de suite, toujours par un passage.
+        $this->asMaster();
+        $support = $this->supportMember();
+        $ticket = $this->serviceDeskTicket('submitted');
+        $this->actingAs($support);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionVisible(self::composer('composerMessage'))
-            ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerReply_answer'));
-
-        $this->actingAs($team);
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionVisible(self::composer('composerMessage'))
+            ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerMessage'))
+            ->assertSee('Pour un point d’étape, écrivez une note.')
             ->assertActionVisible(self::composer('composerReply_submit_for_validation'))
+            ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerReply_answer'))
             ->fillForm(['body' => '<p>Sur quelle fiche ?</p>'], 'composer')
             ->callAction(self::composer('composerReply_request_answer'));
 
         $ticket->refresh();
         $this->assertSame('awaiting_requester', $ticket->state::getMorphClass());
-        $this->assertTrue($ticket->assignee->isUser($team));
+        $this->assertTrue($ticket->assignee->isUser($support));
 
-        // Le demandeur est attendu : il répond (pas de simple message à côté) ; l'équipe ne peut plus qu'écrire.
+        // Le demandeur est attendu : le Support n'écrit plus de message, il le dit et renvoie aux notes.
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionVisible(self::composer('composerMessage'))
+            ->assertSee('Ce n’est pas votre tour')
+            ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerMessage'))
             ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerReply_request_answer'));
 
+        // Dans l'application cliente : le demandeur répond (pas de simple message à côté) ; le maître fait le passage.
+        $this->asClient();
+        config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton']);
+        $requester = $this->correspondent();
+        $mine = $this->draft($requester);
+        $mine->forceFill(['state' => 'awaiting_requester', 'sync_status' => 'synced'])->save();
+        $this->fakeMasterMoves($mine);
+
         $this->actingAs($requester);
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+        Livewire::test(ViewTicket::class, ['record' => $mine->getKey()])
             ->assertSee('attend votre réponse')
             ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerMessage'))
             ->fillForm(['body' => '<p>Celle du parrain 42.</p>', 'attachments' => [UploadedFile::fake()->image('fiche.png', 40, 40)]], 'composer')
             ->callAction(self::composer('composerReply_answer'));
 
-        $ticket->refresh();
-        $this->assertSame('in_progress', $ticket->state::getMorphClass());
-        $answer = $ticket->entries()->where('meta->answer', true)->sole();
-        $this->assertNotNull($answer->parent_id);
-        $this->assertSame('fiche.png', $answer->getFirstMedia('attachments')->file_name);
+        $this->assertSame('in_progress', $mine->refresh()->state::getMorphClass());
+        Http::assertSent(fn (Request $request): bool => $request['move'] === 'answer' && $request['data']['answer'] === '<p>Celle du parrain 42.</p>'
+            && $request['data']['files'][0]['file_name'] === 'fiche.png');
 
-        // Résolu : le demandeur confirme (son mot part en message), ou renvoie la demande.
-        $this->workflow()->run($ticket, 'submit-for-validation', [], Context::ui($team));
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+        // Résolu : le demandeur confirme, avec un mot qui accompagne le passage, ou renvoie la demande.
+        $mine->forceFill(['state' => 'pending_validation'])->save();
+        Livewire::test(ViewTicket::class, ['record' => $mine->getKey()])
             ->assertActionVisible(self::composer('composerReply_reopen'))
             ->fillForm(['body' => '<p>Parfait, merci.</p>'], 'composer')
             ->callAction(self::composer('composerReply_validate'));
 
-        $this->assertSame('closed', $ticket->refresh()->state::getMorphClass());
-        $this->assertSame(1, $ticket->entries()->where('body', '<p>Parfait, merci.</p>')->count());
-        // Son mot accompagne le passage : l'historique les montre ensemble.
+        $this->assertSame('closed', $mine->refresh()->state::getMorphClass());
+        Http::assertSent(fn (Request $request): bool => $request['move'] === 'validate' && $request['data']['message'] === '<p>Parfait, merci.</p>');
         $this->assertSame(
-            $ticket->transitions()->where('move', 'validate')->sole()->ulid,
-            $ticket->entries()->where('body', '<p>Parfait, merci.</p>')->sole()->meta['transition'],
+            $mine->transitions()->where('move', 'validate')->sole()->ulid,
+            $mine->entries()->where('body', '<p>Parfait, merci.</p>')->sole()->meta['transition'],
         );
     }
 
     public function test_a_move_shows_in_the_block_of_the_message_written_with_it(): void
     {
-        $this->asClient();
-        $requester = $this->agent();
-        $team = $this->agent();
-        $ticket = $this->draft($requester);
-        $this->workflow()->run($ticket, 'submit', [], Context::ui($requester));
-        $this->workflow()->run($ticket, 'take-charge', [], Context::ui($team));
-        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Je prends en charge.</p>', Context::ui($team));
-        $this->workflow()->run($ticket->refresh(), 'request-answer', ['question' => '<p>Sur quel navigateur ?</p>'], Context::ui($team));
-        $this->workflow()->run($ticket->refresh(), 'cancel', ['reason' => 'Doublon de la demande d’hier.'], Context::ui($team));
+        $this->asMaster();
+        $support = $this->agent();
+        $ticket = $this->serviceDeskTicket('submitted');
+        $ticket->transitions()->create(['ulid' => strtolower((string) Str::ulid()), 'move' => 'transmit', 'from_state' => 'draft', 'to_state' => 'submitted',
+            'actor_id' => $ticket->requester_actor_id, 'origin_instance_uid' => self::CLIENT_UID, 'origin' => 'ui']);
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Sur quel navigateur ?</p>'], Context::ui($support));
+        $this->travel(1)->minute();
+        $this->workflow()->run($ticket->refresh(), 'answer', ['answer' => '<p>Firefox.</p>'], $this->fromClient());
+        $this->travel(1)->minute();
+        $this->workflow()->run($ticket->refresh(), 'pause', ['until' => now()->addDay()->toDateTimeString()], Context::ui($support));
+        $this->travel(1)->minute();
+        app(Timeline::class)->add($ticket, EntryType::Comment, '<p>Toujours d’actualité ?</p>', $this->fromClient(), meta: ['reminder' => true]);
+        $this->travel(1)->minute();
+        $this->workflow()->run($ticket->refresh(), 'force-close', ['reason' => 'Doublon de la demande d’hier.'], Context::ui($support));
 
-        // Dans des blocs : la demande avec « Confier… », la question avec « Demander des précisions », l'annulation
-        // avec son motif ; à part, sur une ligne, la prise en charge ; le message écrit après elle reste à lui.
-        $this->actingAs($team);
+        // Dans des blocs : la demande avec « Transmettre au Support », la question avec « Demander des précisions », la
+        // clôture forcée avec son motif ; à part, sur une ligne, la pause sans motif ; la relance écrite après elle reste à elle.
+        $this->actingAs($support);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertSeeInOrder(['Demande', 'Confier à l’équipe locale', 'Pas de description.',
-                'Prendre en charge', 'Je prends en charge.',
-                'Demander des précisions', 'Sur quel navigateur ?',
-                'Annuler', 'Doublon de la demande d’hier.'])
+            ->assertSeeInOrder(['Demande', 'Transmettre au Support', 'Pas de description.',
+                'Demander des précisions', 'Sur quel navigateur ?', 'Firefox.',
+                'Mettre en pause', 'Toujours d’actualité ?',
+                'Forcer la clôture', 'Doublon de la demande d’hier.'])
             ->tap(function (Testable $page): void {
                 $html = $page->html();
                 $this->assertSame(1, substr_count($html, 'class="fi-tma-timeline-event"'));
@@ -484,23 +515,25 @@ class TicketPagesTest extends TmaTestCase
         $timeline = app(Timeline::class);
         $timeline->add($ticket, EntryType::Note, '<p>Penser au cache.</p>', Context::ui($agent));
 
-        // Sans notes : il n'y a plus que des messages.
+        // Sans notes : il n'y a plus que les messages des passages.
         config(['filament-tma.notes.enabled' => false]);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertActionVisible(self::composer('composerMessage'))
+            ->assertActionVisible(self::composer('composerReply_request_answer'))
             ->assertActionHidden('createNote')
             ->assertActionHidden('notes')
             ->assertDontSee('Penser au cache.');
         $this->assertFalse($timeline->canAdd($ticket, EntryType::Note, Context::ui($agent)));
     }
 
-    public function test_editing_follows_the_hand(): void
+    public function test_the_support_retouches_title_and_priority_on_its_turn(): void
     {
         $this->asMaster();
-        $this->actingAs($this->agent());
+        $this->actingAs($this->supportMember());
 
+        // La description reste à l'auteur de la demande.
         $mine = $this->serviceDeskTicket('in_progress');
         Livewire::test(EditTicket::class, ['record' => $mine->getKey()])
+            ->assertFormFieldIsDisabled('description')
             ->fillForm(['title' => 'Export des parrains (CSV)'])
             ->call('save')
             ->assertHasNoFormErrors();
@@ -541,7 +574,7 @@ class TicketPagesTest extends TmaTestCase
 
         Livewire::test(ViewTicket::class, ['record' => $this->serviceDeskTicket()->getKey()])
             ->fillForm(['body' => '<p>Voici le script.</p>', 'attachments' => [UploadedFile::fake()->create('outil.php', 1, 'application/x-php')]], 'composer')
-            ->callAction(self::composer('composerMessage'))
+            ->callAction(self::composer('composerReply_request_answer'))
             ->assertHasFormErrors(['attachments'], 'composer');
 
         $this->assertSame(0, Entry::query()->count());
