@@ -218,6 +218,7 @@ class TicketPagesTest extends TmaTestCase
     {
         $this->asClient();
         $agent = $this->agent();
+        $teammate = $this->agent();
         $ticket = $this->draft($agent);
         $this->actingAs($agent);
 
@@ -226,7 +227,12 @@ class TicketPagesTest extends TmaTestCase
             ->assertActionHidden('move_take_charge')
             // Les réponses (« Confirmer et clore »…) ne sont pas des boutons d'en-tête : elles sont dans la zone de réponse.
             ->assertActionDoesNotExist('move_validate')
+            // Confier exige un destinataire principal dans l'équipe (voir RecipientsTest).
             ->callAction('move_submit', [])
+            ->assertHasActionErrors(['recipients' => 'required_without']);
+
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->callAction('move_submit', ['recipients' => ['u:'.$teammate->getKey()]])
             ->assertHasNoActionErrors()
             ->assertActionHidden('move_submit')
             ->assertActionVisible('move_take_charge')

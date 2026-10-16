@@ -19,6 +19,7 @@ use CharlesStOlive\FilamentTma\Filament\Resources\Tasks\TaskResource;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\CreateTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\RelationManagers\TimeEntriesRelationManager;
+use CharlesStOlive\FilamentTma\Models\Agent;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\Project;
@@ -60,6 +61,15 @@ class ProjectTaskTest extends TmaTestCase
         $this->project = Project::create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID]);
     }
 
+    /** Desapp répond : ses utilisateurs (Ada, destinataire possible), et la réception des tâches. */
+    private function fakeDesapp(): void
+    {
+        Http::fake([
+            'desapp.test/api/tma/v1/users*' => Http::response(['data' => [['id' => '7', 'name' => 'Ada Lovelace', 'email' => 'ada@client.test', 'service_desk' => true]]]),
+            'desapp.test/*' => Http::response(['missing_media' => []]),
+        ]);
+    }
+
     private function tasks(): TaskWorkflow
     {
         return app(TaskWorkflow::class);
@@ -86,7 +96,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_a_draft_stays_in_the_master_and_publishing_sends_it(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent);
 
@@ -114,7 +124,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_a_scheduled_task_publishes_itself(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $at = now()->addHour()->startOfMinute();
         $task = $this->draftTask($this->agentForTasks(), ['publish_at' => $at]);
 
@@ -135,7 +145,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_moves_need_their_permission_and_are_for_the_master_only(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $task = $this->draftTask($this->agentForTasks());
         $viewer = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view')->create();
 
@@ -155,7 +165,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_time_on_a_task_is_split_by_month(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent);
 
@@ -198,7 +208,8 @@ class ProjectTaskTest extends TmaTestCase
 
         $this->asClient();
         config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton']);
-        $member = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment')->create();
+        // Un correspondant du Support (le droit de lui écrire) ; un interne n'écrit pas sur une tâche.
+        $member = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.ticket.workflow.transmit')->create();
 
         Http::fake(['master.test/*' => Http::response(['message' => 'indisponible'], 503)]);
         try {
@@ -236,7 +247,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_the_start_defaults_to_the_creation_day_and_the_deadline_is_optional(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $this->actingAs($agent);
 
@@ -244,7 +255,7 @@ class ProjectTaskTest extends TmaTestCase
         Livewire::test(CreateTask::class)
             ->assertFormFieldHidden('due_on')
             ->callAction('toggleOnDemand')
-            ->fillForm(['title' => 'Export comptable', 'project_id' => $this->project->getKey(), 'due_on' => now()->addWeek()->toDateString()])
+            ->fillForm(['title' => 'Export comptable', 'project_id' => $this->project->getKey(), 'due_on' => now()->addWeek()->toDateString(), 'primary_recipients' => ['c:7']])
             ->call('create')
             ->assertHasNoFormErrors();
 
@@ -264,7 +275,7 @@ class ProjectTaskTest extends TmaTestCase
         $this->assertNull($bare->due_on);
 
         // La vraie fin : le jour où elle est terminée.
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $this->tasks()->run($bare, 'publish', [], Context::ui($agent));
         $this->tasks()->run($bare, 'complete', [], Context::ui($agent));
         Livewire::test(ViewTask::class, ['record' => $bare->getKey()])->assertSee('Terminée le');
@@ -272,13 +283,13 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_the_task_screens(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $this->actingAs($agent);
 
         // Sans date de publication, la tâche part chez le client dès l'enregistrement.
         Livewire::test(CreateTask::class)
-            ->fillForm(['title' => 'Export comptable', 'project_id' => $this->project->getKey()])
+            ->fillForm(['title' => 'Export comptable', 'project_id' => $this->project->getKey(), 'primary_recipients' => ['c:7']])
             ->call('create')
             ->assertHasNoFormErrors()
             ->assertNotified('Publiée chez Desapp');
@@ -289,7 +300,7 @@ class ProjectTaskTest extends TmaTestCase
 
         // Avec une date, elle attend en brouillon ; « Publier chez… » la publie sans attendre.
         Livewire::test(CreateTask::class)
-            ->fillForm(['title' => 'Atelier de lancement', 'project_id' => $this->project->getKey(), 'publish_at' => now()->addDay()->format('Y-m-d H:i')])
+            ->fillForm(['title' => 'Atelier de lancement', 'project_id' => $this->project->getKey(), 'publish_at' => now()->addDay()->format('Y-m-d H:i'), 'primary_recipients' => ['c:7']])
             ->call('create')
             ->assertHasNoFormErrors();
         $draft = ProjectTask::query()->where('title', 'Atelier de lancement')->sole();
@@ -356,7 +367,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_the_project_travels_with_its_tasks(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent);
         $this->tasks()->run($task, 'publish', [], Context::ui($agent));
@@ -382,7 +393,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_the_support_edits_a_task_anytime_and_the_client_still_writes_on_a_done_task(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent);
         $this->tasks()->run($task, 'publish', [], Context::ui($agent));
@@ -399,7 +410,8 @@ class ProjectTaskTest extends TmaTestCase
 
         // Le client écrit encore sur une tâche terminée (pas sur une tâche annulée), sans pouvoir la modifier.
         $this->asClient();
-        $member = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.task.note')->create();
+        $member = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.task.note', 'tma.ticket.workflow.transmit')->create();
+        $internal = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view', 'tma.task.comment', 'tma.task.note')->create();
         $this->actingAs($member);
         $this->assertFalse(TaskResource::canEdit($task));
         // Chez le client, le temps ferme le volet, en lecture ; le calendrier ne s'affiche qu'à la demande.
@@ -410,6 +422,7 @@ class ProjectTaskTest extends TmaTestCase
             ->callAction('toggleOnDemand')
             ->assertSee(['Calendrier', 'Échéance prévue']);
         $this->assertTrue(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($member)));
+        $this->assertFalse(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($internal)));
         $task->forceFill(['state' => 'cancelled']);
         $this->assertFalse(app(Timeline::class)->canAdd($task, EntryType::Comment, Context::ui($member)));
         $this->assertTrue(app(Timeline::class)->canAdd($task, EntryType::Note, Context::ui($member)));
@@ -417,7 +430,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_a_ticket_starts_from_a_task_and_stays_linked_to_it(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent, ['description' => '<p>La page parrain.</p>']);
         $this->tasks()->run($task, 'publish', [], Context::ui($agent));
@@ -447,7 +460,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_time_can_bear_on_a_message_or_a_note(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->publishedTask($agent);
         $message = app(Timeline::class)->add($task, EntryType::Comment, '<p>Le client veut une FAQ.</p>', Context::ui($agent));
@@ -488,7 +501,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_optional_details_show_on_demand(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent, ['due_on' => now()->addMonth()->toDateString()]);
         $this->actingAs($agent);
@@ -507,7 +520,7 @@ class ProjectTaskTest extends TmaTestCase
             ->assertFormFieldVisible('due_on')
             ->callAction('toggleOnDemand')
             ->assertFormFieldHidden('due_on')
-            ->fillForm(['title' => 'Refonte de la page parrain (v2)'])
+            ->fillForm(['title' => 'Refonte de la page parrain (v2)', 'primary_recipients' => ['c:7']])
             ->call('save')
             ->assertHasNoFormErrors();
         $this->assertSame('Refonte de la page parrain (v2)', $task->refresh()->title);
@@ -553,7 +566,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_dates_show_in_the_readers_timezone(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $agent->forceFill(['timezone' => 'Europe/Paris'])->save();
         $this->travelTo(Carbon::parse('2026-10-14 22:06:00', 'UTC'));
@@ -605,7 +618,7 @@ class ProjectTaskTest extends TmaTestCase
 
     public function test_a_task_opens_with_its_publication_and_closes_with_its_last_word(): void
     {
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         $agent = $this->agentForTasks();
         $task = $this->publishedTask($agent, ['description' => '<p>Le périmètre du lot 1.</p>']);
         app(Timeline::class)->add($task, EntryType::Comment, '<p>Les maquettes arrivent.</p>', Context::ui($agent));
@@ -616,5 +629,62 @@ class ProjectTaskTest extends TmaTestCase
         Livewire::test(ViewTask::class, ['record' => $task->getKey()])
             ->assertSeeInOrder(['Publier chez le client', 'Le périmètre du lot 1.', 'Les maquettes arrivent.', 'Terminer', 'Livré : le lot 1 est en ligne.'])
             ->tap(fn (Testable $page) => $this->assertSame(0, substr_count($page->html(), 'class="fi-tma-timeline-event"')));
+    }
+
+    public function test_the_support_reopens_a_task_on_the_master_or_from_the_client(): void
+    {
+        $this->fakeDesapp();
+        $agent = $this->agentForTasks();
+        $task = $this->publishedTask($agent);
+        $this->tasks()->run($task, 'complete', [], Context::ui($agent));
+
+        // Le droit `tma.task.workflow.reopen` : sans lui, pas de réouverture.
+        $reader = User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view')->create();
+        $this->assertFalse($this->tasks()->allows($task->refresh(), 'reopen', Context::ui($reader)));
+
+        $this->actingAs($agent);
+        Livewire::test(ViewTask::class, ['record' => $task->getKey()])
+            ->assertActionVisible('task_reopen')
+            ->callAction('task_reopen', ['reason' => 'Un oubli dans la livraison.'])
+            ->assertHasNoActionErrors();
+
+        $task->refresh();
+        $this->assertInstanceOf(TaskInProgress::class, $task->state);
+        $this->assertNull($task->done_at);
+        $this->assertSame('Un oubli dans la livraison.', $task->transitions()->latest('id')->first()->reason);
+
+        // Annulée, elle se rouvre aussi.
+        $this->tasks()->run($task, 'cancel', ['reason' => 'Reportée.'], Context::ui($agent));
+        $this->assertTrue($this->tasks()->allows($task->refresh(), 'reopen', Context::ui($agent)));
+
+        // Depuis l'application cliente, un membre du Support : le maître rouvre, l'état revient.
+        $snapshot = Payload::snapshot($task);
+        $task->recipients()->delete();
+        $task->transitions()->delete();
+        $task->forceDelete();
+
+        $this->asClient();
+        config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton-instance']);
+        Mirror::snapshot($snapshot);
+        $copy = ProjectTask::query()->where('ulid', $snapshot['task']['ulid'])->sole();
+        $charles = User::factory()->withPermissions('panels.admin.access', 'tma.*')->create(['email' => 'charles@notilac.fr']);
+        Agent::create(['user_id' => $charles->getKey(), 'email' => $charles->email, 'name' => 'Charles', 'master_uid' => self::MASTER_UID, 'master_user_id' => '1', 'token' => 'jeton-agent', 'linked_at' => now()]);
+        $client = User::factory()->withPermissions('panels.admin.access', 'tma.*')->create();
+
+        $this->assertFalse($this->tasks()->allows($copy, 'reopen', Context::ui($client)));
+        $this->assertTrue($this->tasks()->allows($copy, 'reopen', Context::ui($charles)));
+
+        Http::fake(['master.test/api/tma/v1/agent/tickets/*/moves' => function (Request $request) use ($snapshot) {
+            $snapshot['task']['state'] = 'in_progress';
+            $snapshot['task']['version']++;
+            $snapshot['transitions'][] = ['ulid' => strtolower((string) Str::ulid()), 'move' => $request['move'], 'from_state' => 'cancelled', 'to_state' => 'in_progress',
+                'actor' => ['instance_uid' => self::MASTER_UID, 'id' => '1', 'name' => 'Charles'], 'origin_instance_uid' => self::MASTER_UID, 'origin' => 'api'];
+
+            return Http::response(['data' => ['snapshot' => $snapshot]]);
+        }]);
+
+        $this->tasks()->run($copy, 'reopen', [], Context::ui($charles));
+        $this->assertSame('in_progress', $copy->refresh()->state::getMorphClass());
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent') && $request['move'] === 'reopen');
     }
 }

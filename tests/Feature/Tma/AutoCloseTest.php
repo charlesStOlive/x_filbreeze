@@ -35,8 +35,8 @@ class AutoCloseTest extends TmaTestCase
 
     public function test_the_requester_is_warned_then_the_ticket_is_closed(): void
     {
-        Notification::fake();
         [$ticket, $requester] = $this->waitingLocalTicket();
+        Notification::fake(); // le demandeur, destinataire principal, a déjà appris la question
 
         $this->travel(20)->days();
         $this->artisan('tma:close-stale')->assertSuccessful();
@@ -61,8 +61,8 @@ class AutoCloseTest extends TmaTestCase
 
     public function test_any_activity_restarts_the_count(): void
     {
-        Notification::fake();
         [$ticket, $requester] = $this->waitingLocalTicket();
+        Notification::fake(); // le demandeur, destinataire principal, a déjà appris la question
 
         $this->travel(22)->days();
         $this->artisan('tma:close-stale');
@@ -79,8 +79,8 @@ class AutoCloseTest extends TmaTestCase
 
     public function test_a_late_warning_still_leaves_the_full_delay(): void
     {
-        Notification::fake();
         [$ticket] = $this->waitingLocalTicket();
+        Notification::fake(); // le demandeur, destinataire principal, a déjà appris la question
 
         // Le planificateur était arrêté : premier passage à 40 jours.
         $this->travel(40)->days();
@@ -98,8 +98,8 @@ class AutoCloseTest extends TmaTestCase
 
     public function test_dry_run_changes_nothing(): void
     {
-        Notification::fake();
         [$ticket] = $this->waitingLocalTicket();
+        Notification::fake(); // le demandeur, destinataire principal, a déjà appris la question
 
         $this->travel(60)->days();
         $this->artisan('tma:close-stale', ['--dry-run' => true])->expectsOutputToContain('[simulation]')->assertSuccessful();

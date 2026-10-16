@@ -99,20 +99,19 @@ class ClientApiTest extends TmaTestCase
 
         $answer = TestAction::make('composerReply_answer')->schemaComponent('composerActions', schema: 'composer');
 
-        // L'équipe EDM, en lien avec le Support, répond à la place du demandeur.
+        // Un correspondant du Support répond à la place du demandeur.
         $this->actingAs($this->agent());
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionVisible($answer);
 
-        // Le demandeur aussi ; un autre utilisateur, non.
-        $this->actingAs($member);
-        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionVisible($answer);
-
+        // Le demandeur, interne, non : sa demande transmise, il n'échange plus avec le Support ; un autre interne non plus.
         // (une action masquée d'un schéma n'est même pas trouvée)
-        $this->actingAs($this->memberWithoutSupport());
-        try {
-            Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden($answer);
-        } catch (ActionNotResolvableException) {
-            $this->addToAssertionCount(1);
+        foreach ([$member, $this->memberWithoutSupport()] as $internal) {
+            $this->actingAs($internal);
+            try {
+                Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertActionHidden($answer);
+            } catch (ActionNotResolvableException) {
+                $this->addToAssertionCount(1);
+            }
         }
     }
 

@@ -96,7 +96,12 @@ services:
             - '${FORWARD_MAILPIT_PORT:-1025}:1025'
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
         networks:
-            - sail
+            sail:
+            shared-db:
+                # La boîte de développement commune : les applications clientes (Desapp…) y envoient leurs courriels
+                # (MAIL_HOST=shared-mailpit, MAIL_PORT=1025), lus au même tableau que ceux de Filbreeze.
+                aliases:
+                    - shared-mailpit
 networks:
     sail:
         driver: bridge

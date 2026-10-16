@@ -7,7 +7,7 @@ use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\CreateTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\Ticket;
-use CharlesStOlive\FilamentTma\Notifications\TicketMoveNotification;
+use CharlesStOlive\FilamentTma\Notifications\NoticeNotification;
 use CharlesStOlive\FilamentTma\States\Ticket\Submitted;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
@@ -101,7 +101,8 @@ class MasterDraftTicketTest extends TmaTestCase
         Notification::fake();
         $this->asClient();
         config(['filament-tma.notifications.immediate' => ['publish'], 'filament-tma.api.master_user' => 'filbreeze@api.test']);
-        $ada = User::factory()->create(['id' => 7, 'name' => 'Ada Lovelace']);
+        // Le Support ne prépare un ticket que pour un correspondant du Support.
+        $ada = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.workflow.transmit')->create(['id' => 7, 'name' => 'Ada Lovelace']);
         Passport::actingAs(User::factory()->create(['email' => 'filbreeze@api.test']), [], 'api');
 
         // Un brouillon n'arrive jamais.
@@ -112,6 +113,6 @@ class MasterDraftTicketTest extends TmaTestCase
         $received = Ticket::query()->sole();
         $this->assertTrue($received->requester->isUser($ada));
         $this->assertSame('service_desk', $received->handling_mode->value);
-        Notification::assertSentTo($ada, TicketMoveNotification::class);
+        Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => str_contains($mail->notice->data['line'], 'a ouvert ce ticket pour vous'));
     }
 }
