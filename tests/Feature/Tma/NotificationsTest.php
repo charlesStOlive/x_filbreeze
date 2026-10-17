@@ -5,6 +5,7 @@ namespace Tests\Feature\Tma;
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Enums\NoticeEvent;
+use CharlesStOlive\FilamentTma\Enums\NoticeMode;
 use CharlesStOlive\FilamentTma\Enums\RecipientRole;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ListTickets;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
@@ -16,6 +17,7 @@ use CharlesStOlive\FilamentTma\Notifications\DailyDigest;
 use CharlesStOlive\FilamentTma\Notifications\NoticeNotification;
 use CharlesStOlive\FilamentTma\Support\Digest;
 use CharlesStOlive\FilamentTma\Support\NoticeChannels;
+use CharlesStOlive\FilamentTma\Support\Notifier;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Recipients;
@@ -170,17 +172,65 @@ class NotificationsTest extends TmaTestCase
             ->assertActionMounted('tmaNotifications');
 
         $this->assertSame(['mail', 'database'], NoticeChannels::for($me));
+        $this->assertTrue(NoticeChannels::digest($me));
 
         Livewire::test(ListTickets::class)
-            ->callAction('tmaNotifications', ['channels' => ['mail']])
+            ->callAction('tmaNotifications', ['channels' => ['mail'], 'digest' => false])
             ->assertHasNoActionErrors();
 
         $this->assertSame(['mail'], NotificationPreference::of($me)->channels);
+        $this->assertFalse(NotificationPreference::of($me)->digest);
         $this->assertSame(['mail'], NoticeChannels::for($me));
+        $this->assertFalse(NoticeChannels::digest($me));
 
         // L'application peut fixer le réglage pour tous.
         config(['filament-tma.notifications.user_choice' => false]);
         $this->assertSame(['mail', 'database'], NoticeChannels::for($me));
+        $this->assertTrue(NoticeChannels::digest($me));
+    }
+
+    public function test_the_application_says_what_is_on_until_one_chooses_and_without_the_digest_nothing_waits(): void
+    {
+        Notification::fake();
+        config(['filament-tma.notifications.defaults' => ['database']]);
+        $this->asMaster();
+        $handler = $this->supportMember();
+        $colleague = $this->supportMember();
+        $ticket = $this->takenTicket($handler);
+        app(Recipients::class)->add($ticket, Actor::forUser($colleague), RecipientRole::Secondary);
+
+        // Rien choisi : la cloche seule, sans bilan.
+        $this->assertSame(['database'], NoticeChannels::for($handler));
+        $this->assertFalse(NoticeChannels::digest($handler));
+
+        // Sans bilan, ce qui devait y aller est seulement noté.
+        $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Quel format ?</p>'], Context::ui($handler));
+        $skipped = Notice::query()->for($colleague)->sole();
+        $this->assertSame(NoticeMode::Skipped, $skipped->mode);
+        $this->assertNotNull($skipped->sent_at);
+
+        // La collègue veut le bilan : ce qui suit l'attend ; le principal, lui, l'apprend dans la cloche.
+        NoticeChannels::save($colleague, [], true);
+        $this->workflow()->run($ticket, 'answer', ['answer' => '<p>Le CSV.</p>'], $this->fromClient());
+        $this->assertSame(1, Notice::query()->pending()->for($colleague)->count());
+        Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->via($handler) === ['database']);
+
+        // Sans bilan, pas de rappel de ce qui ne bouge plus.
+        $this->assertSame(0, Notifier::stale($ticket->refresh(), 8));
+
+        // Elle le refuse ensuite : rien ne part, ni à elle ni au principal (qui n'a rien choisi), et rien n'attend plus.
+        NoticeChannels::save($colleague, [], false);
+        $this->artisan('tma:digest')->assertSuccessful();
+        Notification::assertNotSentTo($colleague, DailyDigest::class);
+        Notification::assertNotSentTo($handler, DailyDigest::class);
+        $this->assertSame(0, Notice::query()->pending()->count());
+        $this->assertSame(2, Notice::query()->for($colleague)->where('mode', NoticeMode::Skipped->value)->count());
+
+        // Le principal choisit le bilan : le voilà rappelé, et dans son bilan.
+        NoticeChannels::save($handler, ['database'], true);
+        $this->assertSame(1, Notifier::stale($ticket, 8));
+        $this->artisan('tma:digest')->assertSuccessful();
+        Notification::assertSentTo($handler, DailyDigest::class);
     }
 
     public function test_what_the_master_sends_is_told_to_the_requester_by_the_client_once(): void
