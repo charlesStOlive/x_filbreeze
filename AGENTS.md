@@ -32,9 +32,18 @@
 2. `./vendor/bin/sail composer update charlesstolive/<package>` → `vendor/charlesstolive/<package>` devient un symlink vers `packages_filament/<package>`. Sans ça, les modifs faites dans `packages_filament` ne sont pas vues par l'app.
 3. Éditer directement dans `packages_filament/<package>` (c'est le vrai repo Git du package, pas un scratch dir).
 
-**Fermeture (dès que le dev sur le package est terminé pour la session, avant de considérer que c'est fini/prod) — à faire automatiquement, sans repasser par une question :**
+**État actuel — ouverts depuis le 17/10/2026 :** `filament-tma`, `filament-prism`, `filament-ui`,
+`filament-permission-manager` (entrées `<nom>-local` en tête de `repositories`, les `vcs` restent dessous). `~/desapp`
+est dans le même état. Ils restent ouverts d'une session à l'autre : la fermeture ci-dessous se fait quand le user
+annonce un passage en production, pas en fin de session. D'ici là, ne pas committer `composer.json` ni
+`composer.lock`. La procédure détaillée, commune aux deux apps, est dans `~/desapp/CLAUDE.md` (« Repasser en
+production »).
+
+**Fermeture (au passage en production) :**
 1. Committer (et pousser si demandé) les changements dans le repo du package (`packages_filament/<package>`).
-2. Retirer l'entrée `path` de `composer.json` (retour à la config `vcs` d'origine).
+2. Retirer les entrées `path` (`-local`) de `composer.json` (retour à la config `vcs` d'origine).
 3. `./vendor/bin/sail composer update charlesstolive/<package>` → réinstalle le vrai commit poussé depuis GitHub, `vendor/charlesstolive/<package>` redevient un dossier normal (plus de symlink).
-4. Committer `composer.json`/`composer.lock` dans filbreeze.
+4. Vérifier : `grep -c '"type": "path"' composer.lock` répond 0, plus aucun lien dans `vendor/charlesstolive` ;
+   `docker restart filbreeze-laravel.test-1 filbreeze-queue-1 filbreeze-scheduler-1`, puis `sail test`.
+5. Committer `composer.json`/`composer.lock` dans filbreeze.
 - Si l'étape 3 échoue avec des erreurs SSH/`Permission denied (publickey)` sur un AUTRE package privé (ex. `filament-permission-manager`), c'est un souci d'auth GitHub de l'environnement (token/clé), pas une erreur de manip — le signaler plutôt que de contourner avec un hack (ex. extraire l'arbre Git localement).
