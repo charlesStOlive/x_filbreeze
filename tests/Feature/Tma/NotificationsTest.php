@@ -3,6 +3,8 @@
 namespace Tests\Feature\Tma;
 
 use App\Models\User;
+use CharlesStOlive\FilamentPermissionManager\Filament\Pages\EditProfile;
+use CharlesStOlive\FilamentPermissionManager\UserOptions\UserOptions;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Enums\NoticeEvent;
 use CharlesStOlive\FilamentTma\Enums\NoticeMode;
@@ -11,7 +13,6 @@ use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ListTickets;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Notice;
-use CharlesStOlive\FilamentTma\Models\NotificationPreference;
 use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\Notifications\DailyDigest;
 use CharlesStOlive\FilamentTma\Notifications\NoticeNotification;
@@ -140,13 +141,13 @@ class NotificationsTest extends TmaTestCase
         $ticket = $this->takenTicket($handler);
         app(Recipients::class)->add($ticket, Actor::forUser($colleague));
 
-        NoticeChannels::save($handler, ['database']);
+        UserOptions::save($handler, 'tma', ['notifications' => ['channels' => ['database']]]);
         $this->workflow()->run($ticket, 'request-answer', ['question' => '<p>Je regarde ça demain : quelle version ?</p>'], Context::ui($colleague));
         Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Progress
             && $mail->via($handler) === ['database']);
 
         // Aucun canal : ce qui le concerne attend son bilan.
-        NoticeChannels::save($handler, []);
+        UserOptions::save($handler, 'tma', ['notifications' => ['channels' => []]]);
         app(Timeline::class)->add($ticket, EntryType::Note, '<p>Voir le journal.</p>', Context::ui($colleague));
         $this->assertTrue(Notice::query()->pending()->for($handler)->where('event', NoticeEvent::Note->value)->exists());
 
@@ -160,26 +161,31 @@ class NotificationsTest extends TmaTestCase
         $this->assertStringContainsString('destinataire principal', $mail);
     }
 
-    public function test_my_notifications_are_set_from_the_ticket_list_or_the_user_menu(): void
+    public function test_my_notifications_are_set_in_the_profile_linked_from_the_ticket_list(): void
     {
         $this->asClient();
         $me = $this->agent();
         $this->actingAs($me);
 
-        // Le lien du menu de l'utilisateur ouvre la fenêtre au chargement de la liste (`?action=`).
-        Livewire::withQueryParams(['action' => 'tmaNotifications'])->test(ListTickets::class)
-            ->call('mountAction', 'tmaNotifications')
-            ->assertActionMounted('tmaNotifications');
+        Livewire::test(ListTickets::class)
+            ->assertActionVisible('tmaNotifications')
+            ->assertActionHasUrl('tmaNotifications', filament()->getProfileUrl().'#user-options-tma');
 
         $this->assertSame(['mail', 'database'], NoticeChannels::for($me));
         $this->assertTrue(NoticeChannels::digest($me));
 
-        Livewire::test(ListTickets::class)
-            ->callAction('tmaNotifications', ['channels' => ['mail'], 'digest' => false])
-            ->assertHasNoActionErrors();
+        Livewire::test(EditProfile::class)
+            ->fillForm([
+                'userOptions.tma.notifications.channels' => ['mail'],
+                'userOptions.tma.notifications.digest' => false,
+                'timezone' => 'Europe/Paris',
+                'locale' => 'fr_FR',
+            ])
+            ->call('save')->assertHasNoFormErrors();
 
-        $this->assertSame(['mail'], NotificationPreference::of($me)->channels);
-        $this->assertFalse(NotificationPreference::of($me)->digest);
+        $me->refresh();
+        $this->assertSame(['mail'], $me->userOption('tma.notifications.channels'));
+        $this->assertFalse($me->userOption('tma.notifications.digest'));
         $this->assertSame(['mail'], NoticeChannels::for($me));
         $this->assertFalse(NoticeChannels::digest($me));
 
@@ -210,7 +216,7 @@ class NotificationsTest extends TmaTestCase
         $this->assertNotNull($skipped->sent_at);
 
         // La collègue veut le bilan : ce qui suit l'attend ; le principal, lui, l'apprend dans la cloche.
-        NoticeChannels::save($colleague, [], true);
+        UserOptions::save($colleague, 'tma', ['notifications' => ['channels' => [], 'digest' => true]]);
         $this->workflow()->run($ticket, 'answer', ['answer' => '<p>Le CSV.</p>'], $this->fromClient());
         $this->assertSame(1, Notice::query()->pending()->for($colleague)->count());
         Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->via($handler) === ['database']);
@@ -219,7 +225,7 @@ class NotificationsTest extends TmaTestCase
         $this->assertSame(0, Notifier::stale($ticket->refresh(), 8));
 
         // Elle le refuse ensuite : rien ne part, ni à elle ni au principal (qui n'a rien choisi), et rien n'attend plus.
-        NoticeChannels::save($colleague, [], false);
+        UserOptions::save($colleague, 'tma', ['notifications' => ['channels' => [], 'digest' => false]]);
         $this->artisan('tma:digest')->assertSuccessful();
         Notification::assertNotSentTo($colleague, DailyDigest::class);
         Notification::assertNotSentTo($handler, DailyDigest::class);
@@ -227,8 +233,8 @@ class NotificationsTest extends TmaTestCase
         $this->assertSame(2, Notice::query()->for($colleague)->where('mode', NoticeMode::Skipped->value)->count());
 
         // Le principal choisit le bilan : le voilà rappelé, et dans son bilan.
-        NoticeChannels::save($handler, ['database'], true);
-        $this->assertSame(1, Notifier::stale($ticket, 8));
+        UserOptions::save($handler, 'tma', ['notifications' => ['channels' => ['database'], 'digest' => true]]);
+        $this->assertSame(1, Notifier::stale($ticket->refresh(), 8));
         $this->artisan('tma:digest')->assertSuccessful();
         Notification::assertSentTo($handler, DailyDigest::class);
     }
@@ -277,7 +283,7 @@ class NotificationsTest extends TmaTestCase
         $ticket = $this->takenTicket($handler);
 
         // Même sans aucun canal choisi, une relance arrive, par courriel : ici, celle du demandeur, reçue de son application.
-        NoticeChannels::save($handler, []);
+        UserOptions::save($handler, 'tma', ['notifications' => ['channels' => []]]);
         app(Timeline::class)->write($ticket, EntryType::Comment, '<p>Avez-vous pu regarder ?</p>', $this->fromClient(), meta: ['reminder' => true]);
         Notification::assertSentTo($handler, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Reminder
             && $mail->notice->data['excerpt'] === 'Avez-vous pu regarder ?'

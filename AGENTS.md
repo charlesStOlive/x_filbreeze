@@ -8,6 +8,9 @@
 - Laravel ^12.0, PHP ^8.3, Filament ~5.0 (admin panel).
 - Environnement dev via **Laravel Sail** (`laravel/sail` ^1.52, `compose.yaml` à la racine).
 - DB : MySQL (`DB_CONNECTION=mysql` dans le `.env` réel).
+- Administration (Utilisateurs, Rôles, Permissions) et Profil : classes de `filament-permission-manager`,
+  enregistrées par `FilamentPermissionManagerPlugin` dans le panel. Ne pas republier de copies dans `app/Filament`.
+  `App\Models\User` étend le modèle du paquet et conserve sa relation `msgUserDraft()`.
 
 ## Lancer l'environnement
 ```bash

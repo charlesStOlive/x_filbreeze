@@ -2,63 +2,12 @@
 
 namespace App\Models;
 
+use CharlesStOlive\FilamentPermissionManager\Models\User as BaseUser;
 use CharlesStOlive\MsGraphFilament\Models\MsgUserDraft;
-use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
-use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
-use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
-use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
-use Filament\Auth\MultiFactor\Email\Concerns\InteractsWithEmailAuthentication;
-use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
-use Filament\Models\Contracts\FilamentUser;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Passport\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
-use CharlesStOlive\FilamentPermissionManager\Traits\HasPanelPermission;
 
-class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication, MustVerifyEmail
+class User extends BaseUser
 {
-    use HasFactory;
-    use Notifiable;
-    use HasRoles;
-    use HasApiTokens;
-    use InteractsWithAppAuthentication;
-    use InteractsWithAppAuthenticationRecovery;
-    use InteractsWithEmailAuthentication;
-
-    // canAccessPanel() : il faut la permission `panels.{panel}.access` (filament-permission-manager).
-    use HasPanelPermission;
-
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'timezone',
-        'locale',
-        'app_authentication_secret',
-        'app_authentication_recovery_codes',
-        'has_email_authentication',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-        'app_authentication_secret',
-        'app_authentication_recovery_codes',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'has_email_authentication' => 'boolean',
-        ];
-    }
-
     public function msgUserDraft(): HasOne
     {
         return $this->hasOne(MsgUserDraft::class);

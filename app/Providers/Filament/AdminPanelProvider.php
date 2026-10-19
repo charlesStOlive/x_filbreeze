@@ -10,7 +10,6 @@ use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 
 
-use App\Filament\Pages\Auth\EditProfile;
 use Filament\Http\Middleware\Authenticate;
 use Pboivin\FilamentPeek\FilamentPeekPlugin;
 use CharlesStOlive\FilamentStateFusionEnhanced\FilamentStateFusionEnhancedPlugin;
@@ -39,7 +38,6 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->profile(EditProfile::class, isSimple: false)
             ->multiFactorAuthentication([
                 AppAuthentication::make()
                     ->recoverable(),
@@ -50,6 +48,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('4rem')
             ->databaseNotifications()
             ->plugins([
+                FilamentPermissionManagerPlugin::make(),
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 FilamentStateFusionEnhancedPlugin::make(),
                 MsGraphFilamentPlugin::make(),
