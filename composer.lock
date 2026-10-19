@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cc7d65ee252dbff8668e75aa7d054d2d",
+    "content-hash": "4a0c2f5f6c82d059c35d9d818f9188c4",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -606,13 +606,20 @@
         {
             "name": "charlesstolive/filament-permission-manager",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-permission-manager.git",
+                "reference": "5baef79e4e9d0797e53942b3d4547567238b8504"
+            },
             "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-permission-manager",
-                "reference": "1e381c13418d2f9f4b25f499e33b4eee53b9c76f"
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-permission-manager/zipball/5baef79e4e9d0797e53942b3d4547567238b8504",
+                "reference": "5baef79e4e9d0797e53942b3d4547567238b8504",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^5.0",
+                "guava/filament-knowledge-base": "^3.0",
                 "laravel/fortify": "^1.24",
                 "laravel/passport": "^13.0",
                 "php": "^8.2|^8.3",
@@ -626,6 +633,7 @@
                 "pestphp/pest-plugin-arch": "^2.0",
                 "pestphp/pest-plugin-laravel": "^2.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -690,18 +698,25 @@
                 "roles",
                 "spatie"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-permission-manager/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-permission-manager/issues"
+            },
+            "time": "2026-10-19T09:53:43+00:00"
         },
         {
             "name": "charlesstolive/filament-prism",
             "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-prism",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/charlesStOlive/filament-prism.git",
                 "reference": "581867b4e7909c3713ceb0bc364e1de577cace56"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-prism/zipball/581867b4e7909c3713ceb0bc364e1de577cace56",
+                "reference": "581867b4e7909c3713ceb0bc364e1de577cace56",
+                "shasum": ""
             },
             "require": {
                 "charlesstolive/filament-state-fusion-enhanced": "dev-master",
@@ -713,6 +728,7 @@
             "suggest": {
                 "charlesstolive/filament-ui": "Adds CorrectionSidePane and AiInteractionsSidePane, the side-pane variants of CorrectionAction and of the AI requests list"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -736,10 +752,11 @@
                 "laravel",
                 "prism"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-prism/tree/master",
+                "issues": "https://github.com/charlesStOlive/filament-prism/issues"
+            },
+            "time": "2026-10-04T08:20:20+00:00"
         },
         {
             "name": "charlesstolive/filament-qonto",
@@ -895,10 +912,16 @@
         {
             "name": "charlesstolive/filament-tma",
             "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/charlesStOlive/filament-tma.git",
+                "reference": "1c701173873d3323074b52d7aac52410f77da1a8"
+            },
             "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-tma",
-                "reference": "a96636c86ec858428e9ae1b58f4bcb654d7911b7"
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/1c701173873d3323074b52d7aac52410f77da1a8",
+                "reference": "1c701173873d3323074b52d7aac52410f77da1a8",
+                "shasum": ""
             },
             "require": {
                 "charlesstolive/filament-state-fusion-enhanced": "dev-master",
@@ -911,7 +934,8 @@
                 "spatie/laravel-package-tools": "^1.16"
             },
             "suggest": {
-                "charlesstolive/filament-permission-manager": "Crée les permissions déclarées par les Resources (tma.ticket.*) et les abilities qui les vérifient"
+                "charlesstolive/filament-permission-manager": "Crée les permissions déclarées par les Resources (tma.ticket.*) et les abilities qui les vérifient",
+                "charlesstolive/filament-prism": "La correction orthographique par l'IA du message, des tickets et des tâches (avec la clé API de son fournisseur)"
             },
             "type": "library",
             "extra": {
@@ -936,18 +960,25 @@
                 "ticketing",
                 "tma"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-tma/tree/master",
+                "issues": "https://github.com/charlesStOlive/filament-tma/issues"
+            },
+            "time": "2026-10-19T09:54:03+00:00"
         },
         {
             "name": "charlesstolive/filament-ui",
             "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-ui",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-ui.git",
                 "reference": "f6ff072376e20366140d31b329a4976fc0dd9e7a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-ui/zipball/f6ff072376e20366140d31b329a4976fc0dd9e7a",
+                "reference": "f6ff072376e20366140d31b329a4976fc0dd9e7a",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -957,6 +988,7 @@
             "suggest": {
                 "guava/filament-knowledge-base": "DocumentationAction : le « ? » qui ouvre une page de l'aide"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -980,10 +1012,11 @@
                 "laravel",
                 "ui"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-ui/tree/main",
+                "issues": "https://github.com/charlesStOlive/filament-ui/issues"
+            },
+            "time": "2026-10-15T14:28:52+00:00"
         },
         {
             "name": "chillerlan/php-qrcode",

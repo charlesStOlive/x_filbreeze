@@ -8,34 +8,6 @@
     ],
     "license": "MIT",
     "repositories": {
-        "filament-tma-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-tma",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-prism-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-prism",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-ui-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-ui",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-permission-manager-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-permission-manager",
-            "options": {
-                "symlink": true
-            }
-        },
         "filament-ui-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-ui.git"
