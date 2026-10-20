@@ -6,6 +6,7 @@ use App\Models\User;
 use CharlesStOlive\FilamentPermissionManager\Support\PermissionCatalog;
 use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Ticket;
+use CharlesStOlive\FilamentTma\Support\Terms;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\TicketWorkflow;
 use Filament\Facades\Filament;
@@ -31,6 +32,7 @@ abstract class TmaTestCase extends TestCase
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         PermissionCatalog::flush();
+        Terms::flush();
         Filament::setCurrentPanel(Filament::getPanel('admin'));
     }
 

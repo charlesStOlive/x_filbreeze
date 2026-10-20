@@ -4,14 +4,15 @@ namespace Tests\Feature\Tma;
 
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
+use CharlesStOlive\FilamentTma\Enums\NoticeEvent;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\EditTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\TicketResource;
 use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Entry;
+use CharlesStOlive\FilamentTma\Models\Notice;
 use CharlesStOlive\FilamentTma\Models\Ticket;
-use CharlesStOlive\FilamentTma\Notifications\AutoCloseWarning;
-use CharlesStOlive\FilamentTma\Notifications\TicketAutoClosed;
+use CharlesStOlive\FilamentTma\Notifications\NoticeNotification;
 use CharlesStOlive\FilamentTma\States\Ticket\Closed;
 use CharlesStOlive\FilamentTma\States\Ticket\Draft;
 use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
@@ -316,7 +317,9 @@ class ClientApiTest extends TmaTestCase
         $snapshot['ticket'] = [...$snapshot['ticket'], 'auto_close_warned_at' => now()->toIso8601String(), 'version' => 3, 'time' => ['total_minutes' => 150, 'by_month' => ['2026-10' => 150]]];
 
         $this->postJson('/api/tma/v1/sync', $snapshot)->assertOk()->assertJsonPath('missing_media', []);
-        Notification::assertSentTo($requester, AutoCloseWarning::class);
+        // L'avertissement : une action pour le demandeur, par courriel (l'e-mail direct est actif d'origine ici).
+        Notification::assertSentTo($requester, NoticeNotification::class, fn (NoticeNotification $notice): bool => $notice->notice->event === NoticeEvent::AutoCloseWarning
+            && $notice->via($requester) === ['database', 'mail']);
         $this->assertSame(150, $ticket->refresh()->time_total_minutes);
 
         $snapshot['ticket'] = [...$snapshot['ticket'], 'state' => 'closed', 'version' => 4];
@@ -334,7 +337,10 @@ class ClientApiTest extends TmaTestCase
         $this->postJson('/api/tma/v1/sync', $snapshot)->assertOk();
 
         $this->assertInstanceOf(Closed::class, $ticket->refresh()->state);
-        Notification::assertSentToTimes($requester, TicketAutoClosed::class, 1);
+        // La clôture : une fin de ticket, dans la cloche et le bilan, une seule fois.
+        Notification::assertSentTo($requester, NoticeNotification::class, fn (NoticeNotification $notice): bool => $notice->notice->event === NoticeEvent::AutoClosed
+            && $notice->via($requester) === ['database']);
+        $this->assertSame(1, Notice::query()->for($requester)->pending()->where('event', NoticeEvent::AutoClosed->value)->count());
         $this->assertSame(1, $ticket->entries()->count());
         $this->assertSame('Charles', $ticket->entries()->sole()->author->name);
 

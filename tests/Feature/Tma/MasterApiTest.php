@@ -7,6 +7,7 @@ use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
 use CharlesStOlive\FilamentTma\Events\EntryAdded;
 use CharlesStOlive\FilamentTma\Events\TicketSyncFailed;
+use CharlesStOlive\FilamentTma\Events\TicketTransitioned;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\Ticket;
@@ -100,6 +101,7 @@ class MasterApiTest extends TmaTestCase
 
     public function test_a_transmission_creates_the_ticket_for_the_calling_application_only_once(): void
     {
+        Event::fake([TicketTransitioned::class]);
         $this->actingAsClient();
         $payload = $this->transmission(entries: [
             $this->entryPayload('note', ['number' => 1, 'files' => [[
@@ -120,9 +122,12 @@ class MasterApiTest extends TmaTestCase
         $this->assertSame(2, $ticket->entries()->count());
         $this->assertCount(1, Entry::query()->where('number', 1)->sole()->getMedia('attachments'));
         $this->assertSame($payload['transition']['ulid'], $ticket->transitions()->sole()->ulid);
+        // Le passage est annoncé : le Support est prévenu de la nouvelle demande.
+        Event::assertDispatchedTimes(TicketTransitioned::class, 1);
 
-        // Rejouée (réseau…), la transmission ne crée rien de plus.
+        // Rejouée (réseau…), la transmission ne crée rien de plus, ni ne prévient une seconde fois.
         $this->postJson('/api/tma/v1/tickets', $payload)->assertOk();
+        Event::assertDispatchedTimes(TicketTransitioned::class, 1);
         $this->assertSame(1, Ticket::query()->count());
         $this->assertSame(1, $ticket->transitions()->count());
         $this->assertSame(2, $ticket->entries()->count());

@@ -121,10 +121,12 @@ class RecipientsTest extends TmaTestCase
         // L'auteur reste principal, même retiré de la liste.
         $this->assertEquals(['Ada' => 'primary', 'Grace' => 'primary', 'Alan' => 'secondary'], $this->roles($ticket));
 
-        // Grace (principale) l'apprend tout de suite ; Alan (secondaire) dans son bilan ; Ada, l'auteur du changement, rien.
+        // Grace (principale) l'apprend dans la cloche ; Alan (secondaire) n'a rien à apprendre (il verra le ticket « En
+        // copie » dans son bilan) ; Ada, l'auteur du changement, rien.
         Notification::assertSentTo($grace, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Recipient
+            && $mail->via($grace) === ['database']
             && $mail->notice->data['line'] === 'Ada vous a ajouté(e) aux destinataires principaux.');
-        $this->assertTrue(Notice::query()->pending()->for($alan)->where('event', NoticeEvent::Recipient->value)->exists());
+        $this->assertFalse(Notice::query()->for($alan)->exists());
         Notification::assertNotSentTo($requester, NoticeNotification::class);
 
         // « Tout le monde » remplit la liste.
@@ -257,7 +259,8 @@ class RecipientsTest extends TmaTestCase
             ->callMountedAction()
             ->assertHasActionErrors(['recipients' => 'required']);
 
-        // Chez le client : Ada (principale) tout de suite, Grace (secondaire) dans son bilan, les autres rien.
+        // Chez le client : Ada (principale) dans la cloche, sans courriel, et dans son bilan de la semaine ; Grace
+        // (secondaire) dans son bilan seulement ; les autres, rien.
         $snapshot = Payload::snapshot($task->refresh());
         $task->recipients()->delete();
         $task->transitions()->delete();
@@ -273,9 +276,11 @@ class RecipientsTest extends TmaTestCase
         Passport::actingAs(User::factory()->create(['email' => 'filbreeze@api.test']), [], 'api');
         $this->postJson('/api/tma/v1/sync', $snapshot)->assertOk();
 
-        Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Task);
+        Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->notice->event === NoticeEvent::Task
+            && $mail->via($ada) === ['database']);
         Notification::assertNotSentTo($grace, NoticeNotification::class);
-        $this->assertTrue(Notice::query()->pending()->for($grace)->where('event', NoticeEvent::Task->value)->exists());
+        $this->assertTrue(Notice::query()->pending()->weekly()->for($ada)->where('event', NoticeEvent::Task->value)->exists());
+        $this->assertTrue(Notice::query()->pending()->weekly()->for($grace)->where('event', NoticeEvent::Task->value)->exists());
         $this->assertFalse(Notice::query()->for($leo)->exists());
         $this->assertSame(RecipientRole::Primary, ProjectTask::query()->where('ulid', $snapshot['task']['ulid'])->sole()->recipients()->whereHas('actor', fn ($q) => $q->where('instance_uid', self::CLIENT_UID)->where('remote_id', '7'))->sole()->role);
     }
