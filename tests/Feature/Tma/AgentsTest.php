@@ -4,17 +4,24 @@ namespace Tests\Feature\Tma;
 
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
+use CharlesStOlive\FilamentTma\Filament\Livewire\AgentTimeEntries;
 use CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\EditInstance;
 use CharlesStOlive\FilamentTma\Filament\Resources\Instances\RelationManagers\AgentsRelationManager;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tasks\Pages\ViewTask;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\CreateTicket;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ListTickets;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\RelationManagers\TimeEntriesRelationManager;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\TicketResource;
 use CharlesStOlive\FilamentTma\Models\Agent;
 use CharlesStOlive\FilamentTma\Models\AgentLink;
 use CharlesStOlive\FilamentTma\Models\Instance;
+use CharlesStOlive\FilamentTma\Models\ProjectTask;
 use CharlesStOlive\FilamentTma\Support\ServiceAccount;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
+use CharlesStOlive\FilamentTma\Workflow\TimeLog;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Client\Request;
@@ -95,6 +102,81 @@ class AgentsTest extends TmaTestCase
             ->assertOk()
             ->assertJsonPath('data.snapshot.entries.0.body', '<p>Je regarde ce soir.</p>');
         $this->assertNotNull($mine->entries()->sole()->edited_at);
+    }
+
+    public function test_a_support_member_prepares_a_ticket_at_the_support_from_the_client(): void
+    {
+        $this->asClient();
+        config(['filament-tma.master.url' => 'https://master.test', 'filament-tma.master.token' => 'jeton-instance']);
+        $charles = $this->person('charles@notilac.fr', 'tma.*');
+        Agent::create(['user_id' => $charles->getKey(), 'email' => $charles->email, 'name' => 'Charles', 'master_uid' => self::MASTER_UID, 'master_user_id' => '1', 'token' => 'jeton-agent-charles', 'linked_at' => now()]);
+        $task = ProjectTask::query()->create(['ulid' => strtolower((string) Str::ulid()), 'number' => 'T-0001', 'target_instance_uid' => self::CLIENT_UID, 'title' => 'Maquettes', 'state' => 'in_progress', 'published_at' => now()]);
+
+        // Il n'est jamais demandeur ici : « Nouvelle demande chez le Support » ouvre la création dans le maître.
+        $this->actingAs($charles);
+        $this->assertFalse(TicketResource::canCreate());
+        Livewire::test(ListTickets::class)
+            ->assertActionHidden('create')
+            ->assertActionHasUrl('createAtSupport', 'https://master.test/admin/tma/tickets/create?instance='.self::CLIENT_UID);
+        Livewire::test(ViewTask::class, ['record' => $task->getKey()])
+            ->assertActionHidden('createTicket')
+            ->assertActionHasUrl('createTicketAtSupport', 'https://master.test/admin/tma/tickets/create?task='.$task->ulid);
+        // L'adresse du panneau, telle que le navigateur la joint, se règle à part.
+        config(['filament-tma.master.panel_url' => 'http://localhost:8080/admin/']);
+        Livewire::test(ListTickets::class)->assertActionHasUrl('createAtSupport', 'http://localhost:8080/admin/tma/tickets/create?instance='.self::CLIENT_UID);
+
+        // Un correspondant n'a que « Nouvelle demande ».
+        $this->actingAs($this->correspondent());
+        Livewire::test(ListTickets::class)->assertActionVisible('create')->assertActionHidden('createAtSupport');
+
+        // Dans le maître, l'application est choisie d'avance ; depuis une tâche (par son ulid), le ticket en part.
+        $this->asMaster();
+        Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'https://desapp.test', 'token' => 'jeton-desapp']);
+        Http::fake(['desapp.test/*' => Http::response(['data' => []])]);
+        $this->actingAs($this->agent('tma.task.view', 'tma.task.viewany'));
+        Livewire::withQueryParams(['instance' => self::CLIENT_UID])->test(CreateTicket::class)
+            ->assertSchemaStateSet(['instance_uid' => self::CLIENT_UID]);
+        Livewire::withQueryParams(['task' => $task->ulid])->test(CreateTicket::class)
+            ->assertSchemaStateSet(['title' => 'Maquettes', 'instance_uid' => self::CLIENT_UID])
+            ->assertSee('À partir de la tâche T-0001');
+    }
+
+    public function test_an_agent_reads_changes_and_deletes_time_in_the_master(): void
+    {
+        $this->asMaster();
+        $this->personalAccessClient();
+        $charles = $this->person('charles@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.time', 'tma.ticket.handle');
+        $token = ServiceAccount::agentToken($charles, self::CLIENT_UID);
+        $ticket = $this->serviceDeskTicket();
+        $time = app(TimeLog::class)->add($ticket, 60, '2026-10-01', Context::ui($charles));
+        $invoiced = app(TimeLog::class)->add($ticket, 30, '2026-10-02', Context::ui($charles));
+        $invoiced->forceFill(['invoice_type' => 'invoice', 'invoice_id' => 1])->saveQuietly();
+        $this->withHeader('Authorization', 'Bearer '.$token);
+
+        $this->getJson('/api/tma/v1/agent/tickets/DES-0001/time')
+            ->assertOk()
+            ->assertJsonPath('data.time_entries.0.ulid', $invoiced->ulid)
+            ->assertJsonPath('data.time_entries.0.invoiced', true)
+            ->assertJsonPath('data.time_entries.1.minutes', 60)
+            ->assertJsonPath('data.time_entries.1.actor', 'Charles');
+
+        $this->patchJson("/api/tma/v1/agent/tickets/DES-0001/time/{$time->ulid}", ['minutes' => 90, 'billable' => false])
+            ->assertOk()
+            ->assertJsonPath('data.snapshot.ticket.time.total_minutes', 120);
+        $this->assertSame([90, false], [$time->refresh()->minutes, $time->billable]);
+
+        // Une saisie facturée ne bouge plus ; au-delà de 24 h, non plus.
+        $this->patchJson("/api/tma/v1/agent/tickets/DES-0001/time/{$invoiced->ulid}", ['delete' => true])->assertStatus(422);
+        $this->patchJson("/api/tma/v1/agent/tickets/DES-0001/time/{$time->ulid}", ['minutes' => 1500])->assertUnprocessable();
+
+        $this->patchJson("/api/tma/v1/agent/tickets/DES-0001/time/{$time->ulid}", ['delete' => true])->assertOk();
+        $this->assertSoftDeleted($time);
+
+        // Sans le droit de saisir du temps, rien.
+        $grace = $this->person('grace@notilac.fr', 'tma.ticket.viewany', 'tma.ticket.view');
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', 'Bearer '.ServiceAccount::agentToken($grace, self::CLIENT_UID));
+        $this->getJson('/api/tma/v1/agent/tickets/DES-0001/time')->assertForbidden();
     }
 
     public function test_in_the_client_an_agent_acts_for_the_service_desk_never_as_requester(): void
@@ -194,22 +276,51 @@ class AgentsTest extends TmaTestCase
             ->assertDontSeeLivewire(TimeEntriesRelationManager::class)
             ->assertDontSee('Saisir du temps');
 
-        // Un membre du Support y saisit le sien, dans le maître ; les totaux reviennent.
-        Http::fake(['master.test/api/tma/v1/agent/tickets/*/time' => function () use ($ticket) {
+        // Un membre du Support y voit le détail, lu dans le maître avec son jeton ; il en saisit, modifie, supprime.
+        $snapshot = function (int $total) use ($ticket): array {
             $snapshot = Payload::snapshot($ticket->refresh());
             $snapshot['ticket']['version'] = $ticket->sync_version + 1;
-            $snapshot['ticket']['time'] = ['total_minutes' => 150, 'by_month' => [now()->format('Y-m') => 150]];
+            $snapshot['ticket']['time'] = ['total_minutes' => $total, 'by_month' => [now()->format('Y-m') => $total]];
 
-            return Http::response(['data' => ['snapshot' => $snapshot]], 201);
-        }]);
+            return ['data' => ['snapshot' => $snapshot]];
+        };
+        Http::fake([
+            'master.test/api/tma/v1/agent/tickets/*/time/*' => fn () => Http::response($snapshot(60)),
+            'master.test/api/tma/v1/agent/tickets/*/time' => fn (Request $request) => $request->method() === 'GET'
+                ? Http::response(['data' => ['time_entries' => [
+                    ['ulid' => 'time-ada', 'actor' => 'Ada', 'worked_on' => '2026-10-01', 'minutes' => 60, 'billable' => true, 'invoiced' => false, 'entry_ulid' => null],
+                    ['ulid' => 'time-old', 'actor' => 'Grace', 'worked_on' => '2026-09-01', 'minutes' => 30, 'billable' => false, 'invoiced' => true, 'entry_ulid' => null],
+                ]]])
+                : Http::response($snapshot(150), 201),
+        ]);
         $this->actingAs($charles);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertSee('Saisir du temps')
-            ->callAction(TestAction::make('agentTime')->schemaComponent('time', schema: 'sideInfolist'), ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'billable' => true])
+            ->assertSeeLivewire(AgentTimeEntries::class)
+            ->assertDontSeeLivewire(TimeEntriesRelationManager::class);
+
+        Livewire::test(AgentTimeEntries::class, ['record' => $ticket])
+            ->assertSee(['Ce ticket : 1 h 30', 'Ada', '1 h', 'Grace', '30 min', 'Non facturable · Facturée'])
+            // Une saisie facturée ne bouge plus.
+            ->assertActionVisible(TestAction::make('edit')->table('time-ada'))
+            ->assertActionHidden(TestAction::make('edit')->table('time-old'))
+            ->assertActionHidden(TestAction::make('delete')->table('time-old'))
+            ->callAction(TestAction::make('logTime')->table(), ['worked_on' => now()->toDateString(), 'duration_hours' => 1, 'billable' => true])
             ->assertNotified('Temps enregistré chez le Support');
         $this->assertSame(150, $ticket->refresh()->time_total_minutes);
         // Sur un ticket, le temps n'a pas de texte : ici, il porte sur la fiche entière.
-        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent-charles')
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'POST' && $request->hasHeader('Authorization', 'Bearer jeton-agent-charles')
             && $request['minutes'] === 60 && ! isset($request['summary']) && ! isset($request['entry_ulid']));
+
+        Livewire::test(AgentTimeEntries::class, ['record' => $ticket])
+            ->mountAction(TestAction::make('edit')->table('time-ada'))
+            ->assertSchemaStateSet(['duration_days' => null, 'duration_hours' => 1, 'duration_minutes' => null, 'worked_on' => '2026-10-01'], 'mountedActionSchema0');
+        Livewire::test(AgentTimeEntries::class, ['record' => $ticket])
+            ->callAction(TestAction::make('edit')->table('time-ada'), ['duration_minutes' => 30])
+            ->assertNotified('Temps modifié chez le Support')
+            ->callAction(TestAction::make('delete')->table('time-ada'))
+            ->assertNotified('Saisie supprimée chez le Support');
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PATCH' && str_ends_with($request->url(), '/time/time-ada') && ($request->data()['minutes'] ?? null) === 90);
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PATCH' && ($request->data()['delete'] ?? null) === true);
+        $this->assertSame(60, $ticket->refresh()->time_total_minutes);
     }
 }

@@ -53,6 +53,8 @@ return [
     'master' => [
         'url' => env('TMA_MASTER_URL'),
         'token' => env('TMA_MASTER_TOKEN'),
+        // Le panneau du maître, tel que le navigateur le joint (les liens d'un membre du Support) ; vide : `url` + /admin.
+        'panel_url' => env('TMA_MASTER_PANEL_URL'),
     ],
 
     /*
@@ -106,12 +108,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | Les durées sont enregistrées en minutes. Une journée vaut `day_minutes` (7 h par défaut).
+    | display_unit : l'affichage des durées — `days_hours` (« 1 j 3 h », d'office), `hours` (« 10 h »), `days`
+    | (« 1,43 j ») ou `minutes`.
     |
     */
 
     'time' => [
         'day_minutes' => 420,
-        'display_unit' => 'hours',
+        'display_unit' => 'days_hours',
     ],
 
     /*

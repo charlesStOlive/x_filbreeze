@@ -4,6 +4,7 @@ namespace Tests\Feature\Tma;
 
 use App\Models\User;
 use CharlesStOlive\FilamentTma\Enums\EntryType;
+use CharlesStOlive\FilamentTma\Enums\RecipientRole;
 use CharlesStOlive\FilamentTma\Enums\Side;
 use CharlesStOlive\FilamentTma\Events\TaskReceived;
 use CharlesStOlive\FilamentTma\Filament\Resources\Projects\Pages\CreateProject;
@@ -19,6 +20,7 @@ use CharlesStOlive\FilamentTma\Filament\Resources\Tasks\TaskResource;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\CreateTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\RelationManagers\TimeEntriesRelationManager;
+use CharlesStOlive\FilamentTma\Models\Actor;
 use CharlesStOlive\FilamentTma\Models\Agent;
 use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Instance;
@@ -32,6 +34,7 @@ use CharlesStOlive\FilamentTma\Sync\Mirror;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Sync\SyncException;
 use CharlesStOlive\FilamentTma\Workflow\Context;
+use CharlesStOlive\FilamentTma\Workflow\Recipients;
 use CharlesStOlive\FilamentTma\Workflow\TaskWorkflow;
 use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use CharlesStOlive\FilamentTma\Workflow\TimeLog;
@@ -346,8 +349,9 @@ class ProjectTaskTest extends TmaTestCase
         $this->assertSame(['total_minutes' => 480, 'by_month' => ['2026-09' => 420, '2026-10' => 60]], $this->project->timeTotals());
 
         $this->actingAs($agent);
-        Livewire::test(ListProjects::class)->assertCanSeeTableRecords([$this->project, $compta])->assertSee(['8 h', '0 / 2 terminées']);
-        Livewire::test(ViewProject::class, ['record' => $this->project->getKey()])->assertSee(['Portail parrain', '8 h']);
+        // Le temps d'un projet, en jours et heures : 8 h font 1 j 1 h (une journée de 7 h).
+        Livewire::test(ListProjects::class)->assertCanSeeTableRecords([$this->project, $compta])->assertSee(['1 j 1 h', '0 / 2 terminées']);
+        Livewire::test(ViewProject::class, ['record' => $this->project->getKey()])->assertSee(['Portail parrain', '1 j 1 h']);
         Livewire::test(TasksRelationManager::class, ['ownerRecord' => $this->project, 'pageClass' => ViewProject::class])
             ->assertCanSeeTableRecords([$first, $second])
             ->assertCanNotSeeTableRecords([$elsewhere]);
@@ -491,7 +495,7 @@ class ProjectTaskTest extends TmaTestCase
         $this->actingAs($agent);
         $note = app(Timeline::class)->add($task, EntryType::Note, '<p>Prévoir la FAQ.</p>', Context::ui($agent));
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $task, 'pageClass' => ViewTask::class])
-            ->callTableAction('logTime', data: ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'billable' => true, 'entry_id' => $note->getKey()])
+            ->callTableAction('logTime', data: ['worked_on' => now()->toDateString(), 'duration_hours' => 1, 'billable' => true, 'entry_id' => $note->getKey()])
             ->assertHasNoTableActionErrors()
             ->assertSee('Sur : Note n° 1');
         $this->assertSame(60, (int) $note->timeEntries()->sum('minutes'));
@@ -686,5 +690,176 @@ class ProjectTaskTest extends TmaTestCase
         $this->tasks()->run($copy, 'reopen', [], Context::ui($charles));
         $this->assertSame('in_progress', $copy->refresh()->state::getMorphClass());
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-agent') && $request['move'] === 'reopen');
+    }
+
+    public function test_a_project_has_an_estimate_in_days_and_participants(): void
+    {
+        $this->fakeDesapp();
+        $agent = $this->agentForTasks('tma.project.*', 'tma.ticket.handle');
+        $this->actingAs($agent);
+
+        // À la création : la fourchette en jours, les participants (le Support et les correspondants du client).
+        Livewire::test(CreateProject::class)
+            ->fillForm(['title' => 'Refonte', 'target_instance_uid' => self::CLIENT_UID, 'estimate_min_days' => '3', 'estimate_max_days' => '1'])
+            ->call('create')
+            ->assertHasFormErrors(['estimate_max_days']);
+        Livewire::test(CreateProject::class)
+            ->fillForm(['title' => 'Refonte', 'target_instance_uid' => self::CLIENT_UID, 'estimate_min_days' => '0.5', 'estimate_max_days' => '2', 'member_keys' => ['c:7', 'u:'.$agent->getKey()]])
+            ->call('create')
+            ->assertHasNoFormErrors();
+        $project = Project::query()->where('title', 'Refonte')->sole();
+        $this->assertSame([0.5, 2.0], [$project->estimate_min_days, $project->estimate_max_days]);
+        $this->assertSame('0,5–2 j', $project->estimateLabel());
+        $this->assertEqualsCanonicalizing(['Ada Lovelace', $agent->name], $project->members->pluck('name')->all());
+
+        // Les destinataires de ses tâches y participent d'office.
+        $task = $this->publishedTask($agent, ['project_id' => $project->getKey()]);
+        $bob = $this->clientActor('8', 'Bob Marley');
+        app(Recipients::class)->add($task, $bob, RecipientRole::Secondary);
+        $this->assertEqualsCanonicalizing(['Ada Lovelace', $agent->name, 'Bob Marley'], $project->refresh()->participants()->pluck('name')->all());
+        $this->assertTrue(Project::query()->involving([$bob->getKey()])->whereKey($project->getKey())->exists());
+
+        // La liste : fourchette, participants, tâches en cours en liens ; la fiche aussi.
+        Livewire::test(ListProjects::class)
+            ->assertSee(['0,5–2 j', 'Ada Lovelace', 'Bob Marley (Desapp)', '1 tâche en cours', $task->number.' · '.$task->title])
+            ->assertSee(TaskResource::getUrl('view', ['record' => $task]), false);
+        Livewire::test(ViewProject::class, ['record' => $project->getKey()])->assertSee(['Fourchette', '0,5–2 j', 'Participants', 'Bob Marley']);
+
+        // « Modifier le projet », dans un volet glissant, depuis sa fiche ; le changement part chez le client.
+        Http::fake([
+            'desapp.test/api/tma/v1/users*' => Http::response(['data' => [['id' => '7', 'name' => 'Ada Lovelace', 'email' => 'ada@client.test', 'service_desk' => true]]]),
+            'desapp.test/*' => Http::response(['missing_media' => []]),
+        ]);
+        Livewire::test(ViewProject::class, ['record' => $project->getKey()])
+            ->assertActionVisible('editProject')
+            ->callAction('editProject', ['title' => 'Refonte du site', 'estimate_min_days' => '1', 'estimate_max_days' => '3', 'member_keys' => ['c:7']])
+            ->assertHasNoActionErrors()
+            ->assertNotified('Projet enregistré');
+        $this->assertSame(['Refonte du site', 1.0, 3.0], [$project->refresh()->title, $project->estimate_min_days, $project->estimate_max_days]);
+        $this->assertSame(['Ada Lovelace'], $project->members()->pluck('name')->all());
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync')
+            && $request['task']['project']['title'] === 'Refonte du site'
+            && $request['task']['project']['estimate_max_days'] == 3
+            && array_column($request['task']['project']['members'], 'name') === ['Ada Lovelace']);
+
+        // Depuis le volet d'une de ses tâches, et depuis le formulaire d'une tâche (le crayon du champ Projet).
+        Livewire::test(ViewTask::class, ['record' => $task->getKey()])
+            ->assertSee(['Fourchette du projet', '1–3 j', 'Temps du projet'])
+            ->callAction(TestAction::make('editProject')->schemaComponent('project.title', schema: 'sideInfolist'), ['title' => 'Refonte du site', 'estimate_max_days' => '4', 'member_keys' => ['c:7']])
+            ->assertNotified('Projet enregistré');
+        $this->assertSame(4.0, $project->refresh()->estimate_max_days);
+        Livewire::test(EditTask::class, ['record' => $task->getKey()])
+            ->callAction(TestAction::make('editOption')->schemaComponent('project_id'), ['title' => 'Refonte du site', 'estimate_min_days' => '2', 'estimate_max_days' => '4', 'member_keys' => ['c:7']])
+            ->assertHasNoActionErrors();
+        $this->assertSame(2.0, $project->refresh()->estimate_min_days);
+
+        // Chez le client : la fourchette et les participants arrivent avec les tâches, en lecture.
+        $snapshot = Payload::snapshot($task->refresh());
+        $task->forceDelete();
+        $project->members()->detach();
+        $project->forceDelete();
+        $this->asClient();
+        $ada = User::factory()->create(['name' => 'Ada Lovelace']);
+        $snapshot['task']['project']['members'][0]['id'] = (string) $ada->getKey();
+        $snapshot['task']['project']['members'][0]['instance_uid'] = self::CLIENT_UID;
+
+        $received = Mirror::task($snapshot['task'])->project;
+
+        $this->assertSame('2–4 j', $received->estimateLabel());
+        $this->assertTrue($received->members->sole()->isUser($ada));
+        $this->assertTrue(Project::query()->involving(Actor::idsFor($ada))->whereKey($received->getKey())->exists());
+        $this->assertFalse(ProjectResource::canEdit($received));
+    }
+
+    public function test_the_attachments_of_a_task_reach_the_client(): void
+    {
+        $agent = $this->agentForTasks();
+        $task = $this->draftTask($agent);
+        $task->addMediaFromString('PNG')->usingFileName('maquette.png')->toMediaCollection(ProjectTask::ATTACHMENTS_COLLECTION);
+        $uuid = $task->getFirstMedia(ProjectTask::ATTACHMENTS_COLLECTION)->uuid;
+
+        // Le client dit qu'il lui manque les pièces jointes de la tâche : le maître les lui envoie à part.
+        Http::fake(function (Request $request) use ($task) {
+            return str_ends_with($request->url(), '/sync')
+                ? Http::response(['missing_media' => [$task->ulid]])
+                : Http::response(['files_count' => 1]);
+        });
+        $this->tasks()->run($task, 'publish', [], Context::ui($agent));
+
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync')
+            && $request['task']['files_count'] === 1 && $request['task']['file_uuids'] === [$uuid]);
+        Http::assertSent(fn (Request $request): bool => $request->url() === "https://desapp.test/api/tma/v1/media/task/{$task->ulid}"
+            && $request['files'][0]['file_name'] === 'maquette.png' && $request['files'][0]['uuid'] === $uuid);
+
+        // Chez le client : la tâche arrive, réclame ses fichiers, les reçoit, et en retire un qui n'y est plus.
+        $snapshot = Payload::snapshot($task->refresh());
+        $files = Payload::files($task);
+        $task->forceDelete();
+        $this->asClient();
+        $master = User::factory()->create(['email' => 'filbreeze@api.test']);
+        config(['filament-tma.api.master_user' => 'filbreeze@api.test']);
+        Passport::actingAs($master, [], 'api');
+
+        $this->postJson('/api/tma/v1/sync', $snapshot)->assertOk()->assertJsonPath('missing_media', [$snapshot['task']['ulid']]);
+        $this->postJson("/api/tma/v1/media/task/{$snapshot['task']['ulid']}", ['files' => $files])->assertOk()->assertJsonPath('files_count', 1);
+        $this->postJson('/api/tma/v1/sync', $snapshot)->assertOk()->assertJsonPath('missing_media', []);
+
+        $received = ProjectTask::query()->sole();
+        $this->assertSame('maquette.png', $received->getFirstMedia(ProjectTask::ATTACHMENTS_COLLECTION)->file_name);
+        // L'API a pris la garde `api` : la page est celle du panel.
+        $this->actingAs($this->agentForTasks(), 'web');
+        Livewire::test(ViewTask::class, ['record' => $received->getKey()])->assertSee('maquette.png');
+
+        $this->postJson('/api/tma/v1/sync', [...$snapshot, 'task' => [...$snapshot['task'], 'files_count' => 0, 'file_uuids' => []]])->assertOk();
+        $this->assertCount(0, $received->refresh()->getMedia(ProjectTask::ATTACHMENTS_COLLECTION));
+    }
+
+    public function test_a_new_task_addresses_its_project_team_by_default(): void
+    {
+        $this->fakeDesapp();
+        $agent = $this->agentForTasks('tma.project.*');
+        $this->actingAs($agent);
+        // L'équipe : Grace (Support) et Ada (client), nommées ; Bob, qui n'est plus correspondant, ne se propose plus.
+        $grace = $this->supportMember();
+        $this->project->members()->attach([Actor::forUser($grace)->getKey(), $this->clientActor()->getKey(), $this->clientActor('9', 'Bob Marley')->getKey()]);
+        $compta = Project::create(['title' => 'Compta', 'target_instance_uid' => self::CLIENT_UID]);
+        $team = ['u:'.$grace->getKey(), 'c:7'];
+
+        $form = Livewire::withQueryParams(['project' => $this->project->getKey()])->test(CreateTask::class);
+        $this->assertEqualsCanonicalizing($team, $form->get('data.primary_recipients'));
+
+        // Un autre projet (sans équipe) apporte la sienne ; une liste changée à la main ne bouge plus.
+        $form->fillForm(['project_id' => $compta->getKey()])->assertSchemaStateSet(['primary_recipients' => []]);
+        $form->fillForm(['primary_recipients' => ['c:7']])
+            ->fillForm(['project_id' => $this->project->getKey()])
+            ->assertSchemaStateSet(['primary_recipients' => ['c:7']]);
+
+        // Les boutons : « Vider », « Toute l'équipe projet » (sans ceux déjà dans l'autre liste), « Tout le monde ».
+        $button = fn (string $name): TestAction => TestAction::make($name)->schemaComponent(str_contains($name, 'secondary') ? 'secondary_recipients' : 'primary_recipients');
+        $form->callAction($button('clear_primary_recipients'))
+            ->assertSchemaStateSet(['primary_recipients' => []])
+            ->fillForm(['secondary_recipients' => ['c:7']])
+            ->callAction($button('team_primary_recipients'))
+            ->assertSchemaStateSet(['primary_recipients' => ['u:'.$grace->getKey()]])
+            ->callAction($button('clear_secondary_recipients'))
+            ->callAction($button('team_primary_recipients'))
+            ->fillForm(['title' => 'Maquettes'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $task = ProjectTask::query()->where('title', 'Maquettes')->sole();
+        $this->assertEqualsCanonicalizing([$agent->name, 'Ada Lovelace', $grace->name], $task->recipients()->with('actor')->get()->pluck('actor.name')->all());
+
+        // Dans la fenêtre « Destinataires » du volet de la tâche aussi.
+        $editor = TestAction::make('recipients')->schemaComponent('recipients', schema: 'sideInfolist');
+        Livewire::test(ViewTask::class, ['record' => $task->getKey()])
+            ->mountAction($editor)
+            ->callAction(TestAction::make('clear_primary_recipients')->schemaComponent('primary_recipients', schema: 'mountedActionSchema0'))
+            ->callAction(TestAction::make('team_secondary_recipients')->schemaComponent('secondary_recipients', schema: 'mountedActionSchema0'))
+            ->callMountedAction()
+            ->assertHasNoActionErrors();
+        // L'auteur reste principal ; l'équipe passe en secondaire.
+        $this->assertEquals([$agent->name => 'primary', 'Ada Lovelace' => 'secondary', $grace->name => 'secondary'], $task->recipients()->with('actor')->get()
+            ->mapWithKeys(fn ($recipient): array => [$recipient->actor->name => $recipient->role->value])->all());
     }
 }

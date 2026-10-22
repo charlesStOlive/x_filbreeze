@@ -3,8 +3,8 @@
 namespace App\Filament\Pages;
 
 use CharlesStOlive\FilamentTma\Filament\Widgets\AllowanceOverview;
-use CharlesStOlive\FilamentTma\Filament\Widgets\OngoingTicketsWidget;
-use CharlesStOlive\FilamentTma\Filament\Widgets\ProjectTasksWidget;
+use CharlesStOlive\FilamentTma\Filament\Widgets\MySupportWidget;
+use CharlesStOlive\FilamentTma\Filament\Widgets\TimeReportWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
@@ -13,13 +13,13 @@ use Filament\Widgets\WidgetConfiguration;
 
 /**
  * Le tableau de bord, en deux colonnes qui se remplissent chacune de haut en bas : à gauche, sur les deux tiers, le
- * Support (la TMA, puis les tâches projet) ; à droite le compte de l'utilisateur, puis les autres widgets, dans leur
- * ordre (`$sort`). Sur un petit écran, une seule colonne, qui commence par le compte.
+ * Support (le forfait, mes tickets et mes projets, puis le suivi des temps) ; à droite le compte de l'utilisateur, puis
+ * les autres widgets, dans leur ordre (`$sort`). Sur un petit écran, une seule colonne, qui commence par le compte.
  */
 class Dashboard extends BaseDashboard
 {
     /** Les widgets de la colonne de gauche, dans l'ordre. */
-    protected const LEFT = [AllowanceOverview::class, OngoingTicketsWidget::class, ProjectTasksWidget::class];
+    protected const LEFT = [AllowanceOverview::class, MySupportWidget::class, TimeReportWidget::class];
 
     public function getWidgetsContentComponent(): Component
     {

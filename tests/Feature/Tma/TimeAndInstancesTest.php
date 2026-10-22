@@ -11,6 +11,7 @@ use CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\EditInstance;
 use CharlesStOlive\FilamentTma\Filament\Resources\Instances\Pages\ListInstances;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\RelationManagers\TimeEntriesRelationManager;
+use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Schemas\TimeEntryForm;
 use CharlesStOlive\FilamentTma\Models\Instance;
 use CharlesStOlive\FilamentTma\Models\TimeEntry;
 use CharlesStOlive\FilamentTma\Support\Duration;
@@ -97,21 +98,31 @@ class TimeAndInstancesTest extends TmaTestCase
         $ticket = $this->serviceDeskTicket();
         $this->actingAs($agent);
 
-        // Les raccourcis remplissent la durée et son unité.
+        // La durée en jours, heures et minutes ; les raccourcis la remplissent, le total s'affiche dessous.
         $preset = fn (string $name): TestAction => TestAction::make($name)->schemaComponent('durationPresets', schema: 'mountedActionSchema0');
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
             ->mountAction(TestAction::make('logTime')->table())
             ->callAction($preset('duration_45m'))
-            ->assertSchemaStateSet(['duration' => 45, 'unit' => 'minutes'], 'mountedActionSchema0')
+            ->assertSchemaStateSet(['duration_days' => null, 'duration_hours' => null, 'duration_minutes' => 45], 'mountedActionSchema0')
             ->callAction($preset('duration_halfDay'))
-            ->assertSchemaStateSet(['duration' => 0.5, 'unit' => 'days'], 'mountedActionSchema0');
+            ->assertSchemaStateSet(['duration_days' => null, 'duration_hours' => 3, 'duration_minutes' => 30], 'mountedActionSchema0')
+            // Sans durée, rien ne s'enregistre.
+            ->fillForm(['duration_days' => null, 'duration_hours' => null, 'duration_minutes' => null])
+            ->callMountedAction()
+            ->assertHasActionErrors(['duration_minutes']);
+
+        // 2 j 2 h 5 min, une journée de 7 h : 965 minutes, affichées « 2 j 2 h 05 » ; et dans l'autre sens.
+        $this->assertSame(965, TimeEntryForm::minutes(['duration_days' => '2', 'duration_hours' => '2', 'duration_minutes' => '5']));
+        $this->assertSame('2 j 2 h 05', Duration::format(965));
+        $this->assertSame(['duration_days' => 2, 'duration_hours' => 2, 'duration_minutes' => 5], TimeEntryForm::fill(965));
+        $this->assertSame(210, TimeEntryForm::minutes(['duration_days' => '0,5']));
 
         // Sur un ticket, le temps n'a pas de texte (un message y va avec un passage) : sans message choisi, il porte
         // sur la fiche entière.
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
             ->mountAction(TestAction::make('logTime')->table())
             ->assertFormFieldHidden('message')
-            ->fillForm(['worked_on' => '2026-10-05', 'duration' => 1.5, 'unit' => 'hours', 'billable' => true])
+            ->fillForm(['worked_on' => '2026-10-05', 'duration_hours' => 1, 'duration_minutes' => 30, 'billable' => true])
             ->callMountedAction()
             ->assertHasNoActionErrors();
 
@@ -122,7 +133,10 @@ class TimeAndInstancesTest extends TmaTestCase
         $this->assertSame(0, $ticket->entries()->count());
 
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
-            ->callTableAction('edit', $entry, data: ['duration' => 2, 'unit' => 'hours'])
+            ->mountTableAction('edit', $entry)
+            ->assertTableActionDataSet(['duration_days' => null, 'duration_hours' => 1, 'duration_minutes' => 30])
+            ->setTableActionData(['duration_hours' => 2, 'duration_minutes' => null])
+            ->callMountedTableAction()
             ->assertHasNoTableActionErrors();
         $this->assertSame(120, $entry->refresh()->minutes);
 
@@ -143,7 +157,7 @@ class TimeAndInstancesTest extends TmaTestCase
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
             ->mountAction(TestAction::make('logTime')->table())
             ->assertFormFieldHidden('message')
-            ->fillForm(['worked_on' => now()->toDateString(), 'duration' => 20, 'unit' => 'minutes', 'entry_id' => $note->getKey()])
+            ->fillForm(['worked_on' => now()->toDateString(), 'duration_minutes' => 20, 'entry_id' => $note->getKey()])
             ->callMountedAction()
             ->assertHasNoActionErrors()
             ->assertDispatched(TimeEntriesRelationManager::TIMELINE_CHANGED);
@@ -164,7 +178,7 @@ class TimeAndInstancesTest extends TmaTestCase
         // La liste du temps est un composant à part : elle prévient la page, qui relit l'historique.
         $page = Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])->assertSee('Export corrigé')->assertDontSee('1 h');
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $ticket, 'pageClass' => ViewTicket::class])
-            ->callTableAction('logTime', data: ['worked_on' => now()->toDateString(), 'duration' => 1, 'unit' => 'hours', 'entry_id' => $message->getKey(), 'billable' => true])
+            ->callTableAction('logTime', data: ['worked_on' => now()->toDateString(), 'duration_hours' => 1, 'entry_id' => $message->getKey(), 'billable' => true])
             ->assertDispatched(TimeEntriesRelationManager::TIMELINE_CHANGED);
         $page->dispatch(TimeEntriesRelationManager::TIMELINE_CHANGED)->assertSee(['Export corrigé', '1 h']);
     }

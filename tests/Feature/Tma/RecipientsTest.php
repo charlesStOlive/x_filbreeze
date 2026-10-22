@@ -129,9 +129,11 @@ class RecipientsTest extends TmaTestCase
         $this->assertFalse(Notice::query()->for($alan)->exists());
         Notification::assertNotSentTo($requester, NoticeNotification::class);
 
-        // « Tout le monde » remplit la liste.
+        // « Tout le monde » remplit la liste ; sur un ticket, pas d'équipe projet.
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
             ->mountAction($editor)
+            ->assertActionDoesNotExist(TestAction::make('team_primary_recipients')->schemaComponent('primary_recipients', schema: 'mountedActionSchema0'))
+            ->assertActionVisible(TestAction::make('clear_primary_recipients')->schemaComponent('primary_recipients', schema: 'mountedActionSchema0'))
             ->callAction(TestAction::make('everyone_secondary_recipients')->schemaComponent('secondary_recipients', schema: 'mountedActionSchema0'))
             ->callMountedAction()
             ->assertHasNoActionErrors();

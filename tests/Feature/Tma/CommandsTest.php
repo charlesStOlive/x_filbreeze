@@ -65,7 +65,7 @@ class CommandsTest extends TmaTestCase
         // Ou sur un message ou une note qui existe déjà, par son ulid ; pas les deux à la fois.
         $note = Entry::query()->where('type', 'note')->sole();
         $this->artisan('tma:log', ['ref' => 'DES-0001', '--minutes' => 20, '--entry' => strtoupper($note->ulid), '--token' => $token])
-            ->expectsOutputToContain('0 h 20 enregistrées le '.now()->toDateString().', sur le message '.$note->ulid)
+            ->expectsOutputToContain('20 min enregistrées le '.now()->toDateString().', sur le message '.$note->ulid)
             ->assertSuccessful();
         $this->assertSame(20, (int) $note->timeEntries()->sum('minutes'));
         $this->assertSame(1, Entry::query()->count());

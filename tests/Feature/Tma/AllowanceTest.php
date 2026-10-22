@@ -165,6 +165,6 @@ class AllowanceTest extends TmaTestCase
         $this->assertSame(1, AllowanceStatus::query()->count());
 
         $this->actingAs($this->agent('widgets.allowanceoverview.viewany'));
-        Livewire::test(AllowanceOverview::class)->assertSee('0 h / 14 h');
+        Livewire::test(AllowanceOverview::class)->assertSee('0 h / 2 j');
     }
 }
