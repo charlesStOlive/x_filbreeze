@@ -6,21 +6,19 @@
         "dev": "vite"
     },
     "devDependencies": {
-        "@tailwindcss/forms": "^0.5.9",
-        "@tailwindcss/postcss": "^4.1.13",
-        "@tailwindcss/typography": "^0.5.15",
-        "axios": "^1.7.4",
-        "concurrently": "^8.2.2",
-        "esbuild": "^0.25.9",
-        "laravel-vite-plugin": "^1.1.0",
-        "postcss": "^8.4.49",
-        "postcss-nesting": "^13.0.1",
-        "tailwindcss": "^4.1.13",
-        "vite": "^6.4.3"
+        "@tailwindcss/postcss": "^4.3.3",
+        "@tailwindcss/typography": "^0.5.20",
+        "esbuild": "^0.28.2",
+        "laravel-vite-plugin": "^3.2.0",
+        "tailwindcss": "^4.3.3",
+        "vite": "^8.3.5"
     },
     "dependencies": {
-        "jquery": "^3.7.1",
-        "puppeteer": "^25.8.0",
-        "sortablejs": "^1.15.6"
+        "puppeteer": "^25.15.0"
+    },
+    "overrides": {
+        "@tailwindcss/typography": {
+            "postcss-selector-parser": "^7.1.6"
+        }
     }
 }

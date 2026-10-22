@@ -3,6 +3,7 @@
 namespace Tests\Feature\Tma;
 
 use App\Models\User;
+use CharlesStOlive\FilamentTma\Enums\TicketOpening;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\CreateTicket;
 use CharlesStOlive\FilamentTma\Filament\Resources\Tickets\Pages\ViewTicket;
 use CharlesStOlive\FilamentTma\Models\Instance;
@@ -11,6 +12,7 @@ use CharlesStOlive\FilamentTma\Notifications\NoticeNotification;
 use CharlesStOlive\FilamentTma\States\Ticket\Submitted;
 use CharlesStOlive\FilamentTma\Sync\Payload;
 use CharlesStOlive\FilamentTma\Workflow\Context;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -112,6 +114,76 @@ class MasterDraftTicketTest extends TmaTestCase
         $received = Ticket::query()->sole();
         $this->assertTrue($received->requester->isUser($ada));
         $this->assertTrue($received->isShared());
-        Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => str_contains($mail->notice->data['line'], 'a ouvert ce ticket pour vous'));
+        Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => str_contains($mail->notice->data['line'], 'a ouvert ce ticket en votre nom'));
+    }
+
+    public function test_three_ways_for_the_support_to_write_to_a_client(): void
+    {
+        $agent = $this->agent();
+        $agent->forceFill(['name' => 'Charles'])->save();
+        $this->actingAs($agent);
+
+        // Au nom d'un client (un courriel recopié), publié tout de suite : c'est sa demande, au Support d'y répondre.
+        Livewire::test(CreateTicket::class)
+            ->assertSchemaStateSet(['opening' => 'on_behalf'])
+            ->fillForm(['instance_uid' => self::CLIENT_UID, 'requester_id' => '7', 'title' => 'Export en panne', 'priority' => 'normal'])
+            ->assertSee('Demandeur')
+            ->callAction(TestAction::make('createAndPublish')->schemaComponent('form-actions', schema: 'content'))
+            ->assertHasNoFormErrors();
+        $onBehalf = Ticket::query()->where('title', 'Export en panne')->sole();
+        $this->assertSame([TicketOpening::OnBehalf, 'submitted'], [$onBehalf->opening, $onBehalf->state::getMorphClass()]);
+        Livewire::test(ViewTicket::class, ['record' => $onBehalf->getKey()])
+            ->assertSee(['Charles', 'au nom de Ada Lovelace', 'Demandeur', 'Créé par Charles en son nom.']);
+
+        // Je m'adresse au client : Ada est « Adressé à », le ticket attend sa réponse.
+        Livewire::test(CreateTicket::class)
+            ->fillForm(['opening' => 'outreach', 'instance_uid' => self::CLIENT_UID, 'requester_id' => '7', 'title' => 'Une idée pour vos relances', 'priority' => 'normal'])
+            ->assertSee('Adressé à')
+            ->callAction(TestAction::make('createAndPublish')->schemaComponent('form-actions', schema: 'content'))
+            ->assertHasNoFormErrors();
+        $outreach = Ticket::query()->where('title', 'Une idée pour vos relances')->sole();
+        $this->assertSame('awaiting_requester', $outreach->state::getMorphClass());
+        $this->assertNotNull($outreach->waiting_since);
+        Livewire::test(ViewTicket::class, ['record' => $outreach->getKey()])
+            ->assertSee(['Message du Support', 'à Ada Lovelace', 'Adressé à']);
+        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/sync')
+            && $request['ticket']['opening'] === 'outreach' && $request['ticket']['state'] === 'awaiting_requester');
+
+        // J'informe le client, en brouillon d'abord : invisible ; publié, il est clos aussitôt.
+        Livewire::test(CreateTicket::class)
+            ->fillForm(['opening' => 'notice', 'instance_uid' => self::CLIENT_UID, 'requester_id' => '7', 'title' => 'Maintenance samedi', 'priority' => 'normal'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+        $notice = Ticket::query()->where('title', 'Maintenance samedi')->sole();
+        $this->assertSame('draft', $notice->state::getMorphClass());
+        $this->workflow()->run($notice, 'publish', [], Context::ui($agent));
+        $this->assertSame('closed', $notice->refresh()->state::getMorphClass());
+        $this->assertNotNull($notice->closed_at);
+    }
+
+    public function test_the_client_answers_what_the_support_addressed_to_him(): void
+    {
+        $ticket = $this->workflow()->createForClient(Instance::query()->sole(), ['id' => '7', 'name' => 'Ada Lovelace'], ['title' => 'Une idée', 'opening' => 'outreach'], Context::ui($this->agent()));
+        $this->workflow()->run($ticket, 'publish', [], Context::ui($this->agent()));
+        $snapshot = Payload::snapshot($ticket->refresh());
+        $ticket->transitions()->delete();
+        $ticket->forceDelete();
+
+        Notification::fake();
+        $this->asClient();
+        config(['filament-tma.api.master_user' => 'filbreeze@api.test']);
+        $ada = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.ticket.correspond')->create(['id' => 7, 'name' => 'Ada Lovelace']);
+        Passport::actingAs(User::factory()->create(['email' => 'filbreeze@api.test']), [], 'api');
+        $this->postJson('/api/tma/v1/sync', $snapshot)->assertOk();
+
+        // Chez le client : « Adressé à » Ada, qui doit répondre ; elle en est prévenue comme d'une action à faire.
+        $received = Ticket::query()->sole();
+        $this->assertSame(TicketOpening::Outreach, $received->opening);
+        $this->assertSame('Vous', $received->waitingOnFor($ada));
+        Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => str_contains($mail->notice->data['line'], 'vous écrit et attend votre réponse')
+            && $mail->notice->data['headline'] === 'Le Support vous écrit et attend votre réponse');
+        $this->actingAs($ada, 'web');
+        Livewire::test(ViewTicket::class, ['record' => $received->getKey()])
+            ->assertSee(['Message du Support', 'Adressé à', 'Ada Lovelace']);
     }
 }
