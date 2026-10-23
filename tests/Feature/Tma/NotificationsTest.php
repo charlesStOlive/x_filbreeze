@@ -498,7 +498,7 @@ class NotificationsTest extends TmaTestCase
         // La publication : la cloche pour Ada (l'e-mail direct ne vaut que pour les tickets), le bilan de la semaine pour les deux.
         $this->receivedAsClient($snapshot);
         Notification::assertSentTo($ada, NoticeNotification::class, fn (NoticeNotification $mail): bool => $mail->via($ada) === ['database']
-            && $mail->notice->data['line'] === 'Le Support a publié une tâche pour vous.');
+            && $mail->notice->data['line'] === 'Le Support a ajouté cette tâche au projet.');
         Notification::assertNotSentTo($grace, NoticeNotification::class);
 
         // Du temps saisi, puis la tâche modifiée : dits sans passage ni message.
@@ -542,7 +542,7 @@ class NotificationsTest extends TmaTestCase
 
             return $message->subject === 'Bilan de la semaine : 1 tâche de vos projets'
                 && str_contains($html, 'Nouvel environnement graphique') && str_contains($html, 'T-0001 — Phase 1 : la maquette')
-                && str_contains($html, 'Échéance : 27/11/2026') && str_contains($html, 'Le Support a publié une tâche pour vous.')
+                && str_contains($html, 'Échéance : 27/11/2026') && str_contains($html, 'Le Support a ajouté cette tâche au projet.')
                 && ! str_contains($html, 'En copie');
         });
         Notification::assertSentTo($grace, WeeklyDigest::class, fn (WeeklyDigest $mail): bool => str_contains(html_entity_decode((string) $mail->toMail($grace)->render()), 'En copie'));
@@ -590,7 +590,7 @@ class NotificationsTest extends TmaTestCase
 
         $entry = $task->entries()->sole();
         $this->assertTrue($entry->meta['notify']);
-        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/sync') && collect($request['entries'])->contains(fn (array $sent): bool => ! empty($sent['meta']['notify'])));
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/sync') && collect($request->data()['entries'] ?? [])->contains(fn (array $sent): bool => ! empty($sent['meta']['notify'])));
 
         // Pas sur un brouillon, ni chez le client.
         $draft = app(TaskWorkflow::class)->create(['title' => 'Phase 2', 'project_id' => $task->project_id, 'publish_at' => now()->addDay()], Context::ui(auth()->user()));

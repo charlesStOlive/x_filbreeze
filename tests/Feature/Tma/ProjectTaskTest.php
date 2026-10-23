@@ -40,6 +40,7 @@ use CharlesStOlive\FilamentTma\Workflow\Timeline;
 use CharlesStOlive\FilamentTma\Workflow\TimeLog;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
@@ -375,11 +376,12 @@ class ProjectTaskTest extends TmaTestCase
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent);
         $this->tasks()->run($task, 'publish', [], Context::ui($agent));
-        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync') && $request['task']['project']['title'] === 'Portail parrain');
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync') && data_get($request->data(), 'task.project.title') === 'Portail parrain');
 
-        // Un nouveau titre repart avec les tâches publiées du projet.
+        // Un nouveau titre part aussitôt chez le client, avec le projet seul.
         $this->project->update(['title' => 'Portail des parrains']);
-        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync') && $request['task']['project']['title'] === 'Portail des parrains');
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync')
+            && data_get($request->data(), 'kind') === 'project' && data_get($request->data(), 'project.title') === 'Portail des parrains');
 
         // Chez le client : le projet issu de l'ancien libellé prend l'identité de celui du maître, sans doublon.
         $snapshot = Payload::snapshot($task->refresh());
@@ -738,9 +740,10 @@ class ProjectTaskTest extends TmaTestCase
         $this->assertSame(['Refonte du site', 1.0, 3.0], [$project->refresh()->title, $project->estimate_min_days, $project->estimate_max_days]);
         $this->assertSame(['Ada Lovelace'], $project->members()->pluck('name')->all());
         Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/sync')
-            && $request['task']['project']['title'] === 'Refonte du site'
-            && $request['task']['project']['estimate_max_days'] == 3
-            && array_column($request['task']['project']['members'], 'name') === ['Ada Lovelace']);
+            && data_get($request->data(), 'kind') === 'project'
+            && data_get($request->data(), 'project.title') === 'Refonte du site'
+            && data_get($request->data(), 'project.estimate_max_days') == 3
+            && array_column(data_get($request->data(), 'project.members', []), 'name') === ['Ada Lovelace']);
 
         // Depuis le volet d'une de ses tâches, et depuis le formulaire d'une tâche (le crayon du champ Projet).
         Livewire::test(ViewTask::class, ['record' => $task->getKey()])
@@ -775,7 +778,7 @@ class ProjectTaskTest extends TmaTestCase
     {
         $agent = $this->agentForTasks();
         $task = $this->draftTask($agent);
-        $task->addMediaFromString('PNG')->usingFileName('maquette.png')->toMediaCollection(ProjectTask::ATTACHMENTS_COLLECTION);
+        $task->addMediaFromString(UploadedFile::fake()->image('maquette.png', 2, 2)->getContent())->usingFileName('maquette.png')->toMediaCollection(ProjectTask::ATTACHMENTS_COLLECTION);
         $uuid = $task->getFirstMedia(ProjectTask::ATTACHMENTS_COLLECTION)->uuid;
 
         // Le client dit qu'il lui manque les pièces jointes de la tâche : le maître les lui envoie à part.
@@ -812,6 +815,83 @@ class ProjectTaskTest extends TmaTestCase
 
         $this->postJson('/api/tma/v1/sync', [...$snapshot, 'task' => [...$snapshot['task'], 'files_count' => 0, 'file_uuids' => []]])->assertOk();
         $this->assertCount(0, $received->refresh()->getMedia(ProjectTask::ATTACHMENTS_COLLECTION));
+    }
+
+    public function test_a_project_reaches_the_client_on_its_own_even_without_a_published_task(): void
+    {
+        $this->fakeDesapp();
+        Http::fake(['autre.test/*' => Http::response(['missing_media' => []])]);
+        $other = Instance::create(['uid' => '01JTESTOTHER00000000000000', 'name' => 'Autre', 'url' => 'https://autre.test', 'token' => 'jeton-autre']);
+        $this->actingAs($this->agentForTasks('tma.project.*'));
+        $sent = fn (string $host): array => Http::recorded(fn (Request $request): bool => str_starts_with($request->url(), "https://{$host}/api/tma/v1/sync"))
+            ->map(fn (array $pair): array => [$pair[0]->data()['kind'], ...$pair[0]->data()['project']])->values()->all();
+
+        // Créé pour la mauvaise application : il part tout de suite, sans attendre une tâche.
+        $project = ProjectResource::createProject(['title' => 'Refonte', 'target_instance_uid' => $other->uid, 'estimate_min_days' => '1', 'estimate_max_days' => '2']);
+        $this->assertSame(['project', 'Refonte', null], [last($sent('autre.test'))[0], last($sent('autre.test'))['title'], last($sent('autre.test'))['deleted_at']]);
+
+        // Passé à la bonne (il n'a pas de tâche), avec ses participants : il quitte l'autre, arrive chez Desapp.
+        ProjectResource::updateProject($project, ['target_instance_uid' => self::CLIENT_UID, 'estimate_max_days' => '3', 'member_keys' => ['c:7']]);
+        $this->assertNotNull(last($sent('autre.test'))['deleted_at']);
+        $created = last($sent('desapp.test'));
+        $this->assertSame(['Refonte', 3.0, self::CLIENT_UID, ['Ada Lovelace']], [$created['title'], $created['estimate_max_days'], $created['target_instance_uid'], array_column($created['members'], 'name')]);
+
+        // Supprimé : il part supprimé.
+        $project->delete();
+        $deleted = last($sent('desapp.test'));
+        $this->assertNotNull($deleted['deleted_at']);
+
+        // Chez le client : il arrive seul, puis disparaît ; supprimé avant d'arriver, il n'est jamais créé.
+        $this->asClient();
+        $project->members()->detach();
+        $project->forceDelete();
+        $master = User::factory()->create(['email' => 'filbreeze@api.test']);
+        config(['filament-tma.api.master_user' => 'filbreeze@api.test']);
+        Passport::actingAs($master, [], 'api');
+        $payload = fn (array $sent): array => ['kind' => 'project', 'project' => array_slice($sent, 1)];
+
+        $this->postJson('/api/tma/v1/sync', $payload($created))->assertOk();
+        $received = Project::query()->where('ulid', $created['ulid'])->sole();
+        $this->assertSame(['Refonte', '1–3 j', 0], [$received->title, $received->estimateLabel(), $received->tasks()->count()]);
+        $this->assertSame(['Ada Lovelace'], $received->members->pluck('name')->all());
+
+        $this->postJson('/api/tma/v1/sync', $payload($deleted))->assertOk();
+        $this->assertTrue($received->refresh()->trashed());
+
+        $this->postJson('/api/tma/v1/sync', ['kind' => 'project', 'project' => [...array_slice($deleted, 1), 'ulid' => strtolower((string) Str::ulid())]])->assertOk();
+        $this->assertSame(1, Project::withTrashed()->where('title', 'Refonte')->count());
+        $this->postJson('/api/tma/v1/sync', ['kind' => 'project', 'project' => [...array_slice($created, 1), 'target_instance_uid' => $other->uid]])->assertUnprocessable();
+    }
+
+    public function test_a_file_replaced_by_the_master_is_asked_for_again(): void
+    {
+        $this->fakeDesapp();
+        $agent = $this->agentForTasks();
+        $task = $this->publishedTask($agent);
+        $task->addMediaFromString(UploadedFile::fake()->image('maquette.png', 2, 2)->getContent())->usingFileName('maquette.png')->toMediaCollection(ProjectTask::ATTACHMENTS_COLLECTION);
+        $note = app(Timeline::class)->add($task, EntryType::Note, '<p>La capture.</p>', Context::ui($agent));
+        $note->addMediaFromString(UploadedFile::fake()->image('capture.png', 2, 2)->getContent())->usingFileName('capture.png')->toMediaCollection(Entry::ATTACHMENTS_COLLECTION);
+        $snapshot = Payload::snapshot($task->refresh());
+        $files = [Payload::files($task), Payload::files($note->refresh())];
+        $note->forceDelete();
+        $task->forceDelete();
+
+        // Chez le client : la tâche et la note arrivent, puis leurs fichiers.
+        $this->asClient();
+        $this->assertSame([$snapshot['task']['ulid'], $note->ulid], Mirror::snapshot($snapshot)['missing_media']);
+        Mirror::files(ProjectTask::query()->sole(), $files[0]);
+        Mirror::files(Entry::query()->sole(), $files[1]);
+        $this->assertSame([], Mirror::snapshot($snapshot)['missing_media']);
+
+        // Le maître remplace chaque image par une autre : autant de fichiers, mais pas les mêmes. L'ancienne part, la
+        // nouvelle est réclamée.
+        $replaced = $snapshot;
+        $replaced['task']['file_uuids'] = [(string) Str::uuid()];
+        $replaced['entries'][0]['file_uuids'] = [(string) Str::uuid()];
+
+        $this->assertSame([$snapshot['task']['ulid'], $note->ulid], Mirror::snapshot($replaced)['missing_media']);
+        $this->assertCount(0, ProjectTask::query()->sole()->getMedia(ProjectTask::ATTACHMENTS_COLLECTION));
+        $this->assertCount(0, Entry::query()->sole()->getMedia(Entry::ATTACHMENTS_COLLECTION));
     }
 
     public function test_a_new_task_addresses_its_project_team_by_default(): void

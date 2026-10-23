@@ -28,9 +28,13 @@ class ResyncTest extends TmaTestCase
         parent::setUp();
         $this->asMaster();
         $this->desapp = Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'url' => 'https://desapp.test', 'token' => 'jeton-desapp']);
+        $this->fakeDesapp();
         $this->project = Project::create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID]);
+    }
 
-        // Desapp : Ada a changé de nom ; il reçoit ce qu'on lui envoie.
+    /** Desapp : Ada a changé de nom ; il reçoit ce qu'on lui envoie. Ce qui a été envoyé avant est oublié. */
+    private function fakeDesapp(): void
+    {
         Http::fake([
             'desapp.test/api/tma/v1/users*' => Http::response(['data' => [['id' => '7', 'name' => 'Ada King', 'email' => 'ada@client.test', 'service_desk' => true]]]),
             'desapp.test/*' => Http::response(['missing_media' => []]),
@@ -45,11 +49,19 @@ class ResyncTest extends TmaTestCase
         ]);
     }
 
-    /** @return array<int, string> les numéros envoyés à Desapp */
+    /** @return array<int, string> les numéros des tickets et des tâches envoyés à Desapp */
     private function sent(): array
     {
-        return Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), '/sync'))
-            ->map(fn (array $pair): string => $pair[0]['task']['number'] ?? $pair[0]['ticket']['number'])
+        return Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), '/sync') && data_get($request->data(), 'kind') !== 'project')
+            ->map(fn (array $pair): string => data_get($pair[0]->data(), 'task.number') ?? data_get($pair[0]->data(), 'ticket.number'))
+            ->sort()->values()->all();
+    }
+
+    /** @return array<int, string> les titres des projets envoyés à Desapp */
+    private function sentProjects(): array
+    {
+        return Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), '/sync') && data_get($request->data(), 'kind') === 'project')
+            ->map(fn (array $pair): string => data_get($pair[0]->data(), 'project.title'))
             ->sort()->values()->all();
     }
 
@@ -65,27 +77,34 @@ class ResyncTest extends TmaTestCase
         $this->task('T-0001');
         $this->task('T-0002', 'draft');
         $other = $this->task('T-0003', project: Project::create(['title' => 'Compta', 'target_instance_uid' => self::CLIENT_UID]));
+        $empty = Project::create(['title' => 'Refonte', 'target_instance_uid' => self::CLIENT_UID]);
+        $this->fakeDesapp();
 
         // À blanc : ce qui partirait, sans rien envoyer ni renommer.
         $this->artisan('tma:resync', ['--all' => true, '--dry-run' => true])
-            ->expectsOutputToContain('3 ticket(s) ou tâche(s) partiraient.')
+            ->expectsOutputToContain('3 projet(s), 3 ticket(s) ou tâche(s) partiraient.')
             ->assertSuccessful();
         Http::assertNothingSent();
         $this->assertSame('Super Admin', $copy->refresh()->name);
 
         $this->artisan('tma:resync', ['--all' => true])
             ->expectsOutputToContain('2 nom(s) mis à jour.')
-            ->expectsOutputToContain('3 envoi(s) demandé(s), par la file.')
+            ->expectsOutputToContain('6 envoi(s) demandé(s), par la file.')
             ->assertSuccessful();
 
         $this->assertSame('Charles Sto (N)', $copy->refresh()->name);
         $this->assertSame('Ada King', $ada->refresh()->name);
         $this->assertSame([$ticket->number, 'T-0001', 'T-0003'], $this->sent());
+        $this->assertSame(['Compta', 'Portail parrain', 'Refonte'], $this->sentProjects());
 
-        // Un projet seul : ses tâches publiées ; il faut dire quoi renvoyer.
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        // Un projet : lui et ses tâches publiées, même sans tâche ; il faut dire quoi renvoyer.
+        $this->fakeDesapp();
         $this->artisan('tma:resync', ['--project' => [$other->project->ulid]])->assertSuccessful();
         $this->assertSame(['T-0003'], $this->sent());
+        $this->assertSame(['Compta'], $this->sentProjects());
+        $this->fakeDesapp();
+        $this->artisan('tma:resync', ['--project' => [$empty->ulid]])->assertSuccessful();
+        $this->assertSame([[], ['Refonte']], [$this->sent(), $this->sentProjects()]);
         $this->artisan('tma:resync')->assertFailed();
         $this->artisan('tma:resync', ['--instance' => 'Inconnue'])->assertFailed();
 
@@ -100,18 +119,19 @@ class ResyncTest extends TmaTestCase
         $this->serviceDeskTicket();
         $admin = User::factory()->withPermissions('panels.admin.access', 'tma.project.*', 'tma.task.sync', 'tma.instance.*')->create();
         $this->actingAs($admin);
+        $this->fakeDesapp();
 
         Livewire::test(ViewProject::class, ['record' => $this->project->getKey()])
             ->callAction('resync')
             ->assertNotified('Envoi demandé');
-        $this->assertSame(['T-0001'], $this->sent());
+        $this->assertSame([['T-0001'], ['Portail parrain']], [$this->sent(), $this->sentProjects()]);
 
-        Http::fake(['desapp.test/*' => Http::response(['missing_media' => []])]);
+        $this->fakeDesapp();
         Livewire::test(EditInstance::class, ['record' => $this->desapp->getKey()])
             ->assertActionVisible('resyncAll')
             ->callAction('resyncAll')
             ->assertNotified('Envoi demandé');
-        $this->assertSame(['DES-0001', 'T-0001'], $this->sent());
+        $this->assertSame([['DES-0001', 'T-0001'], ['Portail parrain']], [$this->sent(), $this->sentProjects()]);
 
         // Sans le droit de relancer une synchronisation, pas de bouton sur le projet.
         $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'tma.project.*')->create());

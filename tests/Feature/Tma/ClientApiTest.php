@@ -13,6 +13,7 @@ use CharlesStOlive\FilamentTma\Models\Entry;
 use CharlesStOlive\FilamentTma\Models\Notice;
 use CharlesStOlive\FilamentTma\Models\Ticket;
 use CharlesStOlive\FilamentTma\Notifications\NoticeNotification;
+use CharlesStOlive\FilamentTma\Support\Uploads;
 use CharlesStOlive\FilamentTma\States\Ticket\Closed;
 use CharlesStOlive\FilamentTma\States\Ticket\Draft;
 use CharlesStOlive\FilamentTma\States\Ticket\InProgress;
@@ -26,6 +27,7 @@ use Filament\Actions\Exceptions\ActionNotResolvableException;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -120,7 +122,7 @@ class ClientApiTest extends TmaTestCase
         $requester = $this->agent();
         $ticket = $this->draft($requester);
         $timeline = app(Timeline::class);
-        Storage::disk('local')->put('tma-uploads/capture.png', 'png');
+        Storage::disk('local')->put('tma-uploads/capture.png', UploadedFile::fake()->image('capture.png', 2, 2)->getContent());
         // Un brouillon ne reçoit pas de message (sa demande est le premier) ; des notes, si.
         $timeline->add($ticket, EntryType::Note, '<p>Capture jointe.</p>', Context::ui($requester), uploads: [['path' => 'tma-uploads/capture.png', 'name' => 'capture.png']]);
         $timeline->add($ticket, EntryType::Note, '<p>Une note : elle part aussi.</p>', Context::ui($requester));
@@ -233,7 +235,7 @@ class ClientApiTest extends TmaTestCase
             return Http::response($snapshot);
         }]);
 
-        $files = [['uuid' => 'u-1', 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png', 'content' => base64_encode('png')]];
+        $files = [['uuid' => 'u-1', 'name' => 'capture', 'file_name' => 'capture.png', 'mime_type' => 'image/png', 'content' => base64_encode(UploadedFile::fake()->image('capture.png', 2, 2)->getContent())]];
         $this->workflow()->run($ticket, 'answer', ['answer' => '<p>Sous Firefox.</p>', 'files' => $files], Context::ui($requester));
 
         $this->assertInstanceOf(InProgress::class, $ticket->refresh()->state);
@@ -303,6 +305,47 @@ class ClientApiTest extends TmaTestCase
             $this->fail('La modification aurait dû échouer.');
         } catch (SyncException) {
             $this->assertSame('<p>Un détail, précisé.</p>', $message->refresh()->body);
+        }
+    }
+
+    public function test_changing_the_images_of_a_note_sends_the_new_list_and_a_failure_keeps_the_old_one(): void
+    {
+        Storage::fake('local');
+        $requester = $this->agent();
+        $ticket = $this->transmittedTicket($requester, 'in_progress');
+        $timeline = app(Timeline::class);
+        $masterUp = true;
+        Http::fake(['master.test/*' => function () use (&$masterUp) {
+            return $masterUp ? Http::response(['entry' => ['number' => 1]], 201) : Http::response(['message' => 'indisponible'], 503);
+        }]);
+        $upload = function (string $name): array {
+            Storage::disk('local')->put("tma-uploads/{$name}", UploadedFile::fake()->image($name, 2, 2)->getContent());
+
+            return ['path' => "tma-uploads/{$name}", 'name' => $name];
+        };
+        $sent = fn (): array => Http::recorded()->map(fn (array $pair): array => $pair[0]->data())->last();
+
+        $note = $timeline->add($ticket, EntryType::Note, '<p>Capture.</p>', Context::ui($requester), uploads: [$upload('v1.png')]);
+        $first = Uploads::uuidOf($note->getFirstMedia(Entry::ATTACHMENTS_COLLECTION));
+
+        // Une image remplacée : le maître reçoit la nouvelle liste, avec le nouveau fichier.
+        $timeline->edit($note, '<p>Capture refaite.</p>', Context::ui($requester), [$upload('v2.png')], [$first]);
+        $this->assertSame(['v2.png'], array_column($sent()['files'], 'file_name'));
+        $this->assertSame(array_column($sent()['files'], 'uuid'), $sent()['file_uuids']);
+
+        // Une image de plus, sans en retirer : elle part aussi.
+        $timeline->edit($note, '<p>Deux captures.</p>', Context::ui($requester), [$upload('v3.png')]);
+        $this->assertSame(['v2.png', 'v3.png'], array_column($sent()['files'], 'file_name'));
+
+        // Si le maître ne répond pas, l'image qu'on retirait reste, fichier compris.
+        $masterUp = false;
+        $kept = $note->refresh()->getMedia(Entry::ATTACHMENTS_COLLECTION)->first();
+        try {
+            $timeline->edit($note, '<p>Une seule.</p>', Context::ui($requester), [], [Uploads::uuidOf($kept)]);
+            $this->fail('La modification aurait dû échouer.');
+        } catch (SyncException) {
+            $this->assertCount(2, $note->refresh()->getMedia(Entry::ATTACHMENTS_COLLECTION));
+            $this->assertTrue(Storage::disk($kept->disk)->exists($kept->getPathRelativeToRoot()));
         }
     }
 
