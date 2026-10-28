@@ -39,6 +39,7 @@ composer install
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan key:generate
 ./vendor/bin/sail npm ci
+./vendor/bin/sail npx puppeteer browsers install
 ./vendor/bin/sail npm run dev
 ```
 
@@ -72,6 +73,7 @@ En production, installer exactement les versions verrouillées puis compiler:
 
 ```bash
 ./vendor/bin/sail npm ci
+./vendor/bin/sail npx puppeteer browsers install
 ./vendor/bin/sail npm run build
 ```
 
@@ -88,6 +90,7 @@ Sur un serveur qui construit directement l'application:
 ./vendor/bin/sail up -d
 ./vendor/bin/sail composer install --no-dev --optimize-autoloader
 ./vendor/bin/sail npm ci
+./vendor/bin/sail npx puppeteer browsers install
 ./vendor/bin/sail npm run build
 ./vendor/bin/sail artisan migrate --force
 ./vendor/bin/sail artisan config:cache
@@ -99,6 +102,7 @@ En production:
 
 - ne pas utiliser `npm update` pendant le déploiement;
 - utiliser `npm ci` avec `package-lock.json` versionné;
+- `.npmrc` bloque les scripts d'installation des paquets (`ignore-scripts`) : Chrome pour Browsershot s'installe avec `npx puppeteer browsers install` après chaque `npm ci`;
 - ne pas utiliser Mailpit;
 - ne pas exposer MySQL directement à Internet;
 - conserver les secrets uniquement dans les variables d'environnement;

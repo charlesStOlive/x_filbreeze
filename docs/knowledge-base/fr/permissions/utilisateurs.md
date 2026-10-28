@@ -55,6 +55,11 @@ Le menu du compte › **Profil** rassemble l'identité, les préférences régio
 et les réglages propres aux modules de l'application. Un changement d'email ou de mot de passe demande le mot de passe
 actuel. Une identité gérée par un fournisseur externe reste non modifiable.
 
+La **langue** choisie est celle de tout le panel (menus, écrans, messages) et des courriels que vous recevez ; le
+**fuseau horaire** sert à afficher et à saisir les dates. Après un changement, la page se recharge pour les appliquer.
+Sur le tableau de bord, le cadre **Langue et fuseau horaire** est un raccourci vers ces deux réglages : un choix y est
+enregistré tout de suite. La liste des langues ne s'affiche que si l'application en propose plusieurs.
+
 Chaque module propose sa section à qui elle est destinée ; les notifications du Support, par exemple, se règlent ici.
 **Rétablir les valeurs par défaut** efface les choix personnels de la section et reprend les valeurs actuelles de
 l'application. Une option n'accorde jamais de droit supplémentaire.

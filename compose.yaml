@@ -6,7 +6,7 @@ services:
             args:
                 WWWGROUP: '${WWWGROUP}'
                 NODE_VERSION: '${NODE_VERSION:-24}'
-        image: 'sail-8.4/app'
+        image: 'sail-8.5/filbreeze'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -15,6 +15,7 @@ services:
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
+            PUPPETEER_CACHE_DIR: /var/www/html/.puppeteer-cache
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
@@ -31,10 +32,11 @@ services:
             - mysql
             - mailpit
     scheduler:
-        image: 'sail-8.4/app'
+        image: 'sail-8.5/filbreeze'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
+            PUPPETEER_CACHE_DIR: /var/www/html/.puppeteer-cache
         volumes:
             - '.:/var/www/html'
             - '../packages_filament:/var/www/packages_filament'
@@ -47,10 +49,11 @@ services:
     # Worker de file : envois vers les applications clientes (filament-tma), courriels en file.
     # queue:listen relit le code à chaque tâche (pratique en développement) ; en production, queue:work.
     queue:
-        image: 'sail-8.4/app'
+        image: 'sail-8.5/filbreeze'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
+            PUPPETEER_CACHE_DIR: /var/www/html/.puppeteer-cache
         volumes:
             - '.:/var/www/html'
             - '../packages_filament:/var/www/packages_filament'

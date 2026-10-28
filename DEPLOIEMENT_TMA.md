@@ -47,7 +47,7 @@ commande lance elle-même `migrate` une fois les tables du module supprimées).
 ```bash
 git pull                                                   # ou l'outil de déploiement
 ./vendor/bin/sail composer install --no-dev --optimize-autoloader
-./vendor/bin/sail npm ci && ./vendor/bin/sail npm run build
+./vendor/bin/sail npm ci && ./vendor/bin/sail npx puppeteer browsers install && ./vendor/bin/sail npm run build
 
 ./vendor/bin/sail artisan tma:reset-schema --force         # AVANT tout migrate
 ./vendor/bin/sail artisan permissions:sync --force

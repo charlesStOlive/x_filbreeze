@@ -32,3 +32,4 @@ public/pdf.hot
 
 # Configuration de déploiement (à garder en référence)
 PRODUCTION_CONFIG.md
+/.puppeteer-cache
