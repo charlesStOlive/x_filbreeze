@@ -8,20 +8,6 @@
     ],
     "license": "MIT",
     "repositories": {
-        "filament-tma-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-tma",
-            "options": {
-                "symlink": true
-            }
-        },
-        "filament-qonto-local": {
-            "type": "path",
-            "url": "../packages_filament/filament-qonto",
-            "options": {
-                "symlink": true
-            }
-        },
         "filament-ui-vcs": {
             "type": "vcs",
             "url": "https://github.com/charlesStOlive/filament-ui.git"

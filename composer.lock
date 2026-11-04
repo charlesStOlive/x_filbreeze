@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "12ffa5cf319fd0c5cbce85bb6a265eca",
+    "content-hash": "dd3963d04a67767d8648be6502dfda51",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -761,10 +761,16 @@
         {
             "name": "charlesstolive/filament-qonto",
             "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-qonto",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:charlesStOlive/filament-qonto.git",
                 "reference": "199ad8a0b88f641ba76414ccdb736c9e4c6fb850"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/199ad8a0b88f641ba76414ccdb736c9e4c6fb850",
+                "reference": "199ad8a0b88f641ba76414ccdb736c9e4c6fb850",
+                "shasum": ""
             },
             "require": {
                 "filament/filament": "^5.0",
@@ -777,6 +783,7 @@
                 "orchestra/testbench": "^10.0|^11.0",
                 "phpunit/phpunit": "^11.0|^12.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -810,10 +817,11 @@
                 "MIT"
             ],
             "description": "Integration Qonto Business API pour Laravel et Filament: transactions, clients, factures et Factur-X.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-qonto/tree/master",
+                "issues": "https://github.com/charlesStOlive/filament-qonto/issues"
+            },
+            "time": "2026-10-11T17:58:00+00:00"
         },
         {
             "name": "charlesstolive/filament-state-fusion-enhanced",
@@ -904,10 +912,16 @@
         {
             "name": "charlesstolive/filament-tma",
             "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../packages_filament/filament-tma",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/charlesStOlive/filament-tma.git",
                 "reference": "be7b2cbb0781fdfcce817e7651e1810d9d43d684"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/be7b2cbb0781fdfcce817e7651e1810d9d43d684",
+                "reference": "be7b2cbb0781fdfcce817e7651e1810d9d43d684",
+                "shasum": ""
             },
             "require": {
                 "charlesstolive/filament-state-fusion-enhanced": "dev-master",
@@ -946,10 +960,11 @@
                 "ticketing",
                 "tma"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/charlesStOlive/filament-tma/tree/master",
+                "issues": "https://github.com/charlesStOlive/filament-tma/issues"
+            },
+            "time": "2026-10-29T14:43:17+00:00"
         },
         {
             "name": "charlesstolive/filament-ui",
