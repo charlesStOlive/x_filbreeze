@@ -915,12 +915,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/charlesStOlive/filament-tma.git",
-                "reference": "83129f4ea1386816bd3d106fc7c5d96b5ded1d8e"
+                "reference": "c903258568a52ff6d963fa5097dcf31a301d7c1f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/83129f4ea1386816bd3d106fc7c5d96b5ded1d8e",
-                "reference": "83129f4ea1386816bd3d106fc7c5d96b5ded1d8e",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/c903258568a52ff6d963fa5097dcf31a301d7c1f",
+                "reference": "c903258568a52ff6d963fa5097dcf31a301d7c1f",
                 "shasum": ""
             },
             "require": {
@@ -964,7 +964,7 @@
                 "source": "https://github.com/charlesStOlive/filament-tma/tree/master",
                 "issues": "https://github.com/charlesStOlive/filament-tma/issues"
             },
-            "time": "2026-11-04T09:53:49+00:00"
+            "time": "2026-11-04T15:12:10+00:00"
         },
         {
             "name": "charlesstolive/filament-ui",
