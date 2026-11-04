@@ -24,7 +24,7 @@ use Livewire\Livewire;
 
 /**
  * Le tableau de bord : mes tickets en cours et mes projets (deux onglets d'un même tableau), puis le suivi des temps
- * (TMA et projets, mois par mois ou par tâche, en jours et heures ; la copie en HTML ou en Markdown).
+ * (TMA et projets, mois par mois ou par projet, en jours et heures ; la copie en HTML ou en Markdown).
  */
 class DashboardWidgetsTest extends TmaTestCase
 {
@@ -278,56 +278,69 @@ class DashboardWidgetsTest extends TmaTestCase
         $this->get(Dashboard::getUrl())->assertOk()->assertSeeLivewire(TimeReportWidget::class);
     }
 
-    public function test_the_time_report_by_task_in_the_master(): void
+    public function test_the_time_report_by_project_in_the_master(): void
     {
         $this->asMaster();
         $this->travelTo(Carbon::parse('2026-10-20 10:00', 'Europe/Paris'));
         Instance::create(['uid' => self::CLIENT_UID, 'name' => 'Desapp', 'short_name' => 'EDM', 'url' => 'https://desapp.test', 'token' => 'jeton']);
         $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view', 'tma.task.viewany', 'tma.task.view', 'tma.task.time-report')->create());
 
-        $portal = Project::create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID]);
+        $portal = Project::create(['title' => 'Portail parrain', 'target_instance_uid' => self::CLIENT_UID, 'estimate_min_days' => 1, 'estimate_max_days' => 2]);
         $ticket = $this->ticket('DES-0001', 'in_progress');
-        $mockups = $this->task('Maquettes', project: $portal);
+        $mockups = $this->task('Maquettes de la page d’accueil', project: $portal);
         $export = $this->task('Export', project: $portal);
         $setup = $this->task('Cadrage', 'done', project: $portal);
         $gone = $this->task('Supprimée', project: $portal);
         $this->time($ticket, 45, now());
+        $this->time($ticket, 15, Carbon::parse('2026-09-10'));
         $this->time($mockups, 600, now()->subMonth());
         $this->time($mockups, 120, now()->subDay());
         $this->time($export, 480, now()->subDays(2));
         $this->time($setup, 60, Carbon::parse('2026-09-01'));
         $this->time($gone, 30, now());
         $gone->delete();
-        // Huit de plus en août : les deux plus anciennes ne passent pas.
-        $august = collect(range(1, 8))->map(function (int $day) use ($portal): ProjectTask {
-            $task = $this->task("Août {$day}", project: $portal);
-            $this->time($task, 30, Carbon::parse("2026-08-0{$day}"));
+        // Le cadrage, de mars à juillet : sept mois en tout, mars ne passe pas.
+        foreach (['03', '04', '05', '06', '07'] as $month) {
+            $this->time($setup, 30, Carbon::parse("2026-{$month}-02"));
+        }
+        // Cinq projets de plus, travaillés en août : le plus ancien ne passe pas.
+        $august = collect(range(1, 5))->map(function (int $day): Project {
+            $project = Project::create(['title' => "Projet d’août {$day}", 'target_instance_uid' => self::CLIENT_UID]);
+            $this->time($this->task("Août {$day}", project: $project), 30, Carbon::parse("2026-08-0{$day}"));
 
-            return $task;
+            return $project;
         });
 
-        // Regroupés comme par mois : la TMA, puis les projets ; sous chacun, ses tickets ou ses tâches, tous.
+        // Les projets, sans la TMA, le plus récemment travaillé d'abord ; sous chacun, un mois par ligne, du plus ancien
+        // au plus récent : ses tâches (le numéro et le début du titre, le titre entier au survol), et le temps du mois.
         $widget = Livewire::test(TimeReportWidget::class)
-            ->set('mode', TimeReportWidget::BY_TASK)
-            ->assertSee(['TMA et projets', 'Temps total', 'Derniers tickets et tâches, tous mois confondus : 3,54 j au total.'])
-            ->assertSee(['EDM', 'Portail parrain', 'DES-0001 Ticket DES-0001 · <strong>0,75 h</strong>', 'T-0002 Export · <strong>1,14 j</strong>'], false)
-            // Tout le temps d'une tâche, quel que soit le mois : 12 h, soit 1,71 j.
-            ->assertSee('T-0001 Maquettes · <strong>1,71 j</strong>', false)
-            ->assertDontSee(['Supprimée', 'autres'])
-            ->assertTableColumnStateSet('minutes', 45, 'tma-'.self::CLIENT_UID)
-            ->assertTableColumnStateSet('minutes', 1440, 'project-'.$portal->getKey())
-            // Le cumul du projet, lui, compte toutes ses tâches : les deux d'août restées dehors aussi.
-            ->assertTableColumnStateSet('total', '3,57 j', 'project-'.$portal->getKey())
+            ->set('mode', TimeReportWidget::BY_PROJECT)
+            ->assertSee(['Projets', 'Temps total', 'Fourchette', 'Derniers projets, tous mois confondus : 3,64 j au total.'])
+            ->assertSee([
+                '1 mois plus tôt · <strong>30 min</strong><br>Avril 2026 (<span title="T-0003 Cadrage">T-0003 Cadrage</span>) · <strong>30 min</strong>',
+                'Juillet 2026 (<span title="T-0003 Cadrage">T-0003 Cadrage</span>) · <strong>30 min</strong><br>Septembre 2026',
+                // Le plus de temps d'abord : 10 h de maquettes, 1 h de cadrage, soit 1,57 j.
+                'Septembre 2026 (<span title="T-0001 Maquettes de la page d’accueil">T-0001 Maquettes de la page…</span>, <span title="T-0003 Cadrage">T-0003 Cadrage</span>) · <strong>1,57 j</strong>',
+                'Octobre 2026 (<span title="T-0002 Export">T-0002 Export</span>, <span title="T-0001 Maquettes de la page d’accueil">T-0001 Maquettes de la page…</span>) · <strong>1,43 j</strong>',
+            ], false)
+            ->assertDontSee(['TMA et projets', 'DES-0001', 'Supprimée', 'Projet d’août 1'])
+            // Mars n'est que dans la copie, qui garde tous les mois.
+            ->assertDontSee('Mars 2026 (<span', false)
+            ->assertCanNotSeeTableRecords(['tma-'.self::CLIENT_UID])
+            // Tout le temps du projet : 23 h 30, soit 3,36 j, au-delà de sa fourchette.
+            ->assertTableColumnStateSet('minutes', 1410, 'project-'.$portal->getKey())
+            ->assertTableColumnStateSet('total', '1–2 j', 'project-'.$portal->getKey())
             ->assertActionHidden(TestAction::make('previousMonth')->table())
             ->assertActionHidden(TestAction::make('currentMonth')->table());
 
-        // Les dix plus récemment travaillés : les deux plus anciens d'août n'y sont pas.
-        $rows = $widget->instance()->taskRows();
-        $this->assertSame(['tma-'.self::CLIENT_UID, 'project-'.$portal->getKey()], array_keys($rows));
-        $this->assertEqualsCanonicalizing(
-            ['T-0001', 'T-0002', 'T-0003', ...$august->slice(2)->pluck('number')->all()],
-            array_column($rows['project-'.$portal->getKey()]['items'], 'number'),
+        // Les cinq projets les plus récemment travaillés : le premier d'août n'y est pas.
+        $rows = $widget->instance()->projectRows();
+        $this->assertSame(
+            ['project-'.$portal->getKey(), ...$august->slice(1)->reverse()->map(fn (Project $project): string => 'project-'.$project->getKey())->values()->all()],
+            array_keys($rows),
         );
+        $this->assertTrue($rows['project-'.$portal->getKey()]['over']);
+        $this->assertSame(['2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-09', '2026-10'], array_keys($rows['project-'.$portal->getKey()]['months']));
 
         // Retour au mois, et un affichage forcé depuis le navigateur : par mois.
         $widget->set('mode', TimeReportWidget::BY_MONTH)
@@ -337,7 +350,7 @@ class DashboardWidgetsTest extends TmaTestCase
             ->assertSet('mode', TimeReportWidget::BY_MONTH);
     }
 
-    public function test_the_time_report_by_task_in_the_client_reads_the_totals_received(): void
+    public function test_the_time_report_by_project_in_the_client_reads_the_totals_received(): void
     {
         $this->asClient();
         $this->travelTo(Carbon::parse('2026-10-20 10:00', 'Europe/Paris'));
@@ -350,13 +363,16 @@ class DashboardWidgetsTest extends TmaTestCase
         $ticket->forceFill(['time_total_minutes' => 30, 'time_by_month' => ['2026-10' => 30], 'last_activity_at' => now()->subDay()])->save();
 
         Livewire::test(TimeReportWidget::class)
-            ->set('mode', TimeReportWidget::BY_TASK)
-            ->assertSee(['Derniers tickets et tâches, tous mois confondus : 1 j au total.', 'TMA', 'Portail parrain'])
-            ->assertSee(['T-0001 Maquettes · <strong>3,5 h</strong>', 'T-0002 Cadrage · <strong>3 h</strong>', '<strong>30 min</strong>'], false)
-            ->assertDontSee('Sans temps')
-            ->assertTableColumnStateSet('minutes', 30, 'tma-'.self::CLIENT_UID)
+            ->set('mode', TimeReportWidget::BY_PROJECT)
+            ->assertSee(['Derniers projets, tous mois confondus : 0,93 j au total.', 'Portail parrain'])
+            ->assertSee([
+                'Septembre 2026 (<span title="T-0002 Cadrage">T-0002 Cadrage</span>, <span title="T-0001 Maquettes">T-0001 Maquettes</span>) · <strong>4 h</strong>',
+                'Octobre 2026 (<span title="T-0001 Maquettes">T-0001 Maquettes</span>) · <strong>2,5 h</strong>',
+            ], false)
+            ->assertDontSee(['Sans temps', '30 min'])
+            ->assertCanNotSeeTableRecords(['tma-'.self::CLIENT_UID])
             ->assertTableColumnStateSet('minutes', 390, 'project-'.$mockups->project_id)
-            ->assertTableColumnStateSet('total', '0,93 j', 'project-'.$mockups->project_id);
+            ->assertTableColumnStateSet('total', null, 'project-'.$mockups->project_id);
     }
 
     public function test_the_time_report_copies_the_table_shown_in_html_or_markdown(): void
@@ -395,26 +411,24 @@ class DashboardWidgetsTest extends TmaTestCase
         $this->assertStringContainsString('<strong>Portail parrain · Desapp</strong></td>', $html);
         $this->assertStringContainsString('padding-left:24px;">T-0001 Maquettes | v2</td><td style="border:1px solid #d1d5db;padding:4px 8px;text-align:right;">2 h</td>', $html);
 
-        // Par tâche : la même présentation, le temps de tous les mois.
-        $widget->set('mode', TimeReportWidget::BY_TASK);
+        // Par projet, sans la TMA : la ligne en gras, puis un mois par ligne, avec ses tâches, titres entiers.
+        $widget->set('mode', TimeReportWidget::BY_PROJECT);
         $this->assertSame(implode("\n", [
             '**Suivi des temps**',
             '',
-            'Derniers tickets et tâches, tous mois confondus : 0,39 j au total.',
+            'Derniers projets, tous mois confondus : 0,29 j au total.',
             '',
-            '| TMA et projets | Temps total | Cumul / fourchette |',
+            '| Projets | Temps total | Fourchette |',
             '| --- | ---: | ---: |',
-            '| **TMA · EDM** | **0,11 j** |  |',
-            '| DES-0001 Ticket DES-0001 | 0,75 h |  |',
-            '| **Portail parrain · Desapp** | **0,29 j** | **0,29 j / 1–2 j** |',
-            '| T-0001 Maquettes \| v2 | 2 h |  |',
+            '| **Portail parrain · Desapp** | **0,29 j** | **1–2 j** |',
+            '| Octobre 2026 (T-0001 Maquettes \| v2) | 2 h |  |',
         ]), $widget->instance()->copyableTable()->markdown());
 
         // Rien à copier sans temps.
         TimeEntry::query()->delete();
         Livewire::test(TimeReportWidget::class)
             ->assertActionHidden(TestAction::make('copyMarkdown')->table())
-            ->set('mode', TimeReportWidget::BY_TASK)
+            ->set('mode', TimeReportWidget::BY_PROJECT)
             ->assertSee('Aucun temps pour l’instant')
             ->assertActionHidden(TestAction::make('copyHtml')->table());
     }
