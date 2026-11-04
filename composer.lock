@@ -764,12 +764,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:charlesStOlive/filament-qonto.git",
-                "reference": "199ad8a0b88f641ba76414ccdb736c9e4c6fb850"
+                "reference": "91998f32e4a852570d10961a6915acc457d19abb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/199ad8a0b88f641ba76414ccdb736c9e4c6fb850",
-                "reference": "199ad8a0b88f641ba76414ccdb736c9e4c6fb850",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-qonto/zipball/91998f32e4a852570d10961a6915acc457d19abb",
+                "reference": "91998f32e4a852570d10961a6915acc457d19abb",
                 "shasum": ""
             },
             "require": {
@@ -821,7 +821,7 @@
                 "source": "https://github.com/charlesStOlive/filament-qonto/tree/master",
                 "issues": "https://github.com/charlesStOlive/filament-qonto/issues"
             },
-            "time": "2026-10-11T17:58:00+00:00"
+            "time": "2026-11-04T09:54:21+00:00"
         },
         {
             "name": "charlesstolive/filament-state-fusion-enhanced",
@@ -915,12 +915,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/charlesStOlive/filament-tma.git",
-                "reference": "be7b2cbb0781fdfcce817e7651e1810d9d43d684"
+                "reference": "83129f4ea1386816bd3d106fc7c5d96b5ded1d8e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/be7b2cbb0781fdfcce817e7651e1810d9d43d684",
-                "reference": "be7b2cbb0781fdfcce817e7651e1810d9d43d684",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/83129f4ea1386816bd3d106fc7c5d96b5ded1d8e",
+                "reference": "83129f4ea1386816bd3d106fc7c5d96b5ded1d8e",
                 "shasum": ""
             },
             "require": {
@@ -964,7 +964,7 @@
                 "source": "https://github.com/charlesStOlive/filament-tma/tree/master",
                 "issues": "https://github.com/charlesStOlive/filament-tma/issues"
             },
-            "time": "2026-10-29T14:43:17+00:00"
+            "time": "2026-11-04T09:53:49+00:00"
         },
         {
             "name": "charlesstolive/filament-ui",
