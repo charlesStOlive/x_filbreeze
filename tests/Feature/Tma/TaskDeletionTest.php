@@ -69,7 +69,7 @@ class TaskDeletionTest extends TmaTestCase
             ->mountAction(TestAction::make('delete')->table($task))
             ->assertMountedActionModalSee([
                 'Supprimer la tâche T-0001 ?',
-                'Partent avec elle : 1 message, 1 note et 1 h 30 de temps saisi.',
+                'Partent avec elle : 1 message, 1 note et 1,5 h de temps saisi.',
                 'Elle est publiée : elle disparaît aussi chez EDM.',
                 'La suppression ne se défait pas.',
             ])

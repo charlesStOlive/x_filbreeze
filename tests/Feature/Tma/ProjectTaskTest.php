@@ -350,9 +350,9 @@ class ProjectTaskTest extends TmaTestCase
         $this->assertSame(['total_minutes' => 480, 'by_month' => ['2026-09' => 420, '2026-10' => 60]], $this->project->timeTotals());
 
         $this->actingAs($agent);
-        // Le temps d'un projet, en jours et heures : 8 h font 1 j 1 h (une journée de 7 h).
-        Livewire::test(ListProjects::class)->assertCanSeeTableRecords([$this->project, $compta])->assertSee(['1 j 1 h', '0 / 2 terminées']);
-        Livewire::test(ViewProject::class, ['record' => $this->project->getKey()])->assertSee(['Portail parrain', '1 j 1 h']);
+        // Le temps d'un projet, en jours : 8 h font 1,14 j (une journée de 7 h).
+        Livewire::test(ListProjects::class)->assertCanSeeTableRecords([$this->project, $compta])->assertSee(['1,14 j', '0 / 2 terminées']);
+        Livewire::test(ViewProject::class, ['record' => $this->project->getKey()])->assertSee(['Portail parrain', '1,14 j']);
         Livewire::test(TasksRelationManager::class, ['ownerRecord' => $this->project, 'pageClass' => ViewProject::class])
             ->assertCanSeeTableRecords([$first, $second])
             ->assertCanNotSeeTableRecords([$elsewhere]);
@@ -502,7 +502,7 @@ class ProjectTaskTest extends TmaTestCase
             ->assertSee('Sur : Note n° 1');
         $this->assertSame(60, (int) $note->timeEntries()->sum('minutes'));
         $this->assertSame($before + 1, $task->entries()->count());
-        Livewire::test(ViewTask::class, ['record' => $task->getKey()])->assertSee('1 h 30');
+        Livewire::test(ViewTask::class, ['record' => $task->getKey()])->assertSee('1,5 h');
     }
 
     public function test_optional_details_show_on_demand(): void
@@ -556,17 +556,17 @@ class ProjectTaskTest extends TmaTestCase
         // Les totaux en tête, puis une ligne par saisie : qui, le jour et le mois, combien ; les boutons en icônes.
         $this->actingAs($agent);
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $task, 'pageClass' => ViewTask::class])
-            ->assertSee(['Cette tâche : 2 h 01 · Tout le projet : 6 h 01', '09/10', 'Saisir du temps'])
+            ->assertSee(['Cette tâche : 2,02 h · Tout le projet : 0,86 j', '09/10', 'Saisir du temps'])
             ->assertDontSee(['09/10/2026', 'Trier par'])
             ->assertTableActionVisible('edit', TimeEntry::query()->where('minutes', 121)->sole());
         Livewire::test(TimeEntriesRelationManager::class, ['ownerRecord' => $other, 'pageClass' => ViewTask::class])
-            ->assertSee(['Cette tâche : 4 h · Tout le projet : 6 h 01', 'Non facturable']);
+            ->assertSee(['Cette tâche : 4 h · Tout le projet : 0,86 j', 'Non facturable']);
 
         // Sans le droit de saisir : les totaux seuls, en lecture.
         $this->actingAs(User::factory()->withPermissions('panels.admin.access', 'tma.task.viewany', 'tma.task.view')->create());
         Livewire::test(ViewTask::class, ['record' => $task->getKey()])
             ->assertDontSeeLivewire(TimeEntriesRelationManager::class)
-            ->assertSee('Cette tâche : 2 h 01 · Tout le projet : 6 h 01')
+            ->assertSee('Cette tâche : 2,02 h · Tout le projet : 0,86 j')
             ->assertDontSee('Saisir du temps');
     }
 

@@ -272,7 +272,7 @@ class AgentsTest extends TmaTestCase
         // Un utilisateur du client : les totaux, en lecture, en bas du volet.
         $this->actingAs($requester);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
-            ->assertSeeInOrder(['Suivi', 'Temps passé', 'Ce ticket : 1 h 30'])
+            ->assertSeeInOrder(['Suivi', 'Temps passé', 'Ce ticket : 1,5 h'])
             ->assertDontSeeLivewire(TimeEntriesRelationManager::class)
             ->assertDontSee('Saisir du temps');
 
@@ -299,7 +299,7 @@ class AgentsTest extends TmaTestCase
             ->assertDontSeeLivewire(TimeEntriesRelationManager::class);
 
         Livewire::test(AgentTimeEntries::class, ['record' => $ticket])
-            ->assertSee(['Ce ticket : 1 h 30', 'Ada', '1 h', 'Grace', '30 min', 'Non facturable · Facturée'])
+            ->assertSee(['Ce ticket : 1,5 h', 'Ada', '1 h', 'Grace', '30 min', 'Non facturable · Facturée'])
             // Une saisie facturée ne bouge plus.
             ->assertActionVisible(TestAction::make('edit')->table('time-ada'))
             ->assertActionHidden(TestAction::make('edit')->table('time-old'))

@@ -101,7 +101,7 @@ class CommandsTest extends TmaTestCase
         $this->assertSame(['ticket', 'task'], array_column(json_decode(Artisan::output(), true), 'kind'));
 
         $this->artisan('tma:log', ['ref' => 'T-0001', '--days' => '0.5', '--summary' => 'Atelier de cadrage', '--token' => $token])
-            ->expectsOutputToContain('3 h 30 enregistrées')
+            ->expectsOutputToContain('3,5 h enregistrées')
             ->assertSuccessful();
 
         $this->assertSame(210, $task->timeEntries()->sole()->minutes);
@@ -144,7 +144,7 @@ class CommandsTest extends TmaTestCase
         ]], 201)]);
 
         $this->artisan('tma:log', ['ref' => 'DES-0042', '--hours' => '1.5', '--token' => 'jeton-perso-filbreeze'])
-            ->expectsOutputToContain('1 h 30 enregistrées')
+            ->expectsOutputToContain('1,5 h enregistrées')
             ->assertSuccessful();
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer jeton-perso-filbreeze')

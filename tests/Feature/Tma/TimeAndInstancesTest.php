@@ -33,8 +33,27 @@ class TimeAndInstancesTest extends TmaTestCase
         $this->assertSame(630, Duration::toMinutes(1.5, Duration::DAYS));
         config(['filament-tma.time.day_minutes' => 480]);
         $this->assertSame(240, Duration::toMinutes(0.5, Duration::DAYS));
-        $this->assertSame('2 h 30', Duration::format(150));
-        $this->assertSame('0,5 j', Duration::format(240, Duration::DAYS));
+        // Une seule unité, celle de `time.display_unit` (les jours d'office) : deux décimales au plus, jamais « 2 j 3 h ».
+        $this->assertSame('0,5 j', Duration::format(240));
+        $this->assertSame('2,31 j', Duration::format(1110));
+        $this->assertSame('< 0,01 j', Duration::format(1));
+        $this->assertSame('0 j', Duration::format(0));
+        $this->assertSame('2,5 h', Duration::format(150, Duration::HOURS));
+        $this->assertSame('2,08 h', Duration::format(125, Duration::HOURS));
+        $this->assertSame("1\u{00A0}050 min", Duration::format(1050, Duration::MINUTES));
+        config(['filament-tma.time.display_unit' => Duration::HOURS]);
+        $this->assertSame('18,5 h', Duration::format(1110));
+        // L'ancien affichage en jours et heures se lit en jours.
+        config(['filament-tma.time.display_unit' => 'days_hours']);
+        $this->assertSame('2,31 j', Duration::format(1110));
+        // Un ticket, une tâche, une saisie : en jours dès une journée, en heures en dessous, en minutes jusqu'à 30 min.
+        $this->assertSame(['1 j', '1,5 j', '7,98 h', '0,52 h', '30 min', '0 min'], array_map(
+            fn (int $minutes): string => Duration::format($minutes, Duration::AUTO), [480, 720, 479, 31, 30, 0],
+        ));
+        // Les séparateurs de la langue.
+        app()->setLocale('en');
+        $this->assertSame('2.31 d', Duration::format(1110));
+        $this->assertSame('1,050 min', Duration::format(1050, Duration::MINUTES));
     }
 
     public function test_time_is_split_by_month_and_sent_as_totals(): void
@@ -111,9 +130,9 @@ class TimeAndInstancesTest extends TmaTestCase
             ->callMountedAction()
             ->assertHasActionErrors(['duration_minutes']);
 
-        // 2 j 2 h 5 min, une journée de 7 h : 965 minutes, affichées « 2 j 2 h 05 » ; et dans l'autre sens.
+        // 2 j 2 h 5 min, une journée de 7 h : 965 minutes, affichées « 2,3 j » ; et dans l'autre sens.
         $this->assertSame(965, TimeEntryForm::minutes(['duration_days' => '2', 'duration_hours' => '2', 'duration_minutes' => '5']));
-        $this->assertSame('2 j 2 h 05', Duration::format(965));
+        $this->assertSame('2,3 j', Duration::format(965));
         $this->assertSame(['duration_days' => 2, 'duration_hours' => 2, 'duration_minutes' => 5], TimeEntryForm::fill(965));
         $this->assertSame(210, TimeEntryForm::minutes(['duration_days' => '0,5']));
 
