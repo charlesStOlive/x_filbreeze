@@ -235,6 +235,23 @@ class TimeAndInstancesTest extends TmaTestCase
             ->assertNotified('Connexion réussie : Desapp');
     }
 
+    public function test_only_who_edits_an_instance_issues_its_token(): void
+    {
+        $this->asMaster();
+        $instance = Instance::query()->create(['name' => 'Desapp', 'uid' => self::CLIENT_UID, 'url' => 'https://desapp.test', 'is_active' => true]);
+
+        // « Configuration de l'application » remplace le jeton du compte de service et l'affiche : voir la liste ne suffit pas.
+        $this->actingAs($this->agent('tma.instance.viewany', 'tma.instance.view'));
+        Livewire::test(ListInstances::class)
+            ->assertCanSeeTableRecords([$instance])
+            ->assertActionHidden(TestAction::make('setupClient')->table($instance));
+        $this->assertNull($instance->refresh()->api_user_id);
+
+        $this->actingAs($this->agent('tma.instance.viewany', 'tma.instance.view', 'tma.instance.edit'));
+        Livewire::test(ListInstances::class)
+            ->assertActionVisible(TestAction::make('setupClient')->table($instance));
+    }
+
     public function test_a_ticket_in_error_can_be_sent_again(): void
     {
         $this->asMaster();
