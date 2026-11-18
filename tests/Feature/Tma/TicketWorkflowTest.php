@@ -142,7 +142,7 @@ class TicketWorkflowTest extends TmaTestCase
         // Le tour du Support : le demandeur ne reprend pas la main.
         $ticket->forceFill(['state' => 'in_progress'])->save();
         $this->assertSame([], array_values(array_diff($available($this->fromClient()), ['force-close'])));
-        $this->assertEqualsCanonicalizing(['request-answer', 'submit-for-validation', 'pause'], $available(Context::ui($support)));
+        $this->assertEqualsCanonicalizing(['progress', 'request-answer', 'submit-for-validation', 'pause'], $available(Context::ui($support)));
 
         // Sans le droit de membre du Support, rien.
         $viewer = User::factory()->withPermissions('panels.admin.access', 'tma.ticket.viewany', 'tma.ticket.view')->create();

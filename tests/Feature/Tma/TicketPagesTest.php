@@ -400,7 +400,8 @@ class TicketPagesTest extends TmaTestCase
         $this->actingAs($support);
         Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
             ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerMessage'))
-            ->assertSee('Pour un point d’étape, écrivez une note.')
+            ->assertSee('« En cours » dit où vous en êtes sans rendre la main')
+            ->assertActionVisible(self::composer('composerReply_progress'))
             ->assertActionVisible(self::composer('composerReply_submit_for_validation'))
             ->tap(fn ($page) => $this->assertNoComposerAction($page, 'composerReply_answer'))
             ->fillForm(['body' => '<p>Sur quelle fiche ?</p>'], 'composer')

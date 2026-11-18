@@ -54,10 +54,7 @@ class CommandsTest extends TmaTestCase
         $this->assertNull($time->entry);
         $this->assertSame(0, Entry::query()->count());
 
-        // Pas de message à part sur un ticket ; une note, si.
-        $this->artisan('tma:comment', ['ref' => 'DES-0001', '--body' => 'Je regarde.', '--token' => $token])
-            ->expectsOutputToContain('va toujours avec un passage')
-            ->assertFailed();
+        // Une note sur le ticket entier (un message, lui, serait un « En cours » : voir TicketProgressTest).
         $this->artisan('tma:comment', ['ref' => 'DES-0001', '--body' => 'À surveiller au prochain import.', '--note' => true, '--token' => $token, '--json' => true])
             ->expectsOutputToContain('"type": "note"')
             ->assertSuccessful();

@@ -177,7 +177,8 @@ return [
     |
     */
     'passport' => [
-        'enabled' => false,
+        // Passport est configuré ici (jetons des commandes tma:*, API du TMA) : jetons d'API dans le Profil et la liste.
+        'enabled' => true,
         'token_expiration_days' => 365,
     ],
 
