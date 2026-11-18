@@ -34,6 +34,12 @@ Seul un Super Admin peut modifier, supprimer un Super Admin, ou donner ce rôle.
 double authentification d'un Super Admin, ou créer une clé API à son nom. Voir
 [Le rôle Super Admin](#modal-permissions.comprendre).
 
+## Les rôles qu'on peut donner
+
+Si vous n'êtes pas Super Admin, vous ne donnez qu'un rôle dont vous avez toutes les permissions : les autres sont grisés
+dans la liste. Un rôle grisé qu'une personne a déjà, vous ne pouvez pas non plus le lui retirer. On ne se donne donc
+jamais, ni à soi ni à un complice, plus que ce qu'on a.
+
 ## Réinitialiser la double authentification
 
 Si un utilisateur a perdu son application d'authentification, **Réinitialiser MFA** (dans la liste) retire sa double

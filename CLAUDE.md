@@ -26,27 +26,24 @@
 - Ne jamais exécuter `php`, `artisan`, `composer`, `npm`, `phpunit`, etc. directement sur l'hôte : tout passe par `./vendor/bin/sail ...` (ex. `./vendor/bin/sail artisan test`, `./vendor/bin/sail composer update ...`).
 - Si Sail n'est pas démarré (`./vendor/bin/sail up -d` nécessaire), le lancer avant toute commande — les conteneurs (`laravel.test`, `mysql`, `mailpit`) doivent tourner.
 
-## Développement sur un package filament-* local (ex. filament-qonto) — routine à appliquer sans demander
-- Les sources de dev des packages `charlesstolive/*` vivent hors de ce repo, dans `\\wsl.localhost\Ubuntu-22.04\home\charles\packages_filament\<nom-du-package>` (ex. `packages_filament/filament-qonto`), pas dans `vendor/`. Chacun est son propre repo Git avec son propre remote GitHub (ex. `charlesStOlive/filament-qonto.git`, branche `master`).
-- `composer.json` déclare ces packages via des repositories `vcs` (GitHub). C'est l'état par défaut/prod : `vendor/charlesstolive/<package>` est une install normale (pas un lien).
-
-**Ouverture (dès qu'on va modifier le code d'un de ces packages) :**
-1. Ajouter un repository `path` dans `composer.json`, juste avant les repositories `vcs` : `{"type": "path", "url": "../packages_filament/<package>", "options": {"symlink": true}}`.
-2. `./vendor/bin/sail composer update charlesstolive/<package>` → `vendor/charlesstolive/<package>` devient un symlink vers `packages_filament/<package>`. Sans ça, les modifs faites dans `packages_filament` ne sont pas vues par l'app.
-3. Éditer directement dans `packages_filament/<package>` (c'est le vrai repo Git du package, pas un scratch dir).
-
-**État actuel — ouverts depuis le 17/10/2026 :** `filament-tma`, `filament-prism`, `filament-ui`,
-`filament-permission-manager` (entrées `<nom>-local` en tête de `repositories`, les `vcs` restent dessous). `~/desapp`
-est dans le même état. Ils restent ouverts d'une session à l'autre : la fermeture ci-dessous se fait quand le user
-annonce un passage en production, pas en fin de session. D'ici là, ne pas committer `composer.json` ni
-`composer.lock`. La procédure détaillée, commune aux deux apps, est dans `~/desapp/CLAUDE.md` (« Repasser en
-production »).
-
-**Fermeture (au passage en production) :**
-1. Committer (et pousser si demandé) les changements dans le repo du package (`packages_filament/<package>`).
-2. Retirer les entrées `path` (`-local`) de `composer.json` (retour à la config `vcs` d'origine).
-3. `./vendor/bin/sail composer update charlesstolive/<package>` → réinstalle le vrai commit poussé depuis GitHub, `vendor/charlesstolive/<package>` redevient un dossier normal (plus de symlink).
-4. Vérifier : `grep -c '"type": "path"' composer.lock` répond 0, plus aucun lien dans `vendor/charlesstolive` ;
-   `docker restart filbreeze-laravel.test-1 filbreeze-queue-1 filbreeze-scheduler-1`, puis `sail test`.
-5. Committer `composer.json`/`composer.lock` dans filbreeze.
-- Si l'étape 3 échoue avec des erreurs SSH/`Permission denied (publickey)` sur un AUTRE package privé (ex. `filament-permission-manager`), c'est un souci d'auth GitHub de l'environnement (token/clé), pas une erreur de manip — le signaler plutôt que de contourner avec un hack (ex. extraire l'arbre Git localement).
+## Packages filament-* maison : mode local / distant avec `bin/plugins` (depuis le 18/11/2026)
+- Les sources de dev des packages `charlesstolive/*` vivent hors de ce repo, dans `~/packages_filament/<nom-du-package>`
+  (chacun son repo Git et son remote GitHub, branche `main` ou `master`), jamais dans `vendor/`.
+- Mode d'emploi complet : `docs/plugins-locaux.md` (le même que dans `~/desapp`). L'essentiel :
+  - `composer.json` / `composer.lock` sont **toujours distants** (repositories `vcs` GitHub, comme en prod) : plus
+    d'entrées `path` / `-local` à ajouter à la main. Le mode local vit dans `composer.local.json` /
+    `composer.local.lock`, ignorés par git, recréés par `bin/plugins local` (tous les clones, sans jeton GitHub).
+  - `bin/plugins` (état), `bin/plugins local`, `bin/plugins distant`, `bin/plugins publier [plugin…]`,
+    `bin/plugins jeton`. Chaque commande qui change `vendor` redémarre l'app, la file et le scheduler.
+  - Avant de modifier un package : `bin/plugins` doit dire « Mode : local », sinon `bin/plugins local`.
+  - Publier : committer et pousser le clone, `bin/plugins publier`, `sail test`, committer `composer.lock`, puis
+    `bin/plugins local`.
+  - Hook `.githooks/pre-commit` (activé par `bin/plugins`) : refuse un `composer.json` / `composer.lock` qui pointe
+    vers `../`.
+- `docs/knowledge-base` est suivi par git ici : les scripts de composer y republient l'aide des plugins
+  (`vendor:publish --force`). `bin/plugins` refuse de tourner s'il y a des modifications non commitées dedans, et liste
+  ensuite ce qu'il a republié.
+- Jeton GitHub : `~/.config/composer/auth.json` de l'hôte, monté en lecture seule dans `laravel.test` (`compose.yaml`).
+  Il se renouvelle sur l'hôte (`composer config -g github-oauth.github.com <jeton>`), jamais par `sail composer`.
+  Une erreur 401 / `Permission denied (publickey)` / « Host key verification failed » de composer = jeton expiré :
+  `bin/plugins jeton`, et le signaler au user plutôt que de contourner.

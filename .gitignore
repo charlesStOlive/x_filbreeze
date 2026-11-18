@@ -33,3 +33,7 @@ public/pdf.hot
 # Configuration de déploiement (à garder en référence)
 PRODUCTION_CONFIG.md
 /.puppeteer-cache
+
+# Mode local des plugins (bin/plugins local) : ne se versionnent pas.
+/composer.local.json
+/composer.local.lock

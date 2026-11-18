@@ -75,10 +75,17 @@ Voir [Ce que chaque permission ouvre](#modal-permissions.acces).
 La dernière rubrique, repliée, montre les permissions qui ne correspondent à aucun écran actuel : anciennes,
 techniques ou ajoutées à la main. Elles restent visibles pour qu'aucun droit ne soit caché ; on peut les retirer.
 
+## On ne donne que ce qu'on a
+
+Si vous n'êtes pas Super Admin, vous ne cochez que des permissions que vous avez vous-même : les autres cases sont
+grisées (la raison s'affiche au survol), et « Tout cocher » les laisse comme elles sont. Une permission grisée qu'un rôle
+a déjà, vous ne pouvez pas non plus la lui retirer. Une case « y compris ce qui sera ajouté » ne se coche que si vous
+avez vous-même ce « tout » : elle donnerait aussi ce qui apparaîtra plus tard.
+
 ## Le Super Admin
 
 Ses permissions ne se modifient pas ici : il les reçoit toutes, à chaque mise à jour. Seul un Super Admin peut
-modifier son rôle (son nom).
+modifier son rôle (son nom). Aucun autre rôle ne peut prendre son nom.
 
 ## Supprimer un rôle
 

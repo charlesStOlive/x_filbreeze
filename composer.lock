@@ -609,12 +609,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:charlesStOlive/filament-permission-manager.git",
-                "reference": "ff062489c033e268161f7ebc25a81db1e1da95b7"
+                "reference": "03a68dac22cbfb380a9991f5d2df2b12fe0f6d4a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-permission-manager/zipball/ff062489c033e268161f7ebc25a81db1e1da95b7",
-                "reference": "ff062489c033e268161f7ebc25a81db1e1da95b7",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-permission-manager/zipball/03a68dac22cbfb380a9991f5d2df2b12fe0f6d4a",
+                "reference": "03a68dac22cbfb380a9991f5d2df2b12fe0f6d4a",
                 "shasum": ""
             },
             "require": {
@@ -702,7 +702,7 @@
                 "source": "https://github.com/charlesStOlive/filament-permission-manager/tree/main",
                 "issues": "https://github.com/charlesStOlive/filament-permission-manager/issues"
             },
-            "time": "2026-10-28T10:46:39+00:00"
+            "time": "2026-11-18T13:57:09+00:00"
         },
         {
             "name": "charlesstolive/filament-prism",
@@ -915,12 +915,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/charlesStOlive/filament-tma.git",
-                "reference": "c903258568a52ff6d963fa5097dcf31a301d7c1f"
+                "reference": "1c96d816c1202e8ec6def3d9a7d8117d70f5809e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/c903258568a52ff6d963fa5097dcf31a301d7c1f",
-                "reference": "c903258568a52ff6d963fa5097dcf31a301d7c1f",
+                "url": "https://api.github.com/repos/charlesStOlive/filament-tma/zipball/1c96d816c1202e8ec6def3d9a7d8117d70f5809e",
+                "reference": "1c96d816c1202e8ec6def3d9a7d8117d70f5809e",
                 "shasum": ""
             },
             "require": {
@@ -964,7 +964,7 @@
                 "source": "https://github.com/charlesStOlive/filament-tma/tree/master",
                 "issues": "https://github.com/charlesStOlive/filament-tma/issues"
             },
-            "time": "2026-11-04T15:12:10+00:00"
+            "time": "2026-11-18T13:57:05+00:00"
         },
         {
             "name": "charlesstolive/filament-ui",

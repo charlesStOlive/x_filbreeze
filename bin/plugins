@@ -1,0 +1,439 @@
+#!/usr/bin/env bash
+#
+# bin/plugins : les plugins maison (charlesstolive/*) en mode « local » (depuis leurs clones de
+# ../packages_filament) ou « distant » (depuis GitHub, comme en production), sans jamais modifier
+# composer.json ni composer.lock.
+#
+#   bin/plugins etat                 où en est chaque plugin, et le jeton GitHub (commande par défaut)
+#   bin/plugins local [options]      tous les plugins depuis leurs clones (composer.local.json, sans jeton)
+#   bin/plugins distant [options]    retour au composer.lock de production (GitHub, jeton nécessaire)
+#   bin/plugins publier [plugin…]    met composer.lock sur les commits poussés des clones, à committer
+#   bin/plugins jeton                vérifie le jeton GitHub de composer et dit comment le renouveler
+#
+# Les options sont passées à composer (ex. : bin/plugins local -W).
+# Mode d'emploi, et mise en place dans une autre app : docs/plugins-locaux.md
+# Ce fichier est le même dans chaque app : le copier tel quel, rien n'y est propre à une app.
+
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+env_value() { { [ -f .env ] && grep -E "^$1=" .env | tail -n1 | cut -d= -f2- | sed -E "s/^[\"']//; s/[\"']\$//"; } || true; }
+
+VENDOR=${PLUGINS_VENDOR:-$(env_value PLUGINS_VENDOR)}; VENDOR=${VENDOR:-charlesstolive}
+PLUGINS_DIR=${PLUGINS_DIR:-$(env_value PLUGINS_DIR)}; PLUGINS_DIR=${PLUGINS_DIR:-../packages_filament}
+PUBLISHED_DIRS=${PLUGINS_PUBLISHED_DIRS:-$(env_value PLUGINS_PUBLISHED_DIRS)}; PUBLISHED_DIRS=${PUBLISHED_DIRS:-docs/knowledge-base}
+APP_SERVICE=${APP_SERVICE:-$(env_value APP_SERVICE)}; APP_SERVICE=${APP_SERVICE:-laravel.test}
+AUTH_FILE=${COMPOSER_HOME:-$HOME/.config/composer}/auth.json
+LOCAL_JSON=composer.local.json
+LOCAL_LOCK=composer.local.lock
+TOKEN_URL=https://github.com/settings/personal-access-tokens/new
+
+export WWWUSER=${WWWUSER:-$UID} WWWGROUP=${WWWGROUP:-$(id -g)}
+if docker compose version >/dev/null 2>&1; then DC=(docker compose); else DC=(docker-compose); fi
+
+if [ -t 1 ]; then B=$'\e[1m' R=$'\e[31m' G=$'\e[32m' Y=$'\e[33m' D=$'\e[2m' N=$'\e[0m'; else B='' R='' G='' Y='' D='' N=''; fi
+die()  { echo "${R}✗ $*${N}" >&2; exit 1; }
+warn() { echo "${Y}! $*${N}" >&2; }
+ok()   { echo "${G}✓ $*${N}"; }
+step() { echo; echo "${B}› $*${N}"; }
+
+usage() { sed -n '3,15p' "$0" | sed 's/^# \{0,1\}//'; }
+
+# --- Conteneurs ---------------------------------------------------------------------------------
+
+require_app() {
+    "${DC[@]}" ps --status running --services 2>/dev/null | grep -qx "$APP_SERVICE" \
+        || die "Le conteneur « $APP_SERVICE » ne tourne pas : lancer d'abord « ./vendor/bin/sail up -d »."
+}
+
+# in_app [-e VAR=valeur]… commande… : comme « sail », en utilisateur sail.
+in_app() {
+    local opts=(-u sail)
+    if [ ! -t 0 ] || [ ! -t 1 ]; then opts+=(-T); fi
+    while [ "${1:-}" = -e ]; do opts+=(-e "$2"); shift 2; done
+    "${DC[@]}" exec "${opts[@]}" "$APP_SERVICE" "$@"
+}
+
+# Les services qui font tourner le PHP de l'app (même image qu'elle) : app, file, scheduler…
+restart_php() {
+    local image svcs
+    image=$("${DC[@]}" ps --format '{{.Service}} {{.Image}}' | awk -v s="$APP_SERVICE" '$1 == s { print $2 }')
+    mapfile -t svcs < <("${DC[@]}" ps --status running --format '{{.Service}} {{.Image}}' | awk -v i="$image" '$2 == i { print $1 }')
+    step "Redémarrage de ${svcs[*]} (leur PHP ne relit pas vendor tout seul)"
+    "${DC[@]}" restart "${svcs[@]}" >/dev/null
+    ok "redémarrés"
+}
+
+# --- Inventaire des plugins (lu dans le conteneur, qui a toujours PHP) --------------------------
+
+php_helper() {
+    cat <<'PHP'
+<?php
+// Aide de bin/plugins, exécutée dans le conteneur, dans le dossier du projet.
+[, $cmd, $dir, $vendor] = $argv + [null, '', '../packages_filament', 'charlesstolive'];
+$dir = rtrim($dir, '/');
+$only = array_slice($argv, 4);
+
+$read = fn (string $f, bool $assoc = true) => is_file($f) ? json_decode(file_get_contents($f), $assoc, 512, JSON_THROW_ON_ERROR) : [];
+$norm = function (?string $url): string {
+    $u = strtolower(trim((string) $url));
+    $u = preg_replace('#^(git\+)?(https?|ssh|git)://#', '', $u);
+    $u = preg_replace('#^[^@/]+@#', '', $u);              // git@github.com:… → github.com:…
+    $u = preg_replace('#^([^/:]+):(?!\d)#', '$1/', $u);    // github.com:owner/repo → github.com/owner/repo
+    return preg_replace('#(\.git)?/*$#', '', $u);
+};
+
+$clones = [];   // nom du paquet => [dossier, url de origin]
+foreach (glob("$dir/*/composer.json") ?: [] as $file) {
+    $name = $read($file)['name'] ?? null;
+    if (! $name) continue;
+    $path = dirname($file);
+    $origin = '';
+    if (is_file("$path/.git/config") && preg_match('/\[remote "origin"\][^\[]*?\burl\s*=\s*(\S+)/', file_get_contents("$path/.git/config"), $m)) {
+        $origin = $m[1];
+    }
+    $clones[$name] = [basename($path), $origin];
+}
+
+$json = $read('composer.json');
+$lock = $read('composer.lock');
+$pkgs = [];
+foreach (array_merge($lock['packages'] ?? [], $lock['packages-dev'] ?? []) as $p) {
+    if (str_starts_with($p['name'], "$vendor/")) $pkgs[$p['name']] = $p;
+}
+foreach (array_merge($json['require'] ?? [], $json['require-dev'] ?? []) as $name => $constraint) {
+    if (str_starts_with($name, "$vendor/") && ! isset($pkgs[$name])) $pkgs[$name] = ['name' => $name, 'version' => $constraint];
+}
+ksort($pkgs);
+
+if ($cmd === 'inventaire') {
+    // nom  version  commit du lock  type de dist  dossier du clone
+    foreach ($pkgs as $name => $p) {
+        echo implode("\t", [$name, $p['version'] ?? '-', $p['source']['reference'] ?? $p['dist']['reference'] ?? '-', $p['dist']['type'] ?? '-', $clones[$name][0] ?? '-']), "\n";
+    }
+    exit(0);
+}
+
+if ($cmd === 'generer') {
+    // composer.local.json = composer.json, avec un dépôt « path » en tête pour chaque plugin cloné,
+    // et sans les dépôts GitHub de ces plugins (le mode local ne parle jamais à GitHub).
+    $local = array_intersect_key($clones, array_flip($only));
+    $localUrls = [];
+    foreach ($local as $name => [, $origin]) {
+        if ($origin !== '') $localUrls[] = $norm($origin);
+        if (isset($pkgs[$name]['source']['url'])) $localUrls[] = $norm($pkgs[$name]['source']['url']);
+    }
+    $repos = [];
+    foreach ($local as [$folder]) {
+        $repos[] = ['type' => 'path', 'url' => "$dir/$folder", 'options' => ['symlink' => true]];
+    }
+    $out = $read('composer.json', false);   // en objets : garde les {} vides tels quels
+    foreach ((array) ($out->repositories ?? []) as $key => $repo) {
+        if (! is_object($repo)) { $repos[] = [$key => $repo]; continue; }   // "packagist.org": false
+        $type = $repo->type ?? '';
+        $url = $repo->url ?? '';
+        if ($type === 'path' && str_starts_with($url, '../')) continue;    // ancienne entrée « -local »
+        if (in_array($type, ['vcs', 'git', 'github'], true) && in_array($norm($url), $localUrls, true)) continue;
+        $repos[] = $repo;
+    }
+    $out->repositories = $repos;
+    file_put_contents('composer.local.json', json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n");
+    exit(0);
+}
+
+fwrite(STDERR, "aide de bin/plugins : commande inconnue « $cmd »\n");
+exit(1);
+PHP
+}
+
+php_in_app() { php_helper | "${DC[@]}" exec -T -u sail "$APP_SERVICE" php -- "$@"; }
+
+load_inventory() {
+    INV=()
+    mapfile -t INV < <(php_in_app inventaire "$PLUGINS_DIR" "$VENDOR")
+    [ ${#INV[@]} -gt 0 ] || die "Aucun paquet $VENDOR/* dans composer.json ni composer.lock."
+}
+
+resolve_pkg() {
+    local line name
+    for line in "${INV[@]}"; do
+        name=${line%%$'\t'*}
+        case $name in "$1" | "$VENDOR/$1" | "$VENDOR/filament-$1") echo "$name"; return 0 ;; esac
+    done
+    return 1
+}
+
+# clone_info <dossier> <commit du lock> → BRANCH HEADREF DIRTY UNPUSHED REL
+clone_info() {
+    local d="$PLUGINS_DIR/$1" lockref=$2
+    BRANCH=$(git -C "$d" rev-parse --abbrev-ref HEAD)
+    HEADREF=$(git -C "$d" rev-parse HEAD)
+    DIRTY=$(git -C "$d" status --porcelain | wc -l | tr -d ' ')
+    if git -C "$d" rev-parse '@{u}' >/dev/null 2>&1; then UNPUSHED=$(git -C "$d" rev-list --count '@{u}..HEAD'); else UNPUSHED='?'; fi
+    if [ "$lockref" = "$HEADREF" ]; then REL=same
+    elif ! git -C "$d" cat-file -e "$lockref^{commit}" 2>/dev/null; then REL=unknown
+    elif git -C "$d" merge-base --is-ancestor "$lockref" HEAD; then REL=ahead
+    elif git -C "$d" merge-base --is-ancestor HEAD "$lockref"; then REL=behind
+    else REL=diverged
+    fi
+}
+
+# --- Garde-fous ---------------------------------------------------------------------------------
+
+ensure_hooks() {
+    [ -d .githooks ] || return 0
+    local cur
+    cur=$(git config core.hooksPath || true)
+    [ "$cur" = .githooks ] && return 0
+    if [ -n "$cur" ] && [ -d "$cur" ]; then
+        warn "core.hooksPath vaut « $cur » : le hook .githooks/pre-commit n'est pas actif."
+        return 0
+    fi
+    git config core.hooksPath .githooks
+    ok "hook git activé (core.hooksPath = .githooks)"
+}
+
+# Les scripts de composer republient l'aide des plugins (vendor:publish --force) : ne pas écraser
+# un travail non commité dans ces dossiers quand ils sont suivis par git.
+guard_published() {
+    local dirty
+    # shellcheck disable=SC2086
+    dirty=$(git status --porcelain --untracked-files=no -- $PUBLISHED_DIRS 2>/dev/null || true)
+    [ -z "$dirty" ] && return 0
+    [ "${PLUGINS_FORCE:-}" = 1 ] && { warn "PLUGINS_FORCE=1 : ces fichiers seront écrasés :"$'\n'"$dirty"; return 0; }
+    die "composer republie l'aide des plugins (vendor:publish --force) et écraserait ces modifications non commitées :
+$dirty
+→ les committer ou les mettre de côté (git stash), ou relancer avec PLUGINS_FORCE=1."
+}
+
+tracked_changes() { git status --porcelain --untracked-files=no | sort; }
+
+report_republished() {
+    local before=$1 after
+    after=$(tracked_changes)
+    after=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | grep -v -E ' composer\.(json|lock)$' || true)
+    [ -z "$after" ] || warn "composer a modifié ces fichiers suivis par git (aide republiée…) :"$'\n'"$after"
+}
+
+# --- Jeton GitHub -------------------------------------------------------------------------------
+
+host_token() { { [ -f "$AUTH_FILE" ] && sed -n 's/.*"github\.com"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$AUTH_FILE" | head -n1; } || true; }
+
+token_help() {
+    cat <<EOF
+  Pour le renouveler (2 minutes) :
+    1. $TOKEN_URL
+       Repository access : All repositories — Permissions : Contents → Read-only — expiration la plus longue.
+    2. Sur l'hôte (WSL), pas dans sail (le fichier est monté en lecture seule dans les conteneurs) :
+         composer config -g github-oauth.github.com <le_jeton>
+       Toutes les apps qui montent $AUTH_FILE le voient aussitôt, sans redémarrage.
+EOF
+}
+
+# Affiche l'état du jeton ; code de retour 0 s'il est accepté par GitHub.
+token_report() {
+    local tok hdr code exp ts days ctok status=0
+    echo; echo "${B}Jeton GitHub de composer${N} ${D}($AUTH_FILE)${N}"
+    tok=$(host_token)
+    if [ -z "$tok" ]; then
+        echo "  ${R}✗ aucun jeton github.com dans ce fichier${N}"; token_help; return 1
+    fi
+    if "${DC[@]}" ps --status running --services 2>/dev/null | grep -qx "$APP_SERVICE"; then
+        ctok=$(in_app sh -c 'cat "${COMPOSER_HOME:-$HOME/.config/composer}/auth.json" 2>/dev/null' </dev/null \
+            | sed -n 's/.*"github\.com"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1 || true)
+        if [ "$ctok" = "$tok" ]; then
+            echo "  ${G}✓ le conteneur $APP_SERVICE lit ce même fichier (monté depuis l'hôte)${N}"
+        else
+            echo "  ${R}✗ le conteneur $APP_SERVICE ne lit pas ce jeton : monter $AUTH_FILE dans compose.yaml, puis « sail up -d »${N}"
+            status=1
+        fi
+    fi
+    if ! hdr=$(curl -sS -m 15 -D - -o /dev/null -H "Authorization: Bearer $tok" https://api.github.com/user 2>&1); then
+        echo "  ${Y}! GitHub injoignable : $hdr${N}"; return 1
+    fi
+    code=$(printf '%s\n' "$hdr" | awk 'NR == 1 { print $2 }')
+    if [ "$code" != 200 ]; then
+        echo "  ${R}✗ refusé par GitHub (HTTP $code) : expiré ou révoqué${N}"; token_help; return 1
+    fi
+    exp=$(printf '%s\n' "$hdr" | tr -d '\r' | sed -n 's/^github-authentication-token-expiration: *//p')
+    if [ -z "$exp" ]; then
+        echo "  ${G}✓ accepté par GitHub, sans date d'expiration${N}"
+    elif ts=$(date -d "$exp" +%s 2>/dev/null); then
+        days=$(( (ts - $(date +%s)) / 86400 ))
+        if [ "$days" -lt 15 ]; then
+            echo "  ${Y}! accepté, mais expire dans $days jour(s) ($exp)${N}"; token_help
+        else
+            echo "  ${G}✓ accepté par GitHub, expire le ${exp%% *} (dans $days jours)${N}"
+        fi
+    else
+        echo "  ${G}✓ accepté par GitHub, expire le $exp${N}"
+    fi
+    return $status
+}
+
+need_token() {
+    token_report && return 0
+    [ "${PLUGINS_FORCE:-}" = 1 ] && { warn "PLUGINS_FORCE=1 : on tente quand même (cache de composer)."; return 0; }
+    die "Sans jeton valide, composer ne peut pas télécharger les plugins privés depuis GitHub (voir ci-dessus)."
+}
+
+# --- Commandes ----------------------------------------------------------------------------------
+
+cmd_etat() {
+    require_app; ensure_hooks; load_inventory
+    local line name ver ref dist dir mode clone notes joined nlocal=0 ngithub=0
+    echo "${B}Plugins $VENDOR/*${N} ${D}(clones : $PLUGINS_DIR — « installé » = ce que l'app utilise en ce moment)${N}"
+    printf "  %-32s %-9s %-22s %-10s %s\n" plugin installé "clone" "lock prod" remarques
+    for line in "${INV[@]}"; do
+        IFS=$'\t' read -r name ver ref dist dir <<<"$line"
+        if [ -L "vendor/$name" ]; then mode=local; nlocal=$((nlocal + 1))
+        elif [ -d "vendor/$name" ]; then mode=GitHub; ngithub=$((ngithub + 1))
+        else mode=absent
+        fi
+        notes=()
+        if [ "$dir" = - ]; then
+            clone='—'; notes+=("pas de clone dans $PLUGINS_DIR")
+        else
+            clone_info "$dir" "$ref"
+            clone="$BRANCH@${HEADREF:0:7}"
+            if [ "${ver#dev-}" != "$ver" ] && [ "$BRANCH" != "${ver#dev-}" ]; then notes+=("${R}branche ≠ ${ver#dev-}${N}"); fi
+            if [ "$DIRTY" -gt 0 ]; then notes+=("${Y}$DIRTY fichier(s) non commité(s)${N}"); fi
+            if [ "$UNPUSHED" = '?' ]; then notes+=("${Y}branche non suivie sur origin${N}")
+            elif [ "$UNPUSHED" -gt 0 ]; then notes+=("${Y}$UNPUSHED commit(s) non poussé(s)${N}")
+            fi
+            case $REL in
+                ahead) notes+=("${B}en avance sur la prod : à publier${N}") ;;
+                behind) notes+=("${R}en retard sur la prod : git pull${N}") ;;
+                diverged) notes+=("${R}a divergé de la prod${N}") ;;
+                unknown) notes+=("${Y}commit de prod inconnu du clone : git fetch${N}") ;;
+            esac
+        fi
+        if [ "$dist" = path ]; then notes+=("${R}composer.lock en « path » !${N}"); fi
+        if [ ${#notes[@]} -eq 0 ]; then joined="${G}à jour${N}"; else joined=$(printf '%s, ' "${notes[@]}"); joined=${joined%, }; fi
+        printf "  %-32s %-9s %-22s %-10s %s\n" "${name#"$VENDOR"/}" "$mode" "$clone" "${ref:0:7}" "$joined"
+    done
+    echo
+    if [ "$ngithub" -eq 0 ]; then echo "  Mode : ${B}local${N} (bin/plugins distant pour revenir à la prod)"
+    elif [ "$nlocal" -eq 0 ]; then echo "  Mode : ${B}distant${N} (bin/plugins local pour travailler sur les clones)"
+    else echo "  Mode : ${Y}mixte${N} (bin/plugins local ou bin/plugins distant pour remettre d'aplomb)"
+    fi
+    if grep -q -E '"url": *"\.\./' composer.json composer.lock; then
+        echo "  ${R}✗ composer.json ou composer.lock pointe vers un clone local : ils doivent rester distants${N}"
+    fi
+    if [ "$(git config core.hooksPath || true)" != .githooks ]; then echo "  ${Y}! hook pre-commit inactif${N}"; fi
+    token_report || true
+}
+
+cmd_local() {
+    require_app; ensure_hooks; load_inventory
+    local line name ver ref dist dir names=() errors=() before
+    for line in "${INV[@]}"; do
+        IFS=$'\t' read -r name ver ref dist dir <<<"$line"
+        if [ "$dir" = - ]; then warn "${name#"$VENDOR"/} : pas de clone dans $PLUGINS_DIR, il reste sur GitHub."; continue; fi
+        clone_info "$dir" "$ref"
+        if [ "${ver#dev-}" != "$ver" ] && [ "$BRANCH" != "${ver#dev-}" ]; then
+            errors+=("${name#"$VENDOR"/} : le clone est sur « $BRANCH », composer attend la branche « ${ver#dev-} »"); continue
+        fi
+        if [ "$REL" = behind ]; then warn "${name#"$VENDOR"/} : le clone est en retard sur la prod (git pull dans $PLUGINS_DIR/$dir)."; fi
+        names+=("$name")
+    done
+    if [ ${#errors[@]} -gt 0 ]; then die "$(printf '%s\n' "${errors[@]}")"; fi
+    [ ${#names[@]} -gt 0 ] || die "Aucun plugin à passer en local."
+    guard_published
+    before=$(tracked_changes)
+
+    php_in_app generer "$PLUGINS_DIR" "$VENDOR" "${names[@]}"
+    cp composer.lock "$LOCAL_LOCK"
+    step "composer update ($LOCAL_JSON) : ${#names[@]} plugins depuis $PLUGINS_DIR, le reste comme en prod"
+    in_app -e "COMPOSER=$LOCAL_JSON" composer update "${names[@]}" --no-interaction "$@"
+
+    for name in "${names[@]}"; do
+        [ -L "vendor/$name" ] || warn "vendor/$name n'est pas un lien vers le clone."
+    done
+    restart_php
+    report_republished "$before"
+    echo; ok "Mode local : ${#names[@]} plugins viennent de $PLUGINS_DIR. composer.json et composer.lock n'ont pas bougé."
+}
+
+cmd_distant() {
+    require_app; ensure_hooks
+    need_token
+    guard_published
+    local before; before=$(tracked_changes)
+    step "composer install (composer.lock de production)"
+    in_app composer install --no-interaction "$@"
+    if find "vendor/$VENDOR" -maxdepth 1 -type l 2>/dev/null | grep -q .; then warn "il reste des liens dans vendor/$VENDOR."; fi
+    restart_php
+    report_republished "$before"
+    echo; ok "Mode distant : l'app tourne exactement sur le composer.lock de production."
+}
+
+cmd_publier() {
+    require_app; ensure_hooks; load_inventory
+    local arg n line name ver ref dist dir targets=() opts=() to_update=() errors=() before refs=()
+    for arg in "$@"; do
+        if [[ $arg == -* ]]; then opts+=("$arg")
+        else n=$(resolve_pkg "$arg") || die "Plugin inconnu : $arg"; targets+=("$n")
+        fi
+    done
+    for line in "${INV[@]}"; do
+        IFS=$'\t' read -r name ver ref dist dir <<<"$line"
+        if [ ${#targets[@]} -gt 0 ] && [[ ! " ${targets[*]} " == *" $name "* ]]; then continue; fi
+        if [ "$dir" = - ]; then [ ${#targets[@]} -gt 0 ] && errors+=("${name#"$VENDOR"/} : pas de clone"); continue; fi
+        clone_info "$dir" "$ref"
+        local short=${name#"$VENDOR"/}
+        if [ "${ver#dev-}" != "$ver" ] && [ "$BRANCH" != "${ver#dev-}" ]; then errors+=("$short : le clone est sur « $BRANCH », pas « ${ver#dev-} »"); continue; fi
+        if [ "$DIRTY" -gt 0 ]; then errors+=("$short : $DIRTY fichier(s) non commité(s)"); continue; fi
+        if [ "$UNPUSHED" = '?' ]; then errors+=("$short : la branche n'est pas suivie sur origin"); continue; fi
+        if [ "$UNPUSHED" -gt 0 ]; then errors+=("$short : $UNPUSHED commit(s) non poussé(s)"); continue; fi
+        case $REL in
+            same) ;;
+            behind) errors+=("$short : le clone est en retard sur composer.lock (git pull)") ;;
+            *) to_update+=("$name"); refs+=("$name=$HEADREF") ;;
+        esac
+    done
+    if [ ${#errors[@]} -gt 0 ]; then die "Avant de publier :"$'\n'"$(printf '  %s\n' "${errors[@]}")"; fi
+    if [ ${#to_update[@]} -eq 0 ]; then ok "composer.lock est déjà sur les commits des clones : rien à publier."; return 0; fi
+
+    need_token
+    guard_published
+    before=$(tracked_changes)
+    step "composer update (composer.json, depuis GitHub) : ${to_update[*]#"$VENDOR"/}"
+    in_app composer update "${to_update[@]}" --no-interaction "${opts[@]}"
+
+    load_inventory
+    local r expected got
+    for r in "${refs[@]}"; do
+        name=${r%%=*}; expected=${r#*=}
+        got=$(printf '%s\n' "${INV[@]}" | awk -F'\t' -v n="$name" '$1 == n { print $3 }')
+        if [ "$got" = "$expected" ]; then ok "${name#"$VENDOR"/} : composer.lock → ${got:0:7}"
+        else warn "${name#"$VENDOR"/} : GitHub a donné ${got:0:7}, le clone est à ${expected:0:7} (le push est-il bien arrivé ?)"
+        fi
+    done
+    if grep -q -E '"url": *"\.\./' composer.lock; then die "composer.lock pointe vers un clone local : ne pas le committer."; fi
+    restart_php
+    report_republished "$before"
+    echo
+    git --no-pager diff --stat -- composer.json composer.lock
+    cat <<EOF
+
+${B}Ensuite :${N}
+  1. ./vendor/bin/sail test        (l'app tourne maintenant sur la version GitHub, comme en prod)
+  2. committer composer.lock
+  3. bin/plugins local             (pour retravailler sur les clones)
+EOF
+}
+
+cmd_jeton() { token_report; }
+
+cmd=${1:-etat}
+shift $(($# > 0 ? 1 : 0))
+case $cmd in
+    etat | status) cmd_etat ;;
+    local) cmd_local "$@" ;;
+    distant | remote) cmd_distant "$@" ;;
+    publier | publish) cmd_publier "$@" ;;
+    jeton | token) cmd_jeton ;;
+    aide | help | -h | --help) usage ;;
+    *) usage; exit 1 ;;
+esac

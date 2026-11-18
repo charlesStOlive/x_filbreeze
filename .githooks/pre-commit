@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# Refuse un composer.json / composer.lock qui pointe vers des clones locaux (dépôt « path » en ../) :
+# il casserait l'installation en production, où ../packages_filament n'existe pas.
+# Le mode local vit dans composer.local.json / composer.local.lock (ignorés par git) : voir bin/plugins
+# et docs/plugins-locaux.md. Activé par « git config core.hooksPath .githooks » (bin/plugins le fait).
+
+status=0
+for f in composer.json composer.lock; do
+    git diff --cached --name-only --diff-filter=ACMR | grep -qx "$f" || continue
+    if git show ":$f" | grep -q -E '"url": *"\.\./'; then
+        echo "✗ pre-commit : $f pointe vers un clone local (dépôt « path » en ../)." >&2
+        status=1
+    fi
+done
+
+if [ $status -ne 0 ]; then
+    echo "  composer.json et composer.lock doivent rester distants (GitHub) : le mode local passe par" >&2
+    echo "  bin/plugins local (composer.local.json). Pour repartir de la version commitée :" >&2
+    echo "  git restore --staged --worktree composer.json composer.lock, puis bin/plugins local." >&2
+fi
+exit $status

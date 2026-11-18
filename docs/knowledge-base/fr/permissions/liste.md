@@ -28,3 +28,6 @@ sert à rien.
 Renommer une permission la déconnecte de l'écran qui la vérifie : ne le faites pas. Supprimer une permission la
 retire de tous les rôles qui l'avaient ; si elle est encore utilisée par l'application, elle sera recréée à la
 prochaine mise à jour, mais sans ses rôles.
+
+Si vous n'êtes pas Super Admin, vous ne modifiez ni ne supprimez qu'une permission que vous avez, et vous ne créez ou ne
+renommez une permission qu'en un nom que vous avez déjà (par exemple sous un « tout » qui est à vous).

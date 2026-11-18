@@ -21,6 +21,10 @@ services:
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
             - '.:/var/www/html'
+            # Le jeton GitHub de composer (plugins charlesstolive/* privés), lu sur l'hôte, le même pour toutes les apps.
+            # Le renouveler sur l'hôte : composer config -g github-oauth.github.com <jeton> (voir docs/plugins-locaux.md).
+            - '${HOME}/.config/composer/auth.json:/home/sail/.config/composer/auth.json:ro'
+            # Les clones de travail des plugins, pour bin/plugins local (voir docs/plugins-locaux.md).
             - '../packages_filament:/var/www/packages_filament'
         networks:
             sail:
