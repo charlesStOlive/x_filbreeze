@@ -126,6 +126,45 @@ class TicketPagesTest extends TmaTestCase
             ->assertCanNotSeeTableRecords([...$open, $done[0], $done[2]]);
     }
 
+    public function test_the_list_shows_the_time_of_each_ticket_and_their_sum(): void
+    {
+        // Maître : la somme des saisies de chaque ticket (pas celles supprimées).
+        $this->asMaster();
+        $agent = $this->agent();
+        $this->actingAs($agent);
+        $long = $this->serviceDeskTicket('in_progress', 'DES-0011');
+        $short = $this->serviceDeskTicket('submitted', 'DES-0012');
+        $none = $this->serviceDeskTicket('in_progress', 'DES-0013');
+        $log = fn (Ticket $ticket, int $minutes) => $ticket->timeEntries()->create(['actor_id' => Actor::forUser($agent)->getKey(), 'worked_on' => now()->toDateString(), 'minutes' => $minutes]);
+        $log($long, 480);
+        $log($long, 120);
+        $log($short, 30);
+        $log($short, 60)->delete();
+
+        // Un ticket en unité automatique, la somme des tickets montrés en jours (l'unité des sommes).
+        Livewire::test(ListTickets::class)
+            ->assertTableColumnStateSet(TicketResource::TIME_SPENT, 600, $long)
+            ->assertTableColumnStateSet(TicketResource::TIME_SPENT, 30, $short)
+            ->assertTableColumnStateSet(TicketResource::TIME_SPENT, null, $none)
+            ->assertSee(['1,43 j', '30 min'])
+            ->assertTableColumnSummarySet(TicketResource::TIME_SPENT, 'total', 630)
+            ->assertSee('1,5 j')
+            ->sortTable(TicketResource::TIME_SPENT, 'desc')
+            ->assertCanSeeTableRecords([$long, $short, $none], inOrder: true)
+            // La somme suit les filtres.
+            ->filterTable('state', ['submitted'])
+            ->assertTableColumnSummarySet(TicketResource::TIME_SPENT, 'total', 30);
+
+        // Client : les totaux reçus du Support.
+        $this->asClient();
+        $theirs = $this->draft($agent);
+        $theirs->forceFill(['state' => 'submitted', 'time_total_minutes' => 90, 'time_by_month' => ['2026-11' => 90]])->save();
+        Livewire::test(ListTickets::class)
+            ->assertTableColumnStateSet(TicketResource::TIME_SPENT, 90, $theirs)
+            ->assertSee('1,5 h')
+            ->assertTableColumnSummarySet(TicketResource::TIME_SPENT, 'total', 90);
+    }
+
     public function test_in_a_client_a_support_member_sees_every_request(): void
     {
         $this->asClient();
