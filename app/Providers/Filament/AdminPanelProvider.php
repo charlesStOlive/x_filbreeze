@@ -14,6 +14,7 @@ use Filament\Http\Middleware\Authenticate;
 use Pboivin\FilamentPeek\FilamentPeekPlugin;
 use CharlesStOlive\FilamentStateFusionEnhanced\FilamentStateFusionEnhancedPlugin;
 use CharlesStOlive\FilamentPermissionManager\FilamentPermissionManagerPlugin;
+use CharlesStOlive\FilamentPrism\FilamentPrismPlugin;
 use CharlesStOlive\MsGraphFilament\MsGraphFilamentPlugin;
 use CharlesStOlive\FilamentQonto\FilamentQontoPlugin;
 use CharlesStOlive\FilamentTma\FilamentTmaPlugin;
@@ -49,6 +50,9 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->plugins([
                 FilamentPermissionManagerPlugin::make(),
+                // « Demandes IA » et « Consommation IA » : chacun voit ses demandes et sa consommation ;
+                // aiinteraction.viewallusers montre celles de tout le monde (et la facture des fournisseurs).
+                FilamentPrismPlugin::make()->navigationGroup('IA'),
                 FilamentPeekPlugin::make()->disablePluginStyles(),
                 FilamentStateFusionEnhancedPlugin::make(),
                 MsGraphFilamentPlugin::make(),

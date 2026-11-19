@@ -5,6 +5,10 @@ namespace App\Providers;
 use App\Listeners\SupplierInvoiceFileAdded;
 use App\Livewire\KnowledgeBaseModals;
 use App\Models\Company;
+use App\Models\User;
+use CharlesStOlive\FilamentPermissionManager\Support\RoleScopedPermissions;
+use CharlesStOlive\FilamentPrism\Filament\Resources\AiInteractions\AiInteractionResource;
+use CharlesStOlive\FilamentPrism\Support\AiAccess;
 use App\Policies\CompanyPolicy;
 use Filament\Forms\Components\FileUpload;
 use Filament\Infolists\Components\ImageEntry;
@@ -19,6 +23,7 @@ use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Table;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +51,16 @@ class AppServiceProvider extends ServiceProvider
 
         // La fenêtre d'aide ne se vide plus pendant qu'elle se referme : va avec la vue « modals » surchargée (voir la classe).
         Livewire::component('modals', KnowledgeBaseModals::class);
+
+        // Demandes et consommation IA : en plus des siennes, on voit celles des utilisateurs des rôles dont on a
+        // la permission `aiinteraction.viewrole.{rôle}` (créées par rôle, filament-permission-manager). « Tout voir »
+        // reste `aiinteraction.viewallusers` (AdminPanelProvider).
+        AiAccess::visibleUsersUsing(function (User $viewer, Builder $users): ?Builder {
+            $roles = RoleScopedPermissions::rolesGranted($viewer, AiInteractionResource::VIEW_ROLE_PERMISSION);
+
+            return $roles->isEmpty() ? null : $users->role($roles);
+        });
+
         // Event déplacé dans le workflow des states (DraftToValidated->handle())
         // Event::listen(MediaHasBeenAddedEvent::class, SupplierInvoiceFileAdded::class);
         // Event::listen('eloquent.deleted: ' . Media::class, SupplierInvoiceFileAdded::class);
